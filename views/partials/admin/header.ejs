@@ -1,0 +1,239 @@
+<!-- views/users.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .navbar {
+            background-color: #000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo::before {
+            content: "";
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .sign-out {
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+}
+
+        .header {
+            background-color: #000;
+            color: white;
+            padding: 3rem 2rem;
+            position: relative;
+        }
+
+        .header::after {
+            content: "";
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: #000;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            transform: scaleX(1.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 80px auto 2rem;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+            color: #666;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .block {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .unblock {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .action-menu {
+            cursor: pointer;
+            width: 24px;
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pagination a {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+
+        .pagination a.active {
+            background-color: #ff0000;
+            color: white;
+            border-color: #ff0000;
+        }
+
+        .pagination a.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .header {
+                padding: 2rem 1rem;
+            }
+
+            .container {
+                margin-top: 60px;
+            }
+
+            .pagination {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1rem;
+            }
+
+            td, th {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .pagination a {
+                padding: 0.4rem 0.8rem;
+                min-width: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">SNEAKY</div>
+        <div class="nav-links">
+            <a href="/admin/dashboard">DASHBOARD</a>
+            <a href="/admin/userManagement">USERS</a>
+            <a href="/admin/orders">ORDERS</a>
+            <a href="/admin/productManagement">PRODUCTS</a>
+            <a href="/admin/categoryManagement">CATEGORIES</a>
+            <a href="/admin/coupons">COUPONS</a>
+            <a href="/admin/offers">OFFERS</a>
+            <a href="/admin/sales">SALES REPORT</a>
+        </div>
+        <a href="/admin/logout" class="sign-out" style="text-decoration: none;">Sign Out</a>
+    </nav>

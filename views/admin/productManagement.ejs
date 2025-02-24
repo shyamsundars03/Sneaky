@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaky - Product Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, system-ui, sans-serif;
+        }
+
+        :root {
+            --primary-color: #ff0000;
+            --text-color: #333;
+            --border-color: #e1e1e1;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        /* Header Styles */
+        header {
+            background: #000;
+            padding: 1rem 2rem;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .sign-out {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: #000;
+            color: white;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero h1 {
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: white;
+            border-radius: 100% 100% 0 0;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        .add-product {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .listed {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .unlisted {
+            background: #6c757d;
+            color: white;
+        }
+
+        .stock-status {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .out-of-stock {
+            color: var(--danger-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding: 1rem 0;
+        }
+
+        .pagination-info {
+            color: #666;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .modal {
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .image-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .image-upload {
+            border: 2px dashed #ddd;
+            padding: 1rem;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .image-upload:hover {
+            border-color: var(--primary-color);
+        }
+
+        .image-upload i {
+            font-size: 2rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Confirmation Dialog */
+        .confirm-dialog {
+            background: white;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .confirm-body {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .confirm-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .confirm-message {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .confirm-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav-links {
+                gap: 1rem;
+            }
+
+            .search-box {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .table-container {
+                margin: 0 -1rem;
+            }
+
+            th:nth-child(3),
+            td:nth-child(3) {
+                display: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .image-upload-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-overlay {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            th:nth-child(4),
+            td:nth-child(4) {
+                display: none;
+            }
+
+            .pagination {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .image-upload-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .confirm-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">SNEAKY</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard">DASHBOARD</a>
+                <a href="/admin/userManagement">USERS</a>
+                <a href="/admin/orderManagement">ORDERS</a>
+                <a href="/admin/productManagement">PRODUCTS</a>
+                <a href="/admin/categoryManagement">CATEGORIES</a>
+                <a href="/admin/couponManagement">COUPONS</a>
+                <a href="/admin/offerManagemnt">OFFERS</a>
+                <a href="/admin/sales">SALES REPORT</a>
+            </div>
+            <a href="/admin/logout" class="sign-out" style="text-decoration: none;">Sign Out</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>PRODUCTS</h1>
+        <div class="wave"></div>
+    </section>
+
+    <main class="container">
+        <div class="header-actions">
+            <input type="text" class="search-box" placeholder="Search Products">
+            <button class="add-product" onclick="openModal('productFormModal', 'add')">Add Product</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Availability</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><img src="/api/placeholder/60/60" alt="Nike Phantom Luna 2" class="product-image"></td>
+                        <td>Nike Phantom Luna 2</td>
+                        <td>Men</td>
+                        <td><span class="stock-status">In Stock</span></td>
+                        <td>₹1800</td>
+                        <td><span class="status-badge listed">Listed</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn" onclick="openModal('productFormModal', 'edit')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn" onclick="openModal('confirmDialog')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img src="/api/placeholder/60/60" alt="Nike Tiempo Legend" class="product-image"></td>
+                        <td>Nike Tiempo Legend</td>
+                        <td>Women</td>
+                        <td><span class="stock-status out-of-stock">Out Of Stock</span></td>
+                        <td>₹1300</td>
+                        <td><span class="status-badge unlisted">UnListed</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn" onclick="openModal('productFormModal', 'edit')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn" onclick="openModal('confirmDialog')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <div class="pagination-info">
+                Showing 1 to 8 of 12 entries
+            </div>
+            <div class="pagination-buttons">
+                <button class="page-btn">Previous</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <button class="page-btn">Next</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Product Form Modal -->
+    <div class="modal-overlay" id="productFormModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Product</h2>
+                <button class="close-btn" onclick="closeModal('productFormModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category Name</label>
+                            <select class="form-input" required>
+                                <option value="">Select Category</option>
+                                <option value="men">Men</option>
+                                <option value="women">Women</option>
+                                <option value="kids">Kids</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Price</label>
+                            <input type="number" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Offer Price</label>
+                            <input type="number" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Stock</label>
+                            <input type="number" class="form-input" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Product Images</label>
+                            <div class="image-upload-grid">
+                                <div class="image-upload">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Image 1</p>
+                                    <input type="file" hidden accept="image/*" required>
+                                </div>
+                                <div class="image-upload">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Image 2</p>
+                                    <input type="file" hidden accept="image/*" required>
+                                </div>
+                                <div class="image-upload">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Image 3</p>
+                                    <input type="file" hidden accept="image/*" required>
+                                </div>
+                                <div class="image-upload">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Image 4</p>
+                                    <input type="file" hidden accept="image/*" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Status</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="status" value="list" checked>
+                                    List
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="status" value="unlist">
+                                    Unlist
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-input" required></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('productFormModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- List/Unlist Confirmation Dialog -->
+    <div class="modal-overlay" id="confirmDialog">
+        <div class="confirm-dialog">
+            <div class="confirm-body">
+                <h3 class="confirm-title">Update Product Status</h3>
+                <p class="confirm-message">Do you want to list or unlist this product?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-primary" onclick="updateStatus('list')">List Product</button>
+                    <button class="btn btn-secondary" onclick="updateStatus('unlist')">Unlist Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(modalId, mode = 'add') {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'block';
+            
+            if (modalId === 'productFormModal') {
+                const title = modal.querySelector('.modal-title');
+                title.textContent = mode === 'add' ? 'Add New Product' : 'Edit Product';
+                
+                if (mode === 'edit') {
+                    // Populate form with existing data
+                    // This is where you would fill the form with the product data
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function updateStatus(status) {
+            // Handle list/unlist action
+            console.log(`Product ${status}ed`);
+            closeModal('confirmDialog');
+        }
+
+        function saveProduct() {
+            // Handle form submission
+            const form = document.getElementById('productForm');
+            if (form.checkValidity()) {
+                // Process form data here
+                console.log('Product saved');
+                closeModal('productFormModal');
+            } else {
+                form.reportValidity();
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Handle image upload preview
+        document.querySelectorAll('.image-upload').forEach(upload => {
+            upload.addEventListener('click', () => {
+                upload.querySelector('input[type="file"]').click();
+            });
+
+            upload.querySelector('input[type="file"]').addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        upload.style.backgroundImage = `url(${e.target.result})`;
+                        upload.style.backgroundSize = 'cover';
+                        upload.style.backgroundPosition = 'center';
+                        upload.querySelector('i').style.display = 'none';
+                        upload.querySelector('p').style.display = 'none';
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<%-include("../../views/partials/user/header")%>
+  
+  
+  
+  <!-- Hero Section -->
+  <section class="shop-hero">
+    <div class="shop-hero-content">
+        <h1>SHOP</h1>
+        <div class="breadcrumb">
+            <a href="/">HOME</a> / <span>SHOP</span>
+        </div>
+    </div>
+    <div class="hero-wave"></div>
+</section>
+
+<!-- Shop Content -->
+<div class="shop-container">
+    <aside class="shop-sidebar">
+        <div class="filter-section">
+            <div class="filter-header">
+                <h4>CATEGORIES</h4>
+                <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="filter-options">
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    MEN
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    WOMEN
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    KIDS
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-header">
+                <h4>PRICE</h4>
+                <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="filter-options">
+                <div class="price-range">
+                    <div class="range-inputs">
+                        <input type="text" placeholder="Min" value="₹0">
+                        <input type="text" placeholder="Max" value="₹5000">
+                    </div>
+                    <input type="range" min="0" max="10000" class="range-slider">
+                    <button class="apply-button">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-header">
+                <h4>SIZE</h4>
+                <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="filter-options">
+                <div class="size-options">
+                    <button class="size-option">XS</button>
+                    <button class="size-option active">SM</button>
+                    <button class="size-option">LG</button>
+                    <button class="size-option">XL</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-header">
+                <h4>RATINGS</h4>
+                <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="filter-options">
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    <div class="stars">★★★★★</div>
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    <div class="stars">★★★★☆</div>
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    <div class="stars">★★★☆☆</div>
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    <div class="stars">★★☆☆☆</div>
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked>
+                    <div class="stars">★☆☆☆☆</div>
+                </label>
+            </div>
+        </div>
+    </aside>
+
+    <div class="products-container">
+        <div class="products-header">
+            <h3>32 items found</h3>
+            <div class="products-view-options">
+                <select class="sort-select">
+                    <option>Best match</option>
+                </select>
+                <div class="view-options">
+                    <button class="view-grid active"><i class="fas fa-th"></i></button>
+                    <button class="view-list"><i class="fas fa-list"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="products-grid">
+            <!-- Product 1 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro1.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹3040</span>
+                        <span class="original-price">₹4099</span>
+                    </div>
+                    <h4 class="product-name">JORDAN TATUM 2</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 2 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro2.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹1200</span>
+                    </div>
+                    <h4 class="product-name">AIR JORDAN 4</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 3 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro3.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹1200</span>
+                    </div>
+                    <h4 class="product-name">NIKE AIR MORE UPTEMPO </h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 4 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro4.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹1200</span>
+                    </div>
+                    <h4 class="product-name">NIKE AIR MAX DRIFT</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 5 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro7.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹5100</span>
+                    </div>
+                    <h4 class="product-name">NIKE AIR MAX DN</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product 6 -->
+            <div class="product-card">
+                <a href="/product/123" class="product-image">
+                    <img src="/images/pro6.png" alt="Nike Air Max Plus Drift">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        <span class="current-price">₹7999</span>
+                    </div>
+                    <h4 class="product-name">AIR JORDAN 1 LOW</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart">Add to cart</button>
+                        <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pagination">
+            <span class="pagination-info">Showing 1 to 6 of 12 entries</span>
+            <div class="pagination-controls">
+                <a href="#" class="pagination-prev">Previous</a>
+                <a href="#" class="page-number">1</a>
+                <a href="#" class="page-number active">2</a>
+                <a href="#" class="page-number">3</a>
+                <a href="#" class="pagination-next">Next</a>
+            </div>
+        </div>
+    </div>
+</div>
+<%-include("../../views/partials/user/footer")%>

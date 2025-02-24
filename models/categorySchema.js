@@ -16,9 +16,15 @@ const categorySchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    categoryOffer:{
+    stock:{
         type : Number,
-        default : 0
+        required : true,
+    },
+    availability:{
+        type: String,
+        enum: ["Available", "Out of Stock"], 
+        required: true,
+        default: "Available"
     },
     createdAt:{
         type : Date,

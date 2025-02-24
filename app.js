@@ -3,7 +3,9 @@ const app = express()
 const path = require("path")
 const env = require("dotenv").config();
 const db = require("./config/db")
+const session = require("express-session");
 const userRouter = require("./routes/userRouter")
+const adminRouter = require("./routes/adminRouter")
 db()
 
 
@@ -16,9 +18,19 @@ app.set("views",[path.join(__dirname,"views/user"),path.join(__dirname,"views/ad
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+app.use(session({
+    secret: process.env.SESSION_SECRET ,
+    resave: false,
+    saveUninitialized: true
+}));
+
+
+
+
+
 
 app.use("/", userRouter);
-
+app.use("/admin",adminRouter);
 
 
 

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SignIn</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/public/images/sneaky.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url("/images/wall2.jpg");
+            background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            margin: 150px auto;
+            padding: 20px;
+            background: white;
+            border: 2px grey;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .field-error {
+            color: red;
+            font-size: 12px;
+            margin-top: -8px;
+            margin-bottom: 10px;
+        }
+
+        .timer {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        p {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        #adminSigninForm h2 {
+            color: #2c3e50;
+        }
+
+        #adminSigninForm button {
+            background: red;
+        }
+
+        #adminSigninForm button:hover {
+            background: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome Back</h2>
+        <form id="signinForm">
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Password">
+            </div>
+            <button type="submit">Sign In</button>
+        </form>
+        <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const validateField = (field, value) => {
+                const errorDiv = field.nextElementSibling;
+                let error = '';
+
+                if (!value.trim()) {
+                    error = `${field.placeholder} is required`;
+                } else {
+                    switch (field.id) {
+                        case 'email':
+                            if (!/\S+@\S+\.\S+/.test(value)) {
+                                error = 'Please enter a valid email address';
+                            }
+                            break;
+                        case 'password':
+                            if (value.length < 6) {
+                                error = 'Password must be at least 6 characters';
+                            }
+                            break;
+                    }
+                }
+
+                if (error) {
+                    if (errorDiv && errorDiv.classList.contains('field-error')) {
+                        errorDiv.textContent = error;
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'field-error';
+                        div.textContent = error;
+                        field.parentNode.insertBefore(div, field.nextSibling);
+                    }
+                    return false;
+                }
+
+                if (errorDiv && errorDiv.classList.contains('field-error')) {
+                    errorDiv.remove();
+                }
+                return true;
+            };
+
+            const signinForm = document.getElementById('signinForm');
+            if (signinForm) {
+                const emailField = document.getElementById('email');
+                const passwordField = document.getElementById('password');
+
+                [emailField, passwordField].forEach(field => {
+                    if (field) {
+                        field.addEventListener('blur', () => validateField(field, field.value));
+                    }
+                });
+
+                signinForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    let isValid = true;
+                    if (!validateField(emailField, emailField.value)) isValid = false;
+                    if (!validateField(passwordField, passwordField.value)) isValid = false;
+
+                    if (!isValid) return;
+
+                    try {
+                        const response = await fetch('/signin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: emailField.value,
+                                password: passwordField.value
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Welcome!',
+                                text: 'Signed in successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.href = '/';
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.error
+                            });
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Server error, please try again'
+                        });
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

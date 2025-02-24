@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaky - User Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, system-ui, sans-serif;
+        }
+
+        :root {
+            --primary-color: #ff0000;
+            --text-color: #333;
+            --border-color: #e1e1e1;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        /* Header Styles */
+        header {
+            background: #000;
+            padding: 1rem 2rem;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .sign-out {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: #000;
+            color: white;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero h1 {
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: white;
+            border-radius: 100% 100% 0 0;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .status-badge.block {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-badge.unblock {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .action-btn {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination a {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .pagination a.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav-links {
+                gap: 1rem;
+            }
+
+            .search-box {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .table-container {
+                margin: 0 -1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">SNEAKY</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard">DASHBOARD</a>
+                <a href="/admin/userManagement">USERS</a>
+                <a href="/admin/orderManagement">ORDERS</a>
+                <a href="/admin/productManagement">PRODUCTS</a>
+                <a href="/admin/categoryManagement">CATEGORIES</a>
+                <a href="/admin/couponManagement">COUPONS</a>
+                <a href="/admin/offerManagemnt">OFFERS</a>
+                <a href="/admin/sales">SALES REPORT</a>
+            </div>
+            <a href="/admin/logout" class="sign-out" style="text-decoration: none;">Sign Out</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>OFFERS</h1>
+        <div class="wave"></div>
+    </section>
+
+
+    <script>
+        // Search functionality
+        const searchBox = document.querySelector('.search-box');
+        searchBox.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const firstName = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                const lastName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                
+                if (firstName.includes(searchTerm) || 
+                    lastName.includes(searchTerm) || 
+                    email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Toggle block/unblock status
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                const isBlocked = this.textContent === 'Block';
+                this.textContent = isBlocked ? 'Unblock' : 'Block';
+                this.classList.toggle('block');
+                this.classList.toggle('unblock');
+            });
+        });
+    </script>
+</body>
+</html>
