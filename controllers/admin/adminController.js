@@ -67,96 +67,6 @@ const logoutAdmin = (req, res) => {
 
 
 
-const loadUserManagement = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("userManagement");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
-const loadProductManagement = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("productManagement");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
-
-// const loadCategoryManagement = (req, res) => {
-//     try {
-//         if (req.session.admin) {
-//             res.render("categoryManagement");
-//         } else {
-//             res.redirect('/admin');
-//         }
-//     } catch (error) {
-//         console.error(error.message);
-//         res.status(500).json({ error: "Internal Server Error" });
-//     }
-// };
-
-const loadOrderManagement = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("orderManagement");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-const loadCouponManagement = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("couponManagement");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-const loadOfferManagement = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("offerManagement");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
-
-const loadSales = (req, res) => {
-    try {
-        if (req.session.admin) {
-            res.render("sales");
-        } else {
-            res.redirect('/admin/dashboard');
-        }
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
 
 
 
@@ -165,11 +75,5 @@ module.exports = {
     verifyLogin,
     loadDashboard,
     logoutAdmin,
-    loadUserManagement,
-    loadProductManagement,
-    // loadCategoryManagement,
-    loadOrderManagement,
-    loadCouponManagement,
-    loadOfferManagement,
-    loadSales
+
 };

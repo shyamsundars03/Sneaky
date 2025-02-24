@@ -22,9 +22,10 @@ const productSchema = new Schema({
     },
     offerPrice :{
         type : Number,
+        required : false,
         default : 0,
     },
-    quantity :{
+    stock :{
         type: Number,
         default : 1
     },
@@ -32,17 +33,15 @@ const productSchema = new Schema({
         type : [String],
         required : true
     },
-    isblocked:{
+    isDeleted:{
         type: Boolean,
         default : false
     },
-    status: {
-        type: String,
-        enum: ["Available", "Out of Stock", "Discontinued"], 
-        required: true,
-        default: "Available"
-    }
-    ,
+    isListed:{
+        type: Boolean,
+        default : true
+    },
+
 },{timestamps:true})
 
 const Product = mongoose.model("Product", productSchema);
