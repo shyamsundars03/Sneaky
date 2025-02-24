@@ -25,6 +25,7 @@ router.put("/category/:id", adminAuth, categoryController.updateCategory);
 router.delete("/category/:id", adminAuth, categoryController.deleteCategory);
 router.patch("/category/:id/toggle", adminAuth, categoryController.toggleCategoryStatus);
 
+///qwefewrdg
 
 
 //product management
