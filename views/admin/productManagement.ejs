@@ -703,6 +703,49 @@
                             <input type="number" name="stock" id="stock" class="form-input" min="0">
                             <div class="form-error" id="stockError"></div>
                         </div>
+
+                                    <!-- Add this after the stock form group and before the images section -->
+<div class="form-group full-width">
+    <label class="form-label">Size *</label>
+    <div class="form-error" id="sizeError"></div>
+    <div class="radio-group">
+        <label class="radio-option">
+            <input type="radio" name="size" value="XS">
+            XS
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="size" value="SM">
+            SM
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="size" value="LR">
+            LR
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="size" value="XXL">
+            XXL
+        </label>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                         <div class="form-group full-width">
                             <label class="form-label">Product Images * (All 4 images required)</label>
                             <div class="form-error" id="imagesError"></div>
@@ -857,11 +900,11 @@
             }
         }
 
-        // Load product data for editing
-        async function loadProductData(productId) {
-            try {
-                const response = await fetch(`/admin/product/${productId}`);
-                const data = await response.json();
+     // Load product data for editing
+async function loadProductData(productId) {
+    try {
+        const response = await fetch(`/admin/product/${productId}`);
+        const data = await response.json();
 
         if (data.success) {
             const form = document.getElementById('productForm');
@@ -878,6 +921,18 @@
             // Set radio button value
             const listStatus = product.isListed ? 'list' : 'unlist';
             form.querySelector(`input[name="isListed"][value="${listStatus}"]`).checked = true;
+
+            // Set size radio button if it exists
+            if (product.size) {
+                const sizeRadio = form.querySelector(`input[name="size"][value="${product.size}"]`);
+                if (sizeRadio) {
+                    sizeRadio.checked = true;
+                } else {
+                    console.warn(`Size radio button for value "${product.size}" not found`);
+                }
+            } else {
+                console.warn('Product has no size data');
+            }
 
             // Clear image previews first
             clearImagePreviews();
@@ -913,7 +968,7 @@
             const offerPrice = form.elements.offerPrice.value;
             const stock = form.elements.stock.value;
             const description = form.elements.description.value.trim();
-
+            const sizeSelected = form.querySelector('input[name="size"]:checked');
             let isValid = true;
 
             // Validate product name
@@ -971,6 +1026,17 @@
                 showFormError('stockError', 'Stock cannot be negative');
                 isValid = false;
             }
+
+                // Validate size
+   
+            if (!sizeSelected) {
+                showFormError('sizeError', 'Size selection is required');
+                isValid = false;
+            }
+
+
+
+
 
             // Validate description
             if (!description) {

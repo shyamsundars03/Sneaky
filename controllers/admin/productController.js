@@ -42,6 +42,12 @@ const validateProduct = async (productData, productId = null) => {
         errors.push('Stock cannot be negative');
     }
 
+
+    if (!productData.size) {
+        errors.push('Size is required');
+    }
+
+
     if (!productData.description?.trim()) {
         errors.push('Description is required');
     }
@@ -122,7 +128,8 @@ const addProduct = async (req, res) => {
             price: parseFloat(req.body.price),
             offerPrice: req.body.offerPrice ? parseFloat(req.body.offerPrice) : 0,
             stock: parseInt(req.body.stock),
-            isListed: req.body.isListed === 'list'
+            isListed: req.body.isListed === 'list',
+            size: req.body.size  
         };
 
         // Validate product data
@@ -185,8 +192,16 @@ const updateProduct = async (req, res) => {
             price: parseFloat(req.body.price),
             offerPrice: req.body.offerPrice ? parseFloat(req.body.offerPrice) : 0,
             stock: parseInt(req.body.stock),
-            isListed: req.body.isListed === 'list'
+            isListed: req.body.isListed === 'list',
+            size: req.body.size  
         };
+
+
+
+
+
+        console.log(productData)
+
 
         // Validate product data
         const errors = await validateProduct(productData, productId);
@@ -351,6 +366,25 @@ const getProductById = async (req, res) => {
         });
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = {
     loadProductManagement,

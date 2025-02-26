@@ -41,6 +41,11 @@ const productSchema = new Schema({
         type: Boolean,
         default : true
     },
+    size: {
+        type: String,
+        enum: ['XS', 'SM', 'LR', 'XXL'],
+        required: true
+    },
 
 },{timestamps:true})
 
