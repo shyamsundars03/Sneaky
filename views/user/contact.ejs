@@ -1,0 +1,211 @@
+<%-include("../../views/partials/user/header")%>
+    
+<section class="hero">
+    <h1 class="hero-title">CONTACT</h1>
+</section>
+    
+<section class="about-content">
+    <div class="about-image">
+        <img src="/images/MenShoe.png" alt="Sneaky Shoe">
+    </div>
+        
+    <div class="about-text">
+        <h2 class="about-heading">Contact us !!</h2>
+            
+        <p class="about-paragraph">
+            At <strong>SNEAKY</strong>, we bring style, comfort, and quality to every step. From
+            casual to formal, we've got the perfect pair for you. Step in and find
+            your fit!
+        </p>
+            
+        <div class="contact-form">
+            <h3>Get in Touch</h3>
+            <form id="contactForm" action="/contact" method="POST">
+                <div class="form-group">
+                    <input type="text" id="name" name="name" placeholder="Your Name" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="email" id="email" name="email" placeholder="Your Email" required>
+                </div>
+                
+                <div class="form-group">
+                    <input type="tel" id="phone" name="phone" placeholder="Phone Number">
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" id="subject" name="subject" placeholder="Subject">
+                </div>
+                
+                <div class="form-group">
+                    <textarea id="message" name="message" placeholder="Your Message" rows="4" required></textarea>
+                </div>
+                
+                <button type="submit" class="submit-btn">Send Message</button>
+            </form>
+        </div>
+    </div>
+</section>
+    
+<%-include("../../views/partials/user/footer")%>
+
+<style>
+    /* Hero Section */
+    .hero {
+        background-color: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 60px 0;
+        margin-bottom: 50px;
+        position: relative;
+    }
+
+    .hero-title {
+        font-size: 42px;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    /* About Content */
+    .about-content {
+        display: flex;
+        gap: 40px;
+        padding: 0 5% 50px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .about-image {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .about-image img {
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+    }
+
+    .about-text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .about-heading {
+        font-size: 32px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .about-paragraph {
+        line-height: 1.6;
+        color: #555;
+        margin-bottom: 20px;
+    }
+
+    /* Contact Form Styles */
+    .contact-form {
+        background-color: #f9f9f9;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .contact-form h3 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #333;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        border-color: #ff0000;
+        outline: none;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background-color: #ff0000;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .submit-btn:hover {
+        background-color: #cc0000;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .about-content {
+            flex-direction: column;
+        }
+
+        .about-image, 
+        .about-text {
+            width: 100%;
+        }
+        
+        .hero-title {
+            font-size: 32px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contactForm = document.getElementById('contactForm');
+        
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Form validation
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const message = document.getElementById('message').value;
+                
+                if (!name || !email || !message) {
+                    alert('Please fill out all required fields');
+                    return;
+                }
+                
+                // Form would normally submit here
+                alert('Thank you for your message! We will get back to you soon.');
+                contactForm.reset();
+                
+                // In a real implementation, you would use:
+                // this.submit();
+                // or an AJAX request to submit the form
+            });
+        }
+    });
+</script>

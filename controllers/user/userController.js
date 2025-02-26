@@ -45,7 +45,7 @@ const loadShop = async (req, res) => {
             .sort({ createdAt: -1 });
 
         const categories = await Category.find({ isDeleted: false });
-        console.log("Categories:", categories); // Debugging log
+
 
 
         const totalProducts = await Product.countDocuments({ isDeleted: false, isListed: true });
@@ -102,7 +102,7 @@ const loadHomepage = async (req, res) => {
     try {
         // Fetch categories that are not deleted
         const categories = await Category.find({ isDeleted: false });
-        console.log("Categories:", categories); // Debugging log
+
 
         // Render the home.ejs file with categories
         res.render("home", {
@@ -129,6 +129,9 @@ const signupPost = async (req, res) => {
 const loadSingleProduct = async (req, res) => {
     try {
         const productId = req.params.id;
+
+
+
 
         // Fetch the product by ID
         const product = await Product.findById(productId).populate('category');

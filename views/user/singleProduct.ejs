@@ -31,9 +31,12 @@
                 <h2><%= product.productName %></h2>
                 <div class="rating">★★★★★ <span>(1 customer review)</span></div>
                 <div class="price">
-                    ₹<%= product.price %>
-                    <% if (product.offerPrice && product.offerPrice > 0) { %>
-                        <span class="discount">20% OFF</span>
+
+                    ₹<%= product.offerPrice %>
+                
+
+                    <% if (product.price && product.price > 0) { %>
+                        <span class="discount">₹<%= product.price %></span>
                     <% } %>
                 </div>
                 <p><%= product.description %></p>
@@ -116,6 +119,14 @@
             quantityElement.textContent = quantity - 1;
         }
     }
+
+
+
+
+
+
+
+    
 </script>
 
 <%- include("../../views/partials/user/footer") %>
