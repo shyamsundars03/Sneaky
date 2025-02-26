@@ -15,7 +15,7 @@
         </div>
     </section>
 
-    <!-- Replace your current features section with this -->
+    <!-- features section -->
 <div class="features-wrapper">
     <div class="features">
         <div class="feature">
@@ -41,24 +41,19 @@
     </div>
 </div>
 
-    <div class="container">
+ <!-- Categories Section -->
+<div class="container">
+    <% if (categories.length > 0) { %>
         <section class="categories">
-            <div class="category-card">
-                <h2>MEN</h2>
-                <p>21 items</p>
-                <img src="/images/MenShoe.png" alt="Men's Shoes">
-            </div>
-            <div class="category-card">
-                <h2>WOMEN</h2>
-                <p>26 items</p>
-                <img src="/images/WomenShoe.png" alt="Women's Shoes">
-            </div>
-            <div class="category-card">
-                <h2>KIDS</h2>
-                <p>18 items</p>
-                <img src="/images/kidsShoe.png" alt="Kids' Shoes">
-            </div>
+            <% categories.slice(0, 3).forEach((category, index) => { %>
+                <div class="category-card">
+                    <h2><%= category.name.toUpperCase() %></h2>
+                    <img src="/images/<%= ['MenShoe.png', 'WomenShoe.png', 'KidsShoe.png'][index] %>" alt="<%= category.name %> Shoes">
+                </div>
+            <% }) %>
         </section>
+    <% } %>
+</div>
 
         <section class="promo">
             <div class="promo-content">

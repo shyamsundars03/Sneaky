@@ -12,13 +12,14 @@ router.get("/about", userController.loadAbout);
 router.get("/shop", userController.loadShop);     
 router.get("/contact", userController.loadContact);
 router.post("/signup",userController.signupPost)
-router.get('*', userController.pageNotFound); 
+
 
 
 
 
 // Shop page route
 router.get('/shop', userController.loadShop); 
+router.get("/product/:id", userController.loadSingleProduct);
 
 
 

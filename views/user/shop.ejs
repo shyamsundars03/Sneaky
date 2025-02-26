@@ -16,24 +16,23 @@
 <!-- Shop Content -->
 <div class="shop-container">
     <aside class="shop-sidebar">
+        <!-- Categories Section -->
         <div class="filter-section">
             <div class="filter-header">
                 <h4>CATEGORIES</h4>
                 <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
             </div>
             <div class="filter-options">
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    MEN
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    WOMEN
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    KIDS
-                </label>
+                <% if (categories.length > 0) { %>
+                    <% categories.forEach(category => { %>
+                        <label class="filter-option">
+                            <input type="checkbox" checked>
+                            <%= category.name %>
+                        </label>
+                    <% }) %>
+                <% } else { %>
+                    <p>No categories found.</p>
+                <% } %>
             </div>
         </div>
 

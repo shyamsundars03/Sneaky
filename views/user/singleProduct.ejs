@@ -1,59 +1,56 @@
+<%- include("../../views/partials/user/header") %>
 
-<%-include("../../views/partials/user/header")%>
-
-
-
-
-
-
+<!-- Hero Section -->
 <section class="shop-hero">
-    <div class="hero-content">
+    <div class="hero-hero-content">
         <h1>SINGLE PRODUCT</h1>
         <div class="breadcrumb">
-            <a  color="white"      href="home.html">HOME</a> / <span>SHOP</span> / <span>PRODUCT</span>
+            <a href="/">HOME</a> / <a href="/shop">SHOP</a> / <span><%= product.productName %></span>
         </div>
     </div>
     <div class="hero-wave"></div>
 </section>
 
-
-
-
+<!-- Product Details Section -->
 <section class="product-section">
     <div class="container">
         <div class="product-container">
+            <!-- Product Images -->
             <div class="product-images">
-                <img src="/public/images/pro1.png" alt="Air Jordan 4 RM" class="main-image">
+                <img id="main-image" src="<%= product.productImage[0] %>" alt="<%= product.productName %>" class="main-image">
                 <div class="thumbnail-container">
-                    <img src="/public/images/pro1.1.png" alt="Thumbnail 1" class="thumbnail">
-                    <img src="/public/images/pro1.2.png" alt="Thumbnail 2" class="thumbnail">
-                    <img src="/public/images/pro1.3.png" alt="Thumbnail 3" class="thumbnail">
-                    <img src="/public/images/pro1.4.jpg" alt="Thumbnail 4" class="thumbnail">
+                    <% product.productImage.forEach((image, index) => { %>
+                        <img src="<%= image %>" alt="Thumbnail <%= index + 1 %>" class="thumbnail" onclick="changeMainImage('<%= image %>')">
+                    <% }) %>
                 </div>
             </div>
+
+            <!-- Product Info -->
             <div class="product-info">
-                <span class="category">MEN</span>
-                <h2>JORDAN TATUM 2</h2>
+                <span class="category"><%= product.category.name %></span>
+                <h2><%= product.productName %></h2>
                 <div class="rating">★★★★★ <span>(1 customer review)</span></div>
                 <div class="price">
-                    ₹3040.00 <span class="discount">20% OFF</span>
+                    ₹<%= product.price %>
+                    <% if (product.offerPrice && product.offerPrice > 0) { %>
+                        <span class="discount">20% OFF</span>
+                    <% } %>
                 </div>
-                <p>These sneakers reimagine the instantly recognizable Air for life on the go. We carried comfort and durability while keeping the lightweight and airy feel. Max Air in the heel cushions your every step, and elements of the upper—the string, swoosh and heel—are blended into a strong, flexible cage that wraps the shoe to add a toughness to your everyday commute.</p>
+                <p><%= product.description %></p>
                 <div>
                     <h3>Size</h3>
                     <div class="size-selector">
-                        <button class="size-btn">XS</button>
-                        <button class="size-btn"    >SM</button>
-                        <button class="size-btn">LG</button>
-                        <button class="size-btn">XL</button>
+                        <% product.size.split(',').forEach(size => { %>
+                            <button class="size-btn"><%= size.trim() %></button>
+                        <% }) %>
                     </div>
                 </div>
                 <div>
                     <h3>Quantity</h3>
                     <div class="quantity-selector">
-                        <button class="quantity-btn">-</button>
-                        <span>1</span>
-                        <button class="quantity-btn">+</button>
+                        <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                        <span id="quantity">1</span>
+                        <button class="quantity-btn" onclick="increaseQuantity()">+</button>
                     </div>
                 </div>
                 <div class="action-buttons">
@@ -65,68 +62,60 @@
     </div>
 </section>
 
+<!-- Related Products Section -->
 <section class="related-products">
     <div class="container">
-        <h2>Related products</h2>
-    <div class="products-grid"> 
-        <div class="product-card">
-            <a href="/product/123" class="product-image">
-                <img src="/public/images/pro4.png" alt="Nike Air Max Plus Drift">
-            </a>
-            <div class="product-info">
-                <div class="product-price">
-                    <span class="current-price">₹1200</span>
-                </div>
-                <h4 class="product-name">AIR JORDAN 4</h4>
-                <div class="product-actions">
-                    <button class="add-to-cart">Add to cart</button>
-                    <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
-                </div>
-            </div>
+        <h2>Related Products</h2>
+        <div class="products-grid">
+            <% if (relatedProducts.length > 0) { %>
+                <% relatedProducts.forEach(relatedProduct => { %>
+                    <div class="product-card">
+                        <a href="/product/<%= relatedProduct._id %>" class="product-image">
+                            <img src="<%= relatedProduct.productImage[0] %>" alt="<%= relatedProduct.productName %>">
+                        </a>
+                        <div class="product-info">
+                            <div class="product-price">
+                                <span class="current-price">₹<%= relatedProduct.price %></span>
+                                <% if (relatedProduct.offerPrice && relatedProduct.offerPrice > 0) { %>
+                                    <span class="original-price">₹<%= relatedProduct.offerPrice %></span>
+                                <% } %>
+                            </div>
+                            <h4 class="product-name"><%= relatedProduct.productName %></h4>
+                            <div class="product-actions">
+                                <button class="add-to-cart">Add to cart</button>
+                                <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p>No related products found.</p>
+            <% } %>
         </div>
-
-        <div class="product-card">
-            <a href="/product/123" class="product-image">
-                <img src="/public/images/pro7.png" alt="Nike Air Max Plus Drift">
-            </a>
-            <div class="product-info">
-                <div class="product-price">
-                    <span class="current-price">₹5100</span>
-                </div>
-                <h4 class="product-name">NIKE AIR MAX DN</h4>
-                <div class="product-actions">
-                    <button class="add-to-cart">Add to cart</button>
-                    <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
-                </div>
-            </div>
-        </div>
-
-
-        <div class="product-card">
-            <a href="/product/123" class="product-image">
-                <img src="/public/images/pro6.png" alt="Nike Air Max Plus Drift">
-            </a>
-            <div class="product-info">
-                <div class="product-price">
-                    <span class="current-price">₹7999</span>
-                </div>
-                <h4 class="product-name">AIR JORDAN 1 LOW</h4>
-                <div class="product-actions">
-                    <button class="add-to-cart">Add to cart</button>
-                    <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
-                </div>
-            </div>
-        </div>
-
-
-
-
-
-    </div>
     </div>
 </section>
 
+<script>
+    // Function to change the main image when a thumbnail is clicked
+    function changeMainImage(imageSrc) {
+        document.getElementById("main-image").src = imageSrc;
+    }
 
+    // Function to handle quantity increase
+    function increaseQuantity() {
+        const quantityElement = document.getElementById("quantity");
+        let quantity = parseInt(quantityElement.textContent);
+        quantityElement.textContent = quantity + 1;
+    }
 
+    // Function to handle quantity decrease
+    function decreaseQuantity() {
+        const quantityElement = document.getElementById("quantity");
+        let quantity = parseInt(quantityElement.textContent);
+        if (quantity > 1) {
+            quantityElement.textContent = quantity - 1;
+        }
+    }
+</script>
 
-<%-include("../../views/partials/user/footer")%>
+<%- include("../../views/partials/user/footer") %>
