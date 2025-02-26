@@ -11,15 +11,7 @@ router.get("/signin", userController.loadSignin);
 router.get("/about", userController.loadAbout);   
 router.get("/shop", userController.loadShop);     
 router.get("/contact", userController.loadContact);
-
-
-
-
-
-
-
-
-
+router.post("/signup",userController.signupPost)
 
 
 module.exports= router;

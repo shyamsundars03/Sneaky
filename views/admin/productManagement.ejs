@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -127,7 +128,7 @@
         .table-container {
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow-x: auto;
         }
 
@@ -160,6 +161,7 @@
             padding: 0.25rem 0.75rem;
             border-radius: 4px;
             font-size: 0.85rem;
+            cursor: pointer;
         }
 
         .listed {
@@ -327,6 +329,10 @@
             text-align: center;
             border-radius: 4px;
             cursor: pointer;
+            position: relative;
+            height: 150px;
+            background-size: cover;
+            background-position: center;
         }
 
         .image-upload:hover {
@@ -337,6 +343,25 @@
             font-size: 2rem;
             color: #666;
             margin-bottom: 0.5rem;
+        }
+
+        .image-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: none;
+            color: var(--danger-color);
+        }
+
+        .image-upload:hover .image-remove {
+            display: block;
         }
 
         .radio-group {
@@ -404,6 +429,34 @@
             display: flex;
             justify-content: center;
             gap: 1rem;
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .form-error {
+            color: var(--danger-color);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
         }
 
         /* Responsive Design */
@@ -488,6 +541,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <nav class="navbar">
@@ -512,8 +566,12 @@
     </section>
 
     <main class="container">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
         <div class="header-actions">
-            <input type="text" class="search-box" placeholder="Search Products">
+            <input type="text" class="search-box" name="search" placeholder="Search Products"
+                value="<%= searchQuery || '' %>" onchange="handleSearch(this.value)">
             <button class="add-product" onclick="openModal('productFormModal', 'add')">Add Product</button>
         </div>
 
@@ -531,24 +589,34 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <% if (typeof products !== 'undefined' && products && products.length > 0) { %>
-                        <% products.forEach(product => { %>
+                    <% if (typeof products !=='undefined' && products && products.length> 0) { %>
+                        <% products.forEach(product=> { %>
                             <tr>
                                 <td>
-                                    <img src='<%= product.productImage[0] %>' alt="<%= product.productName %>" class="product-image">
+                                    <img src='<%= product.productImage[0] %>' alt="<%= product.productName %>"
+                                        class="product-image">
                                 </td>
-                                <td><%= product.productName %></td>
-                                <td><%= product.category ? product.category.name : 'N/A' %></td>
-                                <td><%= product.stock %></td>
-                                <td>₹<%= product.price %></td>
                                 <td>
-                                    <span class="status-badge <%= product.isListed ? 'listed' : 'unlisted' %>">
+                                    <%= product.productName %>
+                                </td>
+                                <td>
+                                    <%= product.category ? product.category.name : 'N/A' %>
+                                </td>
+                                <td class="<%= product.stock <= 0 ? 'out-of-stock' : 'stock-status' %>">
+                                    <%= product.stock %>
+                                </td>
+                                <td>₹<%= product.price %>
+                                </td>
+                                <td>
+                                    <span class="status-badge <%= product.isListed ? 'listed' : 'unlisted' %>"
+                                        onclick="toggleProductStatus('<%= product._id %>')">
                                         <%= product.isListed ? 'Listed' : 'Unlisted' %>
                                     </span>
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="action-btn" onclick="openModal('productFormModal', 'edit', '<%= product._id %>')">
+                                        <button class="action-btn"
+                                            onclick="openModal('productFormModal', 'edit', '<%= product._id %>')">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="action-btn" onclick="openConfirmDialog('<%= product._id %>')">
@@ -557,39 +625,40 @@
                                     </div>
                                 </td>
                             </tr>
-                        <% }); %>
-                    <% } else { %>
-                        <tr>
-                            <td colspan="7" style="text-align: center;">No products found</td>
-                        </tr>
-                    <% } %>
+                            <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="7" style="text-align: center;">No products found</td>
+                                    </tr>
+                                    <% } %>
                 </tbody>
             </table>
         </div>
 
         <div class="pagination">
             <div class="pagination-info">
-                <% 
-                const current = typeof currentPage !== 'undefined' ? currentPage : 1;
-                const total = typeof totalProducts !== 'undefined' ? totalProducts : 0;
-                const start = (current - 1) * 10 + 1;
-                const end = Math.min(current * 10, total);
-                %>
-                Showing <%= start %> to <%= end %> of <%= total %> entries
+                <% const current=typeof currentPage !=='undefined' ? parseInt(currentPage) : 1; const total=typeof
+                    totalProducts !=='undefined' ? parseInt(totalProducts) : 0; const start=(current - 1) * 10 + 1;
+                    const end=Math.min(current * 10, total); %>
+                    Showing <%= total> 0 ? start : 0 %> to <%= end %> of <%= total %> entries
             </div>
             <div class="pagination-buttons">
-                <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
-                    <button class="page-btn" onclick="changePage(<%= current - 1 %>)" <%= current === 1 ? 'disabled' : '' %>>Previous</button>
-                    <% for(let i = 1; i <= totalPages; i++) { %>
-                        <button class="page-btn <%= current === i ? 'active' : '' %>" onclick="changePage(<%= i %>)"><%= i %></button>
-                    <% } %>
-                    <button class="page-btn" onclick="changePage(<%= current + 1 %>)" <%= current === totalPages ? 'disabled' : '' %>>Next</button>
-                <% } %>
+                <% if (typeof totalPages !=='undefined' && totalPages> 0) { %>
+                    <button class="page-btn" onclick="changePage(<%= current - 1 %>)" <%=current===1 ? 'disabled' : ''
+                        %>>Previous</button>
+                    <% for(let i=1; i <=totalPages; i++) { %>
+                        <button class="page-btn <%= current === i ? 'active' : '' %>" onclick="changePage(<%= i %>)">
+                            <%= i %>
+                        </button>
+                        <% } %>
+                            <button class="page-btn" onclick="changePage(<%= current + 1 %>)" <%=current===totalPages
+                                ? 'disabled' : '' %>>Next</button>
+                            <% } %>
             </div>
         </div>
     </main>
 
-    <!-- Product Form Modal -->
+    <!-- Add Product Form Modal -->
     <div class="modal-overlay" id="productFormModal">
         <div class="modal">
             <div class="modal-header">
@@ -601,43 +670,57 @@
                     <input type="hidden" id="productId" name="productId">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" name="productName" class="form-input" required>
+                            <label class="form-label">Product Name *</label>
+                            <input type="text" name="productName" id="productName" class="form-input">
+                            <div class="form-error" id="productNameError"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Category</label>
-                            <select name="category" class="form-input" required>
-                                <option value="">Select Category</option>
-                                <% if (typeof categories !== 'undefined' && categories) { %>
-                                    <% categories.forEach(category => { %>
-                                        <option value="<%= category._id %>"><%= category.name %></option>
-                                    <% }); %>
+                            <label class="form-label">Category *</label>
+                            <select name="category" id="category" class="form-input">
+                                <option value="" selected disabled>Select Category</option>
+                                <% if (typeof categories !=='undefined' && categories) { %>
+                                    <% categories.forEach(category=> { %>
+                                        <option value="<%= category._id %>">
+                                            <%= category.name %>
+                                        </option>
+                                        <% }); %>
                                 <% } %>
                             </select>
+                            <div class="form-error" id="categoryError"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Price</label>
-                            <input type="number" name="price" class="form-input" required min="0">
+                            <label class="form-label">Price *</label>
+                            <input type="number" name="price" id="price" class="form-input" min="0">
+                            <div class="form-error" id="priceError"></div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Offer Price</label>
-                            <input type="number" name="offerPrice" class="form-input" min="0">
+                            <input type="number" name="offerPrice" id="offerPrice" class="form-input" min="0">
+                            <div class="form-error" id="offerPriceError"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Stock</label>
-                            <input type="number" name="stock" class="form-input" required min="0">
+                            <label class="form-label">Stock *</label>
+                            <input type="number" name="stock" id="stock" class="form-input" min="0">
+                            <div class="form-error" id="stockError"></div>
                         </div>
                         <div class="form-group full-width">
-                            <label class="form-label">Product Images</label>
+                            <label class="form-label">Product Images * (All 4 images required)</label>
+                            <div class="form-error" id="imagesError"></div>
                             <div class="image-upload-grid">
-                                <% for(let i = 0; i < 4; i++) { %>
+                                <% for(let i=0; i < 4; i++) { %>
                                     <div class="image-upload" data-index="<%= i %>">
                                         <i class="fas fa-cloud-upload-alt"></i>
-                                        <p>Image <%= i + 1 %></p>
-                                        <input type="file" name="productImages" hidden accept="image/*" <%= i === 0 ? 'required' : '' %>>
-                                        <input type="hidden" name="existingImages[]">
+                                        <p>Image <%= i + 1 %>
+                                        </p>
+                                        <input type="file" name="productImages" class="product-image-input"
+                                            accept="image/*" hidden>
+                                        <input type="hidden" name="existingImages[]" class="existing-image-input">
+                                        <button type="button" class="image-remove"
+                                            onclick="removeImage(event, <%= i %>)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </div>
-                                <% } %>
+                                    <% } %>
                             </div>
                         </div>
                         <div class="form-group full-width">
@@ -654,15 +737,16 @@
                             </div>
                         </div>
                         <div class="form-group full-width">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-input" required></textarea>
+                            <label class="form-label">Description *</label>
+                            <textarea name="description" id="description" class="form-input"></textarea>
+                            <div class="form-error" id="descriptionError"></div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('productFormModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+                <button class="btn btn-primary" onclick="validateAndSaveProduct()">Save Product</button>
             </div>
         </div>
     </div>
@@ -683,19 +767,76 @@
 
     <script>
         let currentProductId = null;
+        let existingProductNames = <%= typeof existingProductNames !== 'undefined' ? JSON.stringify(existingProductNames) : '[]' %>;
+
+        // Show alert function
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <span>${message}</span>
+                <button type="button" onclick="this.parentElement.remove()">&times;</button>
+            `;
+
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function handleSearch(value) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('search', value);
+            url.searchParams.set('page', '1'); // Reset to first page when searching
+            window.location.href = url.toString();
+        }
+
+
+        // Show form error
+        function showFormError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+
+            const inputElement = document.getElementById(elementId.replace('Error', ''));
+            if (inputElement) {
+                inputElement.style.borderColor = 'var(--danger-color)';
+
+                inputElement.addEventListener('input', function () {
+                    errorElement.textContent = '';
+                    this.style.borderColor = '';
+                }, { once: true });
+            }
+        }
+
+        // Clear all form errors
+        function clearFormErrors() {
+            const errorElements = document.querySelectorAll('.form-error');
+            errorElements.forEach(element => {
+                element.textContent = '';
+            });
+
+            const inputElements = document.querySelectorAll('.form-input');
+            inputElements.forEach(element => {
+                element.style.borderColor = '';
+            });
+        }
 
         // Open modal function
         function openModal(modalId, mode = 'add', productId = null) {
             const modal = document.getElementById(modalId);
             modal.style.display = 'block';
-            
+
             if (modalId === 'productFormModal') {
                 const form = document.getElementById('productForm');
                 const title = modal.querySelector('.modal-title');
-                
+
+                clearFormErrors();
                 form.reset();
                 form.dataset.mode = mode;
-                
+
                 if (mode === 'edit' && productId) {
                     title.textContent = 'Edit Product';
                     loadProductData(productId);
@@ -712,6 +853,7 @@
             if (modalId === 'productFormModal') {
                 document.getElementById('productForm').reset();
                 clearImagePreviews();
+                clearFormErrors();
             }
         }
 
@@ -720,279 +862,411 @@
             try {
                 const response = await fetch(`/admin/product/${productId}`);
                 const data = await response.json();
-                
-                if (data.success) {
-                    const form = document.getElementById('productForm');
-                    const product = data.product;
-                    
-                    form.elements.productId.value = product._id;
-                    form.elements.productName.value = product.productName;
-                    form.elements.category.value = product.category;
-                    form.elements.price.value = product.price;
-                    form.elements.offerPrice.value = product.offerPrice || '';
-                    form.elements.stock.value = product.stock;
-                    form.elements.description.value = product.description;
-                    form.elements.isListed.value = product.isListed ? 'list' : 'unlist';
-                    
-                    // Load existing images
-                    product.productImage.forEach((imgUrl, index) => {
+
+        if (data.success) {
+            const form = document.getElementById('productForm');
+            const product = data.product;
+
+            form.elements.productId.value = product._id;
+            form.elements.productName.value = product.productName;
+            form.elements.category.value = product.category;
+            form.elements.price.value = product.price;
+            form.elements.offerPrice.value = product.offerPrice || '';
+            form.elements.stock.value = product.stock;
+            form.elements.description.value = product.description;
+
+            // Set radio button value
+            const listStatus = product.isListed ? 'list' : 'unlist';
+            form.querySelector(`input[name="isListed"][value="${listStatus}"]`).checked = true;
+
+            // Clear image previews first
+            clearImagePreviews();
+
+            // Load existing images
+            if (product.productImage && product.productImage.length) {
+                product.productImage.forEach((imgUrl, index) => {
+                    if (index < 4) {
                         const imageUpload = document.querySelector(`.image-upload[data-index="${index}"]`);
                         if (imageUpload) {
-                            imageUpload.style.backgroundImage = `url(${imgUrl})`;
-                            imageUpload.querySelector('i').style.display = 'none';
-                            imageUpload.querySelector('p').style.display = 'none';
-                            imageUpload.querySelector('input[name="existingImages[]"]').value = imgUrl;
+                            setImagePreview(imageUpload, imgUrl);
                         }
+                    }
+                });
+            }
+        } else {
+            showAlert(data.error || 'Failed to load product data', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading product data:', error);
+        showAlert('Failed to load product data', 'error');
+    }
+}
+
+        // Validate and save product
+        function validateAndSaveProduct() {
+            clearFormErrors();
+
+            const form = document.getElementById('productForm');
+            const productName = form.elements.productName.value.trim();
+            const category = form.elements.category.value;
+            const price = form.elements.price.value;
+            const offerPrice = form.elements.offerPrice.value;
+            const stock = form.elements.stock.value;
+            const description = form.elements.description.value.trim();
+
+            let isValid = true;
+
+            // Validate product name
+            if (!productName) {
+                showFormError('productNameError', 'Product name is required');
+                isValid = false;
+            } else {
+                // Check if product name already exists (for new products)
+                const mode = form.dataset.mode;
+                const productId = form.elements.productId.value;
+                const productNameLower = productName.toLowerCase();
+
+                if (mode === 'add' && existingProductNames.some(name => name.toLowerCase() === productNameLower)) {
+                    showFormError('productNameError', 'This product name already exists');
+                    isValid = false;
+                } else if (mode === 'edit' && productId) {
+                    // For edit mode, check if name exists but it's not the current product
+                    const filteredNames = existingProductNames.filter(item => {
+                        return item.id !== productId && item.name.toLowerCase() === productNameLower;
                     });
+
+                    if (filteredNames.length > 0) {
+                        showFormError('productNameError', 'This product name already exists');
+                        isValid = false;
+                    }
                 }
-            } catch (error) {
-                console.error('Error loading product data:', error);
-                alert('Failed to load product data');
+            }
+
+            // Validate category
+            if (!category) {
+                showFormError('categoryError', 'Category selection is required');
+                isValid = false;
+            }
+
+            // Validate price
+            if (!price) {
+                showFormError('priceError', 'Price is required');
+                isValid = false;
+            } else if (price <= 0) {
+                showFormError('priceError', 'Price must be greater than 0');
+                isValid = false;
+            }
+
+            // Validate offer price if provided
+            if (offerPrice && Number(offerPrice) >= Number(price)) {
+                showFormError('offerPriceError', 'Offer price must be less than regular price');
+                isValid = false;
+            }
+
+            // Validate stock
+            if (!stock && stock !== '0') {
+                showFormError('stockError', 'Stock is required');
+                isValid = false;
+            } else if (Number(stock) < 0) {
+                showFormError('stockError', 'Stock cannot be negative');
+                isValid = false;
+            }
+
+            // Validate description
+            if (!description) {
+                showFormError('descriptionError', 'Description is required');
+                isValid = false;
+            }
+
+            // Validate images
+            const mode = form.dataset.mode;
+            if (mode === 'add') {
+                // For new products, all 4 images are required
+                const fileInputs = document.querySelectorAll('.product-image-input');
+                let hasAllImages = true;
+
+                for (let i = 0; i < fileInputs.length; i++) {
+                    if (!fileInputs[i].files || !fileInputs[i].files[0]) {
+                        hasAllImages = false;
+                        break;
+                    }
+                }
+
+                if (!hasAllImages) {
+                    showFormError('imagesError', 'All 4 product images are required');
+                    isValid = false;
+                }
+            } else if (mode === 'edit') {
+                // For editing, check if we have a total of 4 images (existing + new)
+                const existingImages = document.querySelectorAll('.existing-image-input');
+                const fileInputs = document.querySelectorAll('.product-image-input');
+                let totalImages = 0;
+
+                for (let i = 0; i < existingImages.length; i++) {
+                    if (existingImages[i].value) {
+                        totalImages++;
+                    } else if (fileInputs[i].files && fileInputs[i].files[0]) {
+                        totalImages++;
+                    }
+                }
+
+                if (totalImages < 4) {
+                    showFormError('imagesError', 'All 4 product images are required');
+                    isValid = false;
+                }
+            }
+
+            // If the form is valid, submit it
+            if (isValid) {
+                saveProduct();
             }
         }
 
         // Save product function
         async function saveProduct() {
-            const form = document.getElementById('productForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+    const form = document.getElementById('productForm');
+    const formData = new FormData(form);
+    const mode = form.dataset.mode;
+    const productId = formData.get('productId');
 
-            const formData = new FormData(form);
-            const mode = form.dataset.mode;
-            const productId = form.elements.productId.value;
-            
-            try {
-                const url = mode === 'edit' ? `/admin/product/${productId}` : '/admin/product';
-                const method = mode === 'edit' ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
-                    body: formData
+    // Clean up existing images data
+    const existingImagesInputs = form.querySelectorAll('.existing-image-input');
+    formData.delete('existingImages[]');
+
+    existingImagesInputs.forEach((input, index) => {
+        if (input.value) {
+            formData.append('existingImages', input.value);
+        } else {
+            formData.append('removedImages', index);
+        }
+    });
+
+    try {
+        let url, method;
+        
+        if (mode === 'add') {
+            url = '/admin/product/add';
+            method = 'POST';
+        } else {
+            url = `/admin/product/${productId}`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showAlert(data.message || 'Product saved successfully');
+            closeModal('productFormModal');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showAlert(data.error || 'Failed to save product', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving product:', error);
+        showAlert('Failed to save product', 'error');
+    }
+}
+
+        // Setup image upload functionality
+        function setupImageUploads() {
+            const imageUploads = document.querySelectorAll('.image-upload');
+
+            imageUploads.forEach(upload => {
+                upload.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('image-remove') || e.target.closest('.image-remove')) {
+                        return; // Let the remove button handle its own click
+                    }
+
+                    const fileInput = this.querySelector('.product-image-input');
+                    fileInput.click();
                 });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert(data.message);
-                    closeModal('productFormModal');
-                    location.reload();
-                } else {
-                    alert(data.error || 'Failed to save product');
-                }
-            } catch (error) {
-                console.error('Error saving product:', error);
-                alert('Failed to save product');
+
+                const fileInput = upload.querySelector('.product-image-input');
+                fileInput.addEventListener('change', function () {
+                    if (this.files && this.files[0]) {
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            setImagePreview(upload, e.target.result);
+                            // Clear existing image reference since we're replacing it
+                            upload.querySelector('.existing-image-input').value = '';
+                        };
+
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                });
+            });
+        }
+
+        // Set image preview
+        function setImagePreview(container, imageUrl) {
+            // Set container background
+            container.style.backgroundImage = `url('${imageUrl}')`;
+            container.style.backgroundSize = 'cover';
+            container.style.backgroundPosition = 'center';
+
+            // Hide default content
+            const icon = container.querySelector('i');
+            const text = container.querySelector('p');
+            if (icon) icon.style.display = 'none';
+            if (text) text.style.display = 'none';
+
+            // Show remove button
+            const removeBtn = container.querySelector('.image-remove');
+            if (removeBtn) removeBtn.style.display = 'block';
+
+            // Store existing image url
+            const existingImageInput = container.querySelector('.existing-image-input');
+            if (existingImageInput && imageUrl.indexOf('data:') !== 0) {
+                existingImageInput.value = imageUrl;
             }
         }
 
-        // Open confirm dialog for deletion
+        // Clear image previews
+        function clearImagePreviews() {
+            const imageUploads = document.querySelectorAll('.image-upload');
+
+            imageUploads.forEach(upload => {
+                // Reset container background
+                upload.style.backgroundImage = '';
+
+                // Show default content
+                const icon = upload.querySelector('i');
+                const text = upload.querySelector('p');
+                if (icon) icon.style.display = 'block';
+                if (text) text.style.display = 'block';
+
+                // Hide remove button
+                const removeBtn = upload.querySelector('.image-remove');
+                if (removeBtn) removeBtn.style.display = 'none';
+
+                // Clear file input
+                const fileInput = upload.querySelector('.product-image-input');
+                if (fileInput) fileInput.value = '';
+
+                // Clear existing image reference
+                const existingImageInput = upload.querySelector('.existing-image-input');
+                if (existingImageInput) existingImageInput.value = '';
+            });
+        }
+
+        // Remove image
+        function removeImage(event, index) {
+            event.stopPropagation();
+
+            const imageUpload = document.querySelector(`.image-upload[data-index="${index}"]`);
+            if (imageUpload) {
+                // Reset container background
+                imageUpload.style.backgroundImage = '';
+
+                // Show default content
+                const icon = imageUpload.querySelector('i');
+                const text = imageUpload.querySelector('p');
+                if (icon) icon.style.display = 'block';
+                if (text) text.style.display = 'block';
+
+                // Hide remove button
+                const removeBtn = imageUpload.querySelector('.image-remove');
+                if (removeBtn) removeBtn.style.display = 'none';
+
+                // Clear file input
+                const fileInput = imageUpload.querySelector('.product-image-input');
+                if (fileInput) fileInput.value = '';
+
+                // Clear existing image reference
+                const existingImageInput = imageUpload.querySelector('.existing-image-input');
+                if (existingImageInput) existingImageInput.value = '';
+            }
+        }
+
+        // Open confirm dialog for deleting a product
         function openConfirmDialog(productId) {
             currentProductId = productId;
             openModal('confirmDialog');
         }
 
-        // Confirm delete function
+        // Confirm delete action
         async function confirmDelete() {
             if (!currentProductId) return;
-            
+
             try {
                 const response = await fetch(`/admin/product/${currentProductId}`, {
-                    method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    alert(data.message);
-                    location.reload();
+                    showAlert(data.message || 'Product deleted successfully');
+                    closeModal('confirmDialog');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
-                    alert(data.error || 'Failed to delete product');
+                    showAlert(data.error || 'Failed to delete product', 'error');
+                    closeModal('confirmDialog');
                 }
             } catch (error) {
                 console.error('Error deleting product:', error);
-                alert('Failed to delete product');
+                showAlert('Failed to delete product', 'error');
+                closeModal('confirmDialog');
             }
-            
-            closeModal('confirmDialog');
-            currentProductId = null;
         }
 
-        // Clear image previews
-        function clearImagePreviews() {
-            document.querySelectorAll('.image-upload').forEach(upload => {
-                upload.style.backgroundImage = '';
-                upload.querySelector('i').style.display = '';
-                upload.querySelector('p').style.display = '';
-                upload.querySelector('input[type="file"]').value = '';
-                upload.querySelector('input[name="existingImages[]"]').value = '';
-            });
-        }
-
-        // Change page function
-        function changePage(page) {
-            const searchParams = new URLSearchParams(window.location.search);
-            searchParams.set('page', page);
-            window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
-        }
-
-        // Search functionality
-        const searchInput = document.querySelector('.search-box');
-        let searchTimeout;
-        
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const searchParams = new URLSearchParams(window.location.search);
-                searchParams.set('search', e.target.value.trim());
-                searchParams.set('page', 1);
-                window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
-            }, 500);
-        });
-
-        // Image upload preview functionality
-        document.querySelectorAll('.image-upload').forEach(upload => {
-            const fileInput = upload.querySelector('input[type="file"]');
-            fileInput.addEventListener('change', function(e) {
-                if (this.files && this.files[0]) {
-                    const reader = new FileReader();
-                    const icon = upload.querySelector('i');
-                    const text = upload.querySelector('p');
-                    
-                    reader.onload = function(e) {
-                        upload.style.backgroundImage = `url(${e.target.result})`;
-                        upload.style.backgroundSize = 'cover';
-                        upload.style.backgroundPosition = 'center';
-                        if (icon) icon.style.display = 'none';
-                        if (text) text.style.display = 'none';
-                    };
-                    
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-
-            upload.addEventListener('click', () => {
-                fileInput.click();
-            });
-        });
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                event.target.style.display = 'none';
-                if (event.target.id === 'productFormModal') {
-                    document.getElementById('productForm').reset();
-                    clearImagePreviews();
-                }
-            }
-        };
-
-        // Initialize search box with current search term
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const searchTerm = urlParams.get('search');
-            if (searchTerm) {
-                searchInput.value = searchTerm;
-            }
-        });
-
-        // Handle form submission
-        document.getElementById('productForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveProduct();
-        });
-
-        // Toggle product status
+        // Toggle product listing status
         async function toggleProductStatus(productId) {
             try {
-                const response = await fetch(`/admin/product/${productId}/toggle`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                console.log("h1");
+                console.log(productId);
+                
+                
+                const response = await fetch(`/admin/product/toggle-status/${productId}`, {
+                    method: 'PATCH'
                 });
+
+                console.log("h1wetew");
 
                 const data = await response.json();
 
                 if (data.success) {
-                    alert(data.message);
-                    location.reload();
+                    showAlert(data.message || 'Product status updated');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
-                    alert(data.error || 'Failed to update product status');
+                    showAlert(data.error || 'Failed to update product status', 'error');
                 }
             } catch (error) {
                 console.error('Error toggling product status:', error);
-                alert('Failed to update product status');
+                showAlert('Failed to update product status', 'error');
             }
         }
 
-        // Handle server errors
-        function handleServerError(error) {
-            console.error('Server error:', error);
-            alert('An error occurred while processing your request. Please try again.');
+        // Handle pagination
+        function changePage(page) {
+            const totalPages = <%= typeof totalPages !== 'undefined' ? totalPages : 1 %>;
+            if (page < 1 || page > totalPages) return;
+
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('page', page);
+            window.location.href = currentUrl.toString();
         }
 
-        // Validate form inputs
-        function validateForm() {
-            const form = document.getElementById('productForm');
-            const price = parseFloat(form.elements.price.value);
-            const offerPrice = parseFloat(form.elements.offerPrice.value);
-            const stock = parseInt(form.elements.stock.value);
-
-            if (price <= 0) {
-                alert('Price must be greater than 0');
-                return false;
-            }
-
-            if (offerPrice && offerPrice >= price) {
-                alert('Offer price must be less than regular price');
-                return false;
-            }
-
-            if (stock < 0) {
-                alert('Stock cannot be negative');
-                return false;
-            }
-
-            return true;
-        }
-
-        // Format currency
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR'
-            }).format(amount);
-        }
-
-        // Display alert messages
-        function showAlert(message, type = 'success') {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            
-            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.header-actions'));
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 3000);
-        }
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Close modal on Escape key
-            if (e.key === 'Escape') {
-                const openModals = document.querySelectorAll('.modal-overlay[style="display: block"]');
-                openModals.forEach(modal => closeModal(modal.id));
-            }
-
-            // Open add product modal on Ctrl+A
-            if (e.ctrlKey && e.key === 'a' && !e.repeat) {
-                e.preventDefault();
-                openModal('productFormModal', 'add');
-            }
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function () {
+            setupImageUploads();
         });
     </script>
 </body>
+
 </html>

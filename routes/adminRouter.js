@@ -31,10 +31,11 @@ router.patch("/category/:id/toggle", adminAuth, categoryController.toggleCategor
 //product management
 
 router.get('/productManagement',adminAuth, productController.loadProductManagement);
-router.post('/product', adminAuth, upload.array('productImages', 4), productController.addProduct);
+router.post('/product/add', adminAuth, upload.array('productImages', 4), productController.addProduct);
 router.put('/product/:id', adminAuth, upload.array('productImages', 4), productController.updateProduct);
+router.get('/product/:id', adminAuth, productController.getProductById);
 router.delete('/product/:id', adminAuth, productController.deleteProduct);
-router.patch('/product/:id/toggle', adminAuth, productController.toggleProductStatus);
+router.patch('/product/toggle-status/:id', adminAuth, productController.toggleProductStatus);
 
 
 

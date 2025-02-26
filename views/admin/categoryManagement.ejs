@@ -155,6 +155,7 @@
             font-size: 0.85rem;
             background: var(--primary-color);
             color: white;
+            cursor: pointer;
         }
 
         .unlisted {
@@ -279,6 +280,18 @@
             color: white;
         }
 
+        /* Error message style */
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .form-input.error {
+            border-color: var(--danger-color);
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .nav-links {
@@ -381,9 +394,9 @@
                                         <button class="action-btn" onclick="openModal('categoryFormModal', 'edit', <%= JSON.stringify(category) %>)">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="action-btn" onclick="openModal('confirmDialog', 'delete', <%= JSON.stringify(category) %>)">
+                                        <!-- <button class="action-btn" onclick="openModal('confirmDialog', 'delete', <%= JSON.stringify(category) %>)">
                                             <i class="fas fa-trash"></i>
-                                        </button>
+                                        </button> -->
                                     </div>
                                 </td>
                             </tr>
@@ -409,27 +422,28 @@
                 <form id="categoryForm">
                     <div class="form-group">
                         <label class="form-label">Category Name</label>
-                        <input type="text" name="name" class="form-input" required 
-                               minlength="2" maxlength="50" pattern="[A-Za-z\s]+"
-                               title="Please enter a valid category name (letters and spaces only)">
+                        <input type="text" name="name" id="categoryName" class="form-input" required 
+                               minlength="2" maxlength="50">
+                        <div id="categoryNameError" class="error-message">Please enter a valid category name</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-input" required
+                        <textarea name="description" id="categoryDescription" class="form-input" required
                                   minlength="5" maxlength="200"></textarea>
+                        <div id="descriptionError" class="error-message">Please enter a description</div>
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-input" required>
                             <option value="listed">Listed</option>
                             <option value="unlisted">Unlisted</option>
                         </select>
-                    </div>
+                    </div> -->
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('categoryFormModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveCategory()">Save Category</button>
+                <button class="btn btn-primary" onclick="validateAndSaveCategory()">Save Category</button>
             </div>
         </div>
     </div>
@@ -454,6 +468,14 @@
 
     <script>
         let selectedCategoryId = null;
+        let existingCategories = [];
+
+        // Initialize with existing category names (from server)
+        <% if(categories && categories.length > 0) { %>
+            existingCategories = [<% categories.forEach(function(category, index) { %>
+                '<%= category.name.toLowerCase() %>'<%= index < categories.length - 1 ? ',' : '' %>
+            <% }); %>];
+        <% } %>
 
         function openModal(modalId, mode = 'add', categoryData = null) {
             const modal = document.getElementById(modalId);
@@ -464,11 +486,13 @@
                 const title = modal.querySelector('.modal-title');
                 title.textContent = mode === 'add' ? 'Add New Category' : 'Edit Category';
                 
+                // Reset error messages
+                resetFormErrors();
+                
                 if (mode === 'edit' && categoryData) {
                     selectedCategoryId = categoryData._id;
                     form.querySelector('input[name="name"]').value = categoryData.name;
                     form.querySelector('textarea[name="description"]').value = categoryData.description;
-                    form.querySelector('select[name="status"]').value = categoryData.isListed ? 'listed' : 'unlisted';
                 } else {
                     selectedCategoryId = null;
                     form.reset();
@@ -483,8 +507,18 @@
             modal.style.display = 'none';
             if (modalId === 'categoryFormModal') {
                 document.getElementById('categoryForm').reset();
+                resetFormErrors();
             }
             selectedCategoryId = null;
+        }
+
+        // Reset form errors
+        function resetFormErrors() {
+            const errorMessages = document.querySelectorAll('.error-message');
+            const inputFields = document.querySelectorAll('.form-input');
+            
+            errorMessages.forEach(el => el.style.display = 'none');
+            inputFields.forEach(el => el.classList.remove('error'));
         }
 
         // Close modal when clicking outside
@@ -495,18 +529,80 @@
             }
         }
 
-        async function saveCategory() {
-            const form = document.getElementById('categoryForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
+        // Validate the category form
+        function validateCategoryForm() {
+            let isValid = true;
+            resetFormErrors();
+            
+            // Validate category name
+            const categoryNameInput = document.getElementById('categoryName');
+            const categoryName = categoryNameInput.value.trim();
+            const categoryNameError = document.getElementById('categoryNameError');
+            
+            if (!categoryName) {
+                categoryNameError.textContent = 'Category name is required';
+                categoryNameError.style.display = 'block';
+                categoryNameInput.classList.add('error');
+                isValid = false;
+            } else if (!/^[A-Za-z\s]+$/.test(categoryName)) {
+                categoryNameError.textContent = 'Category name should contain only letters and spaces';
+                categoryNameError.style.display = 'block';
+                categoryNameInput.classList.add('error');
+                isValid = false;
+            } else {
+                // Check if name already exists (case insensitive) for new categories
+                const lowerCaseName = categoryName.toLowerCase();
+                const isEdit = selectedCategoryId !== null;
+                const currentCategory = isEdit ? 
+                    document.querySelector(`tr[data-category-id="${selectedCategoryId}"] td:first-child`).textContent.toLowerCase() : '';
+                
+                if (!isEdit && existingCategories.includes(lowerCaseName)) {
+                    categoryNameError.textContent = 'This category name already exists';
+                    categoryNameError.style.display = 'block';
+                    categoryNameInput.classList.add('error');
+                    isValid = false;
+                } else if (isEdit && lowerCaseName !== currentCategory && existingCategories.includes(lowerCaseName)) {
+                    categoryNameError.textContent = 'This category name already exists';
+                    categoryNameError.style.display = 'block';
+                    categoryNameInput.classList.add('error');
+                    isValid = false;
+                }
             }
+            
+            // Validate description
+            const descriptionInput = document.getElementById('categoryDescription');
+            const description = descriptionInput.value.trim();
+            const descriptionError = document.getElementById('descriptionError');
+            
+            if (!description) {
+                descriptionError.textContent = 'Description is required';
+                descriptionError.style.display = 'block';
+                descriptionInput.classList.add('error');
+                isValid = false;
+            } else if (description.length < 5) {
+                descriptionError.textContent = 'Description must be at least 5 characters long';
+                descriptionError.style.display = 'block';
+                descriptionInput.classList.add('error');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
 
+        // Validate and save category
+        function validateAndSaveCategory() {
+            if (validateCategoryForm()) {
+                saveCategory();
+            }
+        }
+
+        async function saveCategory() {
             try {
+                const form = document.getElementById('categoryForm');
                 const formData = {
                     name: form.querySelector('input[name="name"]').value.trim(),
                     description: form.querySelector('textarea[name="description"]').value.trim(),
-                    isListed: form.querySelector('select[name="status"]').value === 'listed'
+                    isListed: true // Default to listed
                 };
 
                 const url = selectedCategoryId 
@@ -524,6 +620,13 @@
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (data.error === 'Category already exists') {
+                        const categoryNameError = document.getElementById('categoryNameError');
+                        categoryNameError.textContent = 'This category name already exists';
+                        categoryNameError.style.display = 'block';
+                        document.getElementById('categoryName').classList.add('error');
+                        return;
+                    }
                     throw new Error(data.error || 'Failed to save category');
                 }
 
@@ -577,6 +680,62 @@
                 alert(error.message);
             }
         }
+
+        // Real-time validation for category name
+        document.getElementById('categoryName').addEventListener('input', function() {
+            const categoryNameInput = this;
+            const categoryNameError = document.getElementById('categoryNameError');
+            const categoryName = categoryNameInput.value.trim();
+            
+            if (!categoryName) {
+                categoryNameError.textContent = 'Category name is required';
+                categoryNameError.style.display = 'block';
+                categoryNameInput.classList.add('error');
+            } else if (!/^[A-Za-z\s]+$/.test(categoryName)) {
+                categoryNameError.textContent = 'Category name should contain only letters and spaces';
+                categoryNameError.style.display = 'block';
+                categoryNameInput.classList.add('error');
+            } else {
+                // Check if name already exists (case insensitive)
+                const lowerCaseName = categoryName.toLowerCase();
+                const isEdit = selectedCategoryId !== null;
+                const currentCategory = isEdit ? 
+                    document.querySelector(`tr[data-category-id="${selectedCategoryId}"] td:first-child`).textContent.toLowerCase() : '';
+                
+                if (!isEdit && existingCategories.includes(lowerCaseName)) {
+                    categoryNameError.textContent = 'This category name already exists';
+                    categoryNameError.style.display = 'block';
+                    categoryNameInput.classList.add('error');
+                } else if (isEdit && lowerCaseName !== currentCategory && existingCategories.includes(lowerCaseName)) {
+                    categoryNameError.textContent = 'This category name already exists';
+                    categoryNameError.style.display = 'block';
+                    categoryNameInput.classList.add('error');
+                } else {
+                    categoryNameError.style.display = 'none';
+                    categoryNameInput.classList.remove('error');
+                }
+            }
+        });
+
+        // Real-time validation for description
+        document.getElementById('categoryDescription').addEventListener('input', function() {
+            const descriptionInput = this;
+            const descriptionError = document.getElementById('descriptionError');
+            const description = descriptionInput.value.trim();
+            
+            if (!description) {
+                descriptionError.textContent = 'Description is required';
+                descriptionError.style.display = 'block';
+                descriptionInput.classList.add('error');
+            } else if (description.length < 5) {
+                descriptionError.textContent = 'Description must be at least 5 characters long';
+                descriptionError.style.display = 'block';
+                descriptionInput.classList.add('error');
+            } else {
+                descriptionError.style.display = 'none';
+                descriptionInput.classList.remove('error');
+            }
+        });
 
         // Search functionality
         const searchBox = document.querySelector('.search-box');

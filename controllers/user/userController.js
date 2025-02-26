@@ -72,6 +72,18 @@ const loadHomepage = async (req, res) => {
         res.status(500).send("server error")
     }
 }
+
+const signupPost = async (req,res)=>{
+    try {
+        console.log(req.body);
+        
+    } catch (error) {
+        console.log(error);
+        
+    }
+}
+
+
 module.exports= {
     loadHomepage,
     pageNotFound,
@@ -79,5 +91,6 @@ module.exports= {
     loadSignin,
     loadContact,
     loadShop,
-    loadAbout
+    loadAbout,
+    signupPost
 }
