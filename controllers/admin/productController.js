@@ -169,12 +169,12 @@ const addProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
     try {
-        console.log("Request Params:", req.params); 
-        console.log("Request Body:", req.body);
-        
-        const price = parseFloat(req.body.price);
+        console.log("Request Params:", req.params); // Debugging line
+        console.log("Request Body:", req.body); // Debugging line
 
-            // for debug
+        const productId = req.params.id;// Ensure productId is extracted from req.params
+        console.log("Product ID:", productId);
+
         if (!productId) {
             return res.status(400).json({
                 success: false,
@@ -182,18 +182,19 @@ const updateProduct = async (req, res) => {
             });
         }
 
-
+        const price = parseFloat(req.body.price);
         const discount = parseFloat(req.body.discount) || 0;
 
+        // Get selected sizes as an array
         const sizes = Array.isArray(req.body.size) ? req.body.size : [req.body.size];
 
-       const productData = {
+        const productData = {
             productName: req.body.productName,
             description: req.body.description,
             category: req.body.category,
             price: price,
             discount: discount,
-            offerPrice: price - (price * (discount / 100)), // Calculate offer price
+            offerPrice: price - (price * (discount / 100)),
             stock: parseInt(req.body.stock),
             isListed: req.body.isListed === 'list',
             size: sizes // Array of selected sizes
@@ -201,6 +202,12 @@ const updateProduct = async (req, res) => {
 
         // Validate product data
         const errors = await validateProduct(productData, productId);
+        if (errors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: errors[0]
+            });
+        }
 
         // Handle image updates
         const existingProduct = await Product.findById(productId);
@@ -213,7 +220,10 @@ const updateProduct = async (req, res) => {
 
         if (req.files && req.files.length > 0) {
             if (req.files.length < 4) {
-                errors.push('Four product images are required');
+                return res.status(400).json({
+                    success: false,
+                    error: 'Exactly four product images are required'
+                });
             } else {
                 productData.productImage = req.files.map(file => file.path);
             }
@@ -221,28 +231,16 @@ const updateProduct = async (req, res) => {
             productData.productImage = existingProduct.productImage;
         }
 
-
-        if (!req.files || req.files.length !== 4) {
-            errors.push('Exactly four product images are required');
-        }
-        
-
-        if (errors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: errors[0]
-            });
-        }
-
         const updatedProduct = await Product.findByIdAndUpdate(
-            productId,
+            productId, // Ensure productId is used here
             productData,
             { new: true }
         );
 
         res.json({
             success: true,
-            message: 'Product updated successfully'
+            message: 'Product updated successfully',
+            product: updatedProduct
         });
     } catch (error) {
         console.error('Error in updateProduct:', error);
