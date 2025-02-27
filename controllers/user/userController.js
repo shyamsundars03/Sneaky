@@ -130,13 +130,15 @@ const loadSingleProduct = async (req, res) => {
     try {
         const productId = req.params.id;
 
-
-
-
         // Fetch the product by ID
         const product = await Product.findById(productId).populate('category');
         if (!product || product.isDeleted) {
             return res.status(404).render("user/page-404", { error: "Product not found" });
+        }
+
+        // Ensure product.size is an array
+        if (!Array.isArray(product.size)) {
+            product.size = []; // Set to an empty array or handle accordingly
         }
 
         // Fetch related products (excluding the current product)
@@ -164,7 +166,6 @@ const loadSingleProduct = async (req, res) => {
             };
         });
 
-        // Render the singleProduct.ejs file with product and related products
         res.render("singleProduct", {
             product: fixedProduct,
             relatedProducts: fixedRelatedProducts

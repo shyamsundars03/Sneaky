@@ -6,10 +6,6 @@ const { CURSOR_FLAGS } = require('mongodb');
 const validateProduct = async (productData, productId = null) => {
     const errors = [];
 
-    if (!Product.db) {
-        console.error("Database connection issue: Product model is not connected to MongoDB.");
-    }
-
     if (!productData.productName?.trim()) {
         errors.push('Product name is required');
     } else {
@@ -19,11 +15,6 @@ const validateProduct = async (productData, productId = null) => {
             _id: { $ne: productId },
             isDeleted: false
         });
-
-
-        console.log("Existing Product for Validation:", existingProduct);
-
-
 
         if (existingProduct) {
             errors.push('Product name already exists');
@@ -42,11 +33,10 @@ const validateProduct = async (productData, productId = null) => {
         errors.push('Stock cannot be negative');
     }
 
-
-    if (!productData.size) {
-        errors.push('Size is required');
+    // Validate size
+    if (!productData.size || !Array.isArray(productData.size) || productData.size.length === 0) {
+        errors.push('At least one size is required');
     }
-
 
     if (!productData.description?.trim()) {
         errors.push('Description is required');
@@ -56,13 +46,23 @@ const validateProduct = async (productData, productId = null) => {
 };
 
 const loadProductManagement = async (req, res) => {
-    console.log("this is load porduct")
     try {
-
         const page = parseInt(req.query.page) || 1;
         const limit = 5;
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
+
+        // Validate page number
+        if (page < 1) {
+            return res.status(400).render('productManagement', {
+                error: 'Invalid page number',
+                products: [],
+                categories: [],
+                currentPage: 1,
+                totalPages: 0,
+                totalProducts: 0
+            });
+        }
 
         // Create search query
         const searchQuery = {
@@ -72,7 +72,7 @@ const loadProductManagement = async (req, res) => {
             })
         };
 
-        let products = await Product.find(searchQuery)
+        const products = await Product.find(searchQuery)
             .populate('category')
             .skip(skip)
             .limit(limit)
@@ -83,7 +83,7 @@ const loadProductManagement = async (req, res) => {
         const categories = await Category.find({ isDeleted: false });
 
         // Fix image paths
-        products = products.map(product => {
+        const fixedProducts = products.map(product => {
             const fixedImages = product.productImage.map(img =>
                 img.replace(/\\/g, '/').replace(/^public\//, '/')
             );
@@ -92,11 +92,9 @@ const loadProductManagement = async (req, res) => {
                 productImage: fixedImages
             };
         });
-        
 
-
-        return res.render('productManagement', {
-            products,
+        res.render('productManagement', {
+            products: fixedProducts,
             currentPage: page,
             totalPages,
             totalProducts,
@@ -105,7 +103,7 @@ const loadProductManagement = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in loadProductManagement:', error);
-        return res.render('productManagement', {
+        res.render('productManagement', {
             error: 'Failed to load product data',
             products: [],
             categories: [],
@@ -117,33 +115,30 @@ const loadProductManagement = async (req, res) => {
 };
 
 const addProduct = async (req, res) => {
-    console.log("this is add porduct")
-    console.log(req.body);
-    
     try {
+        const price = parseFloat(req.body.price);
+        const discount = parseFloat(req.body.discount) || 0;
+
+        const sizes = Array.isArray(req.body.size) ? req.body.size : [req.body.size];
+
         const productData = {
             productName: req.body.productName,
             description: req.body.description,
             category: req.body.category,
-            price: parseFloat(req.body.price),
-            offerPrice: req.body.offerPrice ? parseFloat(req.body.offerPrice) : 0,
+            price: price,
+            discount: discount,
+            offerPrice: price - (price * (discount / 100)), // Calculate offer price
             stock: parseInt(req.body.stock),
             isListed: req.body.isListed === 'list',
-            size: req.body.size  
+            size: sizes // Array of selected sizes
         };
 
         // Validate product data
         const errors = await validateProduct(productData);
 
         // Check for required images
-        if (!req.files || req.files.length < 4) {
-
-
-            console.error("Validation Errors:", errors);
-
-
-
-            errors.push('Four product images are required');
+        if (req.files && req.files.length > 0 && req.files.length !== 4) {
+            errors.push('Exactly four product images are required');
         }
 
         if (errors.length > 0) {
@@ -159,15 +154,6 @@ const addProduct = async (req, res) => {
         const newProduct = new Product(productData);
         await newProduct.save();
 
-
-
-        console.log("Product Saved:", newProduct);
-        console.log("this is  tryyy add porduct")
-
-
-
-
-
         res.status(201).json({
             success: true,
             message: 'Product added successfully'
@@ -182,26 +168,36 @@ const addProduct = async (req, res) => {
 };
 
 const updateProduct = async (req, res) => {
-    console.log("this is updatre porduct")
     try {
-        const productId = req.params.id;
-        const productData = {
+        console.log("Request Params:", req.params); 
+        console.log("Request Body:", req.body);
+        
+        const price = parseFloat(req.body.price);
+
+            // for debug
+        if (!productId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Product ID is required'
+            });
+        }
+
+
+        const discount = parseFloat(req.body.discount) || 0;
+
+        const sizes = Array.isArray(req.body.size) ? req.body.size : [req.body.size];
+
+       const productData = {
             productName: req.body.productName,
             description: req.body.description,
             category: req.body.category,
-            price: parseFloat(req.body.price),
-            offerPrice: req.body.offerPrice ? parseFloat(req.body.offerPrice) : 0,
+            price: price,
+            discount: discount,
+            offerPrice: price - (price * (discount / 100)), // Calculate offer price
             stock: parseInt(req.body.stock),
             isListed: req.body.isListed === 'list',
-            size: req.body.size  
+            size: sizes // Array of selected sizes
         };
-
-
-
-
-
-        console.log(productData)
-
 
         // Validate product data
         const errors = await validateProduct(productData, productId);
@@ -225,6 +221,12 @@ const updateProduct = async (req, res) => {
             productData.productImage = existingProduct.productImage;
         }
 
+
+        if (!req.files || req.files.length !== 4) {
+            errors.push('Exactly four product images are required');
+        }
+        
+
         if (errors.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -237,16 +239,6 @@ const updateProduct = async (req, res) => {
             productData,
             { new: true }
         );
-
-
-
-
-        console.log("Updating Product:", productId, productData);
-        console.log("this is try update porduct")
-
-
-
-
 
         res.json({
             success: true,
@@ -298,14 +290,10 @@ const deleteProduct = async (req, res) => {
 };
 
 const toggleProductStatus = async (req, res) => {
-
-
-    console.log("this is toggle porduct")
     try {
         const productId = req.params.id;
-        console.log(productId);
         const product = await Product.findById(productId);
-        console.log(product);
+
         if (!product) {
             return res.status(404).json({
                 success: false,
@@ -315,9 +303,6 @@ const toggleProductStatus = async (req, res) => {
 
         product.isListed = !product.isListed;
         await product.save();
-
-
-        console.log("this is try togg porduct")
 
         res.json({
             success: true,
@@ -366,23 +351,6 @@ const getProductById = async (req, res) => {
         });
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

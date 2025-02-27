@@ -17,10 +17,13 @@
         <div class="product-container">
             <!-- Product Images -->
             <div class="product-images">
-                <img id="main-image" src="<%= product.productImage[0] %>" alt="<%= product.productName %>" class="main-image">
+                <div class="zoom-container">
+                    <img id="main-image" src="<%= product.productImage[0] %>" alt="<%= product.productName %>" class="main-image">
+                    <div id="zoom-overlay" class="zoom-overlay"></div>
+                </div>
                 <div class="thumbnail-container">
                     <% product.productImage.forEach((image, index) => { %>
-                        <img src="<%= image %>" alt="Thumbnail <%= index + 1 %>" class="thumbnail" onclick="changeMainImage('<%= image %>')">
+                        <img src="<%= image %>" alt="Thumbnail <%= index + 1 %>" class="thumbnail thumbnail-image" onclick="changeMainImage('<%= image %>')">
                     <% }) %>
                 </div>
             </div>
@@ -31,21 +34,28 @@
                 <h2><%= product.productName %></h2>
                 <div class="rating">★★★★★ <span>(1 customer review)</span></div>
                 <div class="price">
-
                     ₹<%= product.offerPrice %>
-                
-
                     <% if (product.price && product.price > 0) { %>
                         <span class="discount">₹<%= product.price %></span>
                     <% } %>
                 </div>
                 <p><%= product.description %></p>
                 <div>
-                    <h3>Size</h3>
-                    <div class="size-selector">
-                        <% product.size.split(',').forEach(size => { %>
-                            <button class="size-btn"><%= size.trim() %></button>
-                        <% }) %>
+                    <div class="filter-section">
+                        <div class="single-filter-header">
+                            <h4>Size</h4>
+                        </div>
+                        <div class="filter-options">
+                            <div class="size-options">
+                                <% if (Array.isArray(product.size) && product.size.length > 0) { %>
+                                    <% product.size.forEach((size, index) => { %>
+                                        <button class="size-option <%= index === 0 ? 'active' : '' %>"><%= size %></button>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p>No sizes available</p>
+                                <% } %>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -78,10 +88,11 @@
                         </a>
                         <div class="product-info">
                             <div class="product-price">
-                                <span class="current-price">₹<%= relatedProduct.price %></span>
+
                                 <% if (relatedProduct.offerPrice && relatedProduct.offerPrice > 0) { %>
-                                    <span class="original-price">₹<%= relatedProduct.offerPrice %></span>
+                                    <span class="related-original-price">₹<%= relatedProduct.offerPrice %></span>
                                 <% } %>
+                                <span class="related-current-price">₹<%= relatedProduct.price %></span>
                             </div>
                             <h4 class="product-name"><%= relatedProduct.productName %></h4>
                             <div class="product-actions">
@@ -98,10 +109,37 @@
     </div>
 </section>
 
+<!-- Add the JavaScript for zoom and thumbnail functionality -->
 <script>
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const sizeButtons = document.querySelectorAll('.size-btn');
+
+    sizeButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            // Remove active class from all buttons
+            sizeButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Add active class to the clicked button
+            this.classList.add('active');
+
+            // Optionally, store the selected size in a hidden input or variable
+            const selectedSize = this.getAttribute('data-size');
+            console.log('Selected size:', selectedSize);
+        });
+    });
+});
+
     // Function to change the main image when a thumbnail is clicked
     function changeMainImage(imageSrc) {
-        document.getElementById("main-image").src = imageSrc;
+        const mainImage = document.getElementById("main-image");
+        const zoomOverlay = document.getElementById("zoom-overlay");
+
+        // Update the main image and its zoom overlay
+        mainImage.src = imageSrc;
+        zoomOverlay.style.backgroundImage = `url('${imageSrc}')`;
     }
 
     // Function to handle quantity increase
@@ -120,13 +158,58 @@
         }
     }
 
+    // JavaScript for magnifying glass zoom effect
+    const zoomContainer = document.querySelector('.zoom-container');
+    const mainImage = document.getElementById('main-image');
+    const zoomOverlay = document.getElementById('zoom-overlay');
 
+    zoomContainer.addEventListener('mousemove', (e) => {
+        const { left, top, width, height } = zoomContainer.getBoundingClientRect();
+        const x = ((e.pageX - left) / width) * 100;
+        const y = ((e.pageY - top) / height) * 100;
 
+        // Move the zoom overlay
+        zoomOverlay.style.backgroundPosition = `${x}% ${y}%`;
+    });
 
-
-
-
-    
+    zoomContainer.addEventListener('mouseleave', () => {
+        zoomOverlay.style.backgroundPosition = 'center center';
+    });
 </script>
+
+<!-- Add CSS for the zoom effect -->
+<style>
+    .zoom-container {
+        position: relative;
+    width: 500px; 
+    height: 500px; 
+    overflow: hidden;
+    margin: 0 auto; 
+    }
+
+    .main-image {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .zoom-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('<%= product.productImage[0] %>');
+        background-size: 200%; /* Adjust zoom level here */
+        background-repeat: no-repeat;
+        pointer-events: none; /* Ensure the overlay doesn't block interactions */
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .zoom-container:hover .zoom-overlay {
+        opacity: 1;
+    }
+</style>
 
 <%- include("../../views/partials/user/footer") %>

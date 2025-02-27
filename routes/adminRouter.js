@@ -13,19 +13,12 @@ router.get("/logout", adminController.logoutAdmin);
 
 
 
-// router.get("/userManagement", adminAuth,adminController.loadUserManagement)
-// router.get("/productManagement", adminAuth,adminController.loadProductManagement)
-
-
-
 //category management
 router.get("/categoryManagement", adminAuth,categoryController.loadCategoryManagement)
 router.post("/category", adminAuth, categoryController.addCategory);
 router.put("/category/:id", adminAuth, categoryController.updateCategory);
 router.delete("/category/:id", adminAuth, categoryController.deleteCategory);
 router.patch("/category/:id/toggle", adminAuth, categoryController.toggleCategoryStatus);
-
-///qwefewrdg
 
 
 //product management

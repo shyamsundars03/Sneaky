@@ -42,10 +42,10 @@ const productSchema = new Schema({
         default : true
     },
     size: {
-        type: String,
-        enum: ['XS', 'SM', 'LR', 'XXL'],
+        type: [String], 
+        enum: ['7', '8', '9', '10'],
         required: true
-    },
+    }
 
 },{timestamps:true})
 

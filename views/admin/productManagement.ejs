@@ -458,6 +458,16 @@
             font-size: 0.85rem;
             margin-top: 0.25rem;
         }
+        .checkbox-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
         /* Responsive Design */
         @media (max-width: 1024px) {
@@ -690,12 +700,17 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Price *</label>
-                            <input type="number" name="price" id="price" class="form-input" min="0">
+                            <input type="number" name="price" id="price" class="form-input" min="0" oninput="calculateOfferPrice()">
                             <div class="form-error" id="priceError"></div>
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" name="discount" id="discount" class="form-input" min="0" max="100" oninput="calculateOfferPrice()">
+                            <div class="form-error" id="discountError"></div>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Offer Price</label>
-                            <input type="number" name="offerPrice" id="offerPrice" class="form-input" min="0">
+                            <input type="number" name="offerPrice" id="offerPrice" class="form-input" min="0" readonly>
                             <div class="form-error" id="offerPriceError"></div>
                         </div>
                         <div class="form-group">
@@ -705,45 +720,24 @@
                         </div>
 
                                     <!-- Add this after the stock form group and before the images section -->
-<div class="form-group full-width">
-    <label class="form-label">Size *</label>
-    <div class="form-error" id="sizeError"></div>
-    <div class="radio-group">
-        <label class="radio-option">
-            <input type="radio" name="size" value="XS">
-            XS
-        </label>
-        <label class="radio-option">
-            <input type="radio" name="size" value="SM">
-            SM
-        </label>
-        <label class="radio-option">
-            <input type="radio" name="size" value="LR">
-            LR
-        </label>
-        <label class="radio-option">
-            <input type="radio" name="size" value="XXL">
-            XXL
-        </label>
-    </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                    <div class="form-group full-width">
+                                        <label class="form-label">Size *</label>
+                                        <div class="form-error" id="sizeError"></div>
+                                        <div class="checkbox-group">
+                                            <label class="checkbox-option">
+                                                <input type="checkbox" name="size" value="7"> 7
+                                            </label>
+                                            <label class="checkbox-option">
+                                                <input type="checkbox" name="size" value="8"> 8
+                                            </label>
+                                            <label class="checkbox-option">
+                                                <input type="checkbox" name="size" value="9"> 9
+                                            </label>
+                                            <label class="checkbox-option">
+                                                <input type="checkbox" name="size" value="10"> 10
+                                            </label>
+                                        </div>
+                                    </div>
 
 
                         <div class="form-group full-width">
@@ -914,25 +908,26 @@ async function loadProductData(productId) {
             form.elements.productName.value = product.productName;
             form.elements.category.value = product.category;
             form.elements.price.value = product.price;
+            form.elements.discount.value = product.discount || 0;
             form.elements.offerPrice.value = product.offerPrice || '';
             form.elements.stock.value = product.stock;
             form.elements.description.value = product.description;
+
+
+            // Set size checkboxes
+            const sizeCheckboxes = form.querySelectorAll('input[name="size"]');
+            sizeCheckboxes.forEach(checkbox => {
+                if (product.size.includes(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
+
 
             // Set radio button value
             const listStatus = product.isListed ? 'list' : 'unlist';
             form.querySelector(`input[name="isListed"][value="${listStatus}"]`).checked = true;
 
-            // Set size radio button if it exists
-            if (product.size) {
-                const sizeRadio = form.querySelector(`input[name="size"][value="${product.size}"]`);
-                if (sizeRadio) {
-                    sizeRadio.checked = true;
-                } else {
-                    console.warn(`Size radio button for value "${product.size}" not found`);
-                }
-            } else {
-                console.warn('Product has no size data');
-            }
+
 
             // Clear image previews first
             clearImagePreviews();
@@ -1093,7 +1088,7 @@ async function loadProductData(productId) {
     const form = document.getElementById('productForm');
     const formData = new FormData(form);
     const mode = form.dataset.mode;
-    const productId = formData.get('productId');
+    const productId = form.elements.productId.value; 
 
     // Clean up existing images data
     const existingImagesInputs = form.querySelectorAll('.existing-image-input');
@@ -1332,6 +1327,28 @@ async function loadProductData(productId) {
         document.addEventListener('DOMContentLoaded', function () {
             setupImageUploads();
         });
+
+
+        function calculateOfferPrice() {
+    const price = parseFloat(document.getElementById('price').value) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+
+    if (discount < 0 || discount > 100) {
+        document.getElementById('discountError').textContent = 'Discount must be between 0% and 100%';
+        document.getElementById('offerPrice').value = '';
+        return;
+    } else {
+        document.getElementById('discountError').textContent = '';
+    }
+
+    const offerPrice = price - (price * (discount / 100));
+    document.getElementById('offerPrice').value = offerPrice.toFixed(2);
+}
+
+
+
+
+
     </script>
 </body>
 
