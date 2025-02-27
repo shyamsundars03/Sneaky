@@ -252,7 +252,7 @@ const updateProduct = async (req, res) => {
 };
 
 const deleteProduct = async (req, res) => {
-    console.log("this is delete porduct")
+
     try {
         const productId = req.params.id;
         const product = await Product.findById(productId);
