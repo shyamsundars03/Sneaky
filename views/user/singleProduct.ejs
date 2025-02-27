@@ -59,6 +59,10 @@
                     </div>
                 </div>
                 <div>
+                    <h3>Stock</h3>
+                    <p><%= product.stock %> items available</p>
+                </div>
+                <div>
                     <h3>Quantity</h3>
                     <div class="quantity-selector">
                         <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
@@ -185,6 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
     height: 500px; 
     overflow: hidden;
     margin: 0 auto; 
+    cursor: zoom-in;
     }
 
     .main-image {
