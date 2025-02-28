@@ -4,46 +4,35 @@ const mongoose = require("mongoose")
 const {Schema}= mongoose;
 
 const userSchema = new Schema({
-    firstName:{
+    name:{
         type: String,
-        required: true
-    },
-    lastName:{
-        type: String,
-        required: true
+        // required: true
     },
     email:{
         type: String,
         required: true,
-        unique: true
+        // unique: true
     },
     phone:{
         type: String,
-        required: false,
-        unique: false,
-        sparse: true,
+        // required: false,
+        // unique: false,
+        // sparse: true,
         default : null
     },
     password:{
         type: String,
-        required: false
+        // required: false
     },    
-    googleId:{
-        type: String,
-        unique: true
-    },
-    isBlocked:{
+    isActive:{
         type: Boolean,
-        default: false,
-    },
-    createdOn : {
-        type:Date,
-        default:Date.now,
+        default: true,
     },
 
-
-  
- })
+ },
+ {
+    timestamps:true
+})
  
  
  

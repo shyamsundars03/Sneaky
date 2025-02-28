@@ -123,22 +123,19 @@
 
 <body>
     <div class="container">
-        <form id="signupForm"   action="/signup" method="POST"      >
+        <form id="signupForm" action="/signup" method="POST">
             <h2>Create Account</h2>
             <div class="form-group">
-                <input type="text" id="firstName" placeholder="First Name">
+                <input type="text" id="username" name="username" placeholder="Username">
             </div>
             <div class="form-group">
-                <input type="text" id="lastName" placeholder="Last Name">
+                <input type="email" id="email" name="email" placeholder="Email">
             </div>
             <div class="form-group">
-                <input type="email" id="email" placeholder="Email">
+                <input type="tel" id="phone" name="phone" placeholder="Phone Number">
             </div>
             <div class="form-group">
-                <input type="tel" id="phone" placeholder="Phone Number">
-            </div>
-            <div class="form-group">
-                <input type="password" id="password" placeholder="Password">
+                <input type="password" id="password" name="password" placeholder="Password">
             </div>
             <button type="submit">Sign Up</button>
             <div class="divider">or</div>
@@ -160,8 +157,7 @@
                     error = `${field.placeholder} is required`;
                 } else {
                     switch (field.id) {
-                        case 'firstName':
-                        case 'lastName':
+                        case 'username':
                             if (value.trim().length < 2) {
                                 error = `${field.placeholder} must be at least 2 characters`;
                             }
@@ -202,19 +198,16 @@
                 return true;
             };
 
-
-
-
             const googleSignUp = document.getElementById('googleSignUp');
             if (googleSignUp) {
                 googleSignUp.addEventListener('click', () => {
-                    window.location.href = '/auth/google'; // This should be your Google OAuth route
+                    window.location.href = '/auth/google'; // Google OAuth route
                 });
             }
 
             const signupForm = document.getElementById('signupForm');
             if (signupForm) {
-                const fields = ['firstName', 'lastName', 'email', 'phone', 'password'];
+                const fields = ['username', 'email', 'phone', 'password'];
 
                 fields.forEach(fieldId => {
                     const field = document.getElementById(fieldId);
@@ -250,17 +243,17 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success!',
-                                text: data.message,
+                                text: 'Account created successfully. Redirecting to OTP verification...',
                                 showConfirmButton: false,
                                 timer: 1500
                             }).then(() => {
-                                window.location.href = '/otp-verification';
+                                window.location.href = '/otpsend';
                             });
                         } else {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error!',
-                                text: data.error
+                                text: data.error || 'Failed to create account'
                             });
                         }
                     } catch (error) {
@@ -275,5 +268,4 @@
         });
     </script>
 </body>
-
 </html>

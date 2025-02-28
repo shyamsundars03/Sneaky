@@ -247,79 +247,110 @@
 
     <main class="container">
         <div class="header-actions">
-            <input type="text" class="search-box" placeholder="Search Customers" >
+            <input type="text" class="search-box" id="searchBox" placeholder="Search Customers">
         </div>
 
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>First Name</th>
-                        <th>Last Name</th>
+                        <th>Name</th>
                         <th>Email</th>
-                        <th>Purchase Date</th>
+                        <th>Phone</th>
+                        <th>Status</th>
                         <th>Action</th>
-                        <th></th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>Bonnie</td>
-                        <td>Howe</td>
-                        <td>bonniehowe@gmail.com</td>
-                        <td>17 May, 2023 at 3:18pm</td>
-                        <td>
-                            <span class="status-badge block">Block</span>
-                        </td>
-                        <td>
-                            <button class="action-btn">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <!-- Add more rows here -->
+                <tbody id="userTableBody">
+                    <% if (users && users.length > 0) { %>
+                        <% users.forEach(user => { %>
+                            <tr>
+                                <td><%= user.name %></td>
+                                <td><%= user.email %></td>
+                                <td><%= user.phone %></td>
+                                <td>
+                                    <span class="status-badge <%= user.isActive ? 'block' : 'unblock' %>">
+                                        <%= user.isActive ? 'Active' : 'Blocked' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="action-btn toggle-status" data-user-id="<%= user._id %>">
+                                        <%= user.isActive ? 'Block' : 'Unblock' %>
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="5" style="text-align: center;">No users found</td>
+                        </tr>
+                    <% } %>
                 </tbody>
             </table>
         </div>
 
         <div class="pagination">
-            <a href="#">Previous</a>
-            <a href="#" class="active">1</a>
-            <a href="#">2</a>
-            <a href="#">3</a>
-            <a href="#">Next</a>
+            <% if (currentPage > 1) { %>
+                <a href="/admin/userManagement?page=<%= currentPage - 1 %>&search=<%= searchQuery %>">Previous</a>
+            <% } %>
+            <% for (let i = 1; i <= totalPages; i++) { %>
+                <a href="/admin/userManagement?page=<%= i %>&search=<%= searchQuery %>" class="<%= i === currentPage ? 'active' : '' %>">
+                    <%= i %>
+                </a>
+            <% } %>
+            <% if (currentPage < totalPages) { %>
+                <a href="/admin/userManagement?page=<%= currentPage + 1 %>&search=<%= searchQuery %>">Next</a>
+            <% } %>
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Search functionality
-        const searchBox = document.querySelector('.search-box');
+        const searchBox = document.getElementById('searchBox');
         searchBox.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                const firstName = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                const lastName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                
-                if (firstName.includes(searchTerm) || 
-                    lastName.includes(searchTerm) || 
-                    email.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            const searchTerm = e.target.value.trim();
+            window.location.href = `/admin/userManagement?page=1&search=${searchTerm}`;
         });
 
         // Toggle block/unblock status
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.addEventListener('click', function() {
-                const isBlocked = this.textContent === 'Block';
-                this.textContent = isBlocked ? 'Unblock' : 'Block';
-                this.classList.toggle('block');
-                this.classList.toggle('unblock');
+        document.querySelectorAll('.toggle-status').forEach(button => {
+            button.addEventListener('click', async function() {
+                const userId = this.getAttribute('data-user-id');
+                const action = this.textContent.toLowerCase(); // 'block' or 'unblock'
+
+                try {
+                    const response = await fetch(`/admin/users/${userId}/toggle-status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: `User ${action}ed successfully`,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.reload(); // Reload the page to reflect changes
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: data.error || 'Failed to update user status'
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Server error, please try again'
+                    });
+                }
             });
         });
     </script>

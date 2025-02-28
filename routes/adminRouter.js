@@ -2,6 +2,7 @@ const express = require("express");
 const adminController = require("../controllers/admin/adminController");
 const categoryController = require("../controllers/admin/categoryController");
 const productController = require("../controllers/admin/productController");
+const userController = require("../controllers/admin/userController");
 const adminAuth = require('../middlewares/adminAuth');
 const upload = require('../middlewares/multerConfig');
 const router = express.Router();
@@ -29,6 +30,16 @@ router.put('/product/:id', adminAuth, upload.array('productImages', 4), productC
 router.get('/product/:id', adminAuth, productController.getProductById);
 router.delete('/product/:id', adminAuth, productController.deleteProduct);
 router.patch('/product/toggle-status/:id', adminAuth, productController.toggleProductStatus);
+
+
+
+//user management
+
+router.get('/userManagement', userController.listUsers);
+router.get('/userManagement/:id', userController.getUserById);
+router.delete('/userManagement/:id', userController.deleteUser);
+router.post('/userManagement/:id/toggle-status', userController.toggleUserStatus);
+
 
 
 

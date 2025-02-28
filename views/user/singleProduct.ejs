@@ -60,7 +60,11 @@
                 </div>
                 <div>
                     <h3>Stock</h3>
-                    <p><%= product.stock %> items available</p>
+                    <% if (product.stock === 0) { %>
+                        <p style="color: red;">Out of Stock</p>
+                    <% } else { %>
+                        <p><%= product.stock %> items available</p>
+                    <% } %>
                 </div>
                 <div>
                     <h3>Quantity</h3>

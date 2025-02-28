@@ -1,5 +1,7 @@
+
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>OTP Verification</title>
     <meta charset="UTF-8">
@@ -105,7 +107,7 @@
                 <input type="text" id="otp" placeholder="Enter OTP" maxlength="6">
             </div>
             <button type="submit">Verify OTP</button>
-            <p class="timer">Resend OTP in <span id="countdown">30</span> seconds</p>
+            <p class="timer">Resend OTP in <span id="countdown">75</span> seconds</p>
             <button type="button" id="resendBtn" disabled>Resend OTP</button>
         </form>
 
@@ -148,7 +150,7 @@
             const resendButton = document.getElementById('resendBtn');
             const resendLink = document.getElementById('resendLink');
             const countdownElement = document.getElementById('countdown');
-            let timer = 30;
+            let timer = 75; // Matches the backend's 75-second timer
 
             otpField.addEventListener('blur', () => validateField(otpField, otpField.value));
 
@@ -173,15 +175,17 @@
                 if (!validateField(otpField, otpField.value)) return;
 
                 try {
-                    const response = await fetch('/verify-otp', {
+                    console.log("jo")
+                    console.log(JSON.stringify({ otp: otpField.value }))
+                    const response = await fetch('/otp', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ otp: otpField.value })
                     });
-
+                    console.log("cvsfv")
                     const data = await response.json();
-
-                    if (response.ok) {
+                    console.log(data)
+                    if (data.ok) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Verified!',
@@ -195,7 +199,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Invalid OTP',
-                            text: data.error
+                            text: data.error || 'Invalid OTP entered'
                         });
                     }
                 } catch (error) {
@@ -208,7 +212,7 @@
             });
 
             resendButton.addEventListener("click", function () {
-                fetch("/resend-otp", { method: "POST" })
+                fetch("/otp-send", { method: "POST" })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -219,7 +223,7 @@
                                 showConfirmButton: false,
                                 timer: 1500
                             });
-                            timer = 30;
+                            timer = 75; // Reset timer to 75 seconds
                             countdownElement.textContent = timer;
                             resendButton.setAttribute("disabled", "true");
                             startTimer();
