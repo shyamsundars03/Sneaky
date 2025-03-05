@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaky - Cart</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #4c4c4c;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        .container {
+            max-width: auto;
+            margin: 25px auto;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+
+        }
+
+        /* Header Styles */
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            margin-right: 20px;
+        }
+
+        .nav-links li {
+            margin: 0 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .nav-icons {
+            display: flex;
+        }
+
+        .nav-icons li {
+            margin: 0 10px;
+            font-size: 16px;
+        }
+
+        /* Hero Section */
+        .hero {
+            background-color: #000;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 40px;
+            letter-spacing: 2px;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #fff;
+            border-radius: 100% 100% 0 0;
+        }
+
+        /* Cart Content */
+        .cart-content {
+            background-color: #fff;
+            color: #000;
+            padding-left: 120px;
+            padding-right: 120px;
+            flex-direction: column;
+
+
+        }
+
+        .cart-items-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .cart-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+
+        }
+
+        .cart-table th {
+            text-align: left;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .cart-table td {
+            padding: 20px 0;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .product-img {
+            width: 80px;
+            height: 80px;
+            margin-right: 15px;
+        }
+
+        .product-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .product-price {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+        }
+
+        .quantity-btn {
+            width: 25px;
+            height: 25px;
+            background-color: #f2f2f2;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .quantity-input {
+            width: 40px;
+            height: 25px;
+            border: 1px solid #ddd;
+            text-align: center;
+            margin: 0 5px;
+        }
+
+        .delete-btn {
+            color: #ff0000;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Cart Summary */
+        .cart-summary {
+            width: 100%;
+            max-width: 300px;
+            margin-left: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .cart-total-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .cart-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .cart-summary-label {
+            font-size: 14px;
+        }
+
+        .cart-summary-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .total-row {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .checkout-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #ff0000;
+            color: #fff;
+            text-align: center;
+            border: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #000;
+            color: #fff;
+            padding: 40px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .footer-about {
+            max-width: 300px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        .footer-links h3 {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links ul li {
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .footer-links ul li:hover {
+            color: #fff;
+        }
+
+        .footer-social {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .footer-social a {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px;
+            height: 30px;
+            background-color: #333;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+
+        .footer-payment {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .payment-icon {
+            display: inline-block;
+            background-color: #fff;
+            color: #000;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-left: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Bottom Footer */
+        .bottom-footer {
+            background-color: #111;
+            color: #fff;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bottom-nav {
+            display: flex;
+        }
+
+        .bottom-nav li {
+            margin-right: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .copyright {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .cart-content {
+                padding: 20px;
+            }
+
+            .product-img {
+                width: 60px;
+                height: 60px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+            }
+
+            .footer-links {
+                margin-top: 30px;
+            }
+
+            .bottom-footer {
+                flex-direction: column;
+            }
+
+            .bottom-nav {
+                margin-bottom: 10px;
+            }
+
+            /* Cart table responsive */
+            .cart-table thead {
+                display: none;
+            }
+
+            .cart-table tbody tr {
+                display: block;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #ddd;
+            }
+
+            .cart-table td {
+                display: block;
+                text-align: right;
+                padding: 10px 0;
+                border-bottom: 1px solid #eee;
+            }
+
+            .cart-table td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: bold;
+                text-transform: uppercase;
+                font-size: 12px;
+            }
+
+            .cart-table td:last-child {
+                border-bottom: 0;
+            }
+
+            .product-info {
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <%-include("../../views/partials/user/header")%>
+
+    <div class="container">
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>CART</h1>
+            <div class="wave"></div>
+        </section>
+
+        <!-- Cart Content -->
+        <div class="cart-content">
+            <h2 class="cart-items-title">Cart Items</h2>
+            
+            <table class="cart-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Products</th>
+                        <th style="width: 15%;">Quantity</th>
+                        <th style="width: 15%;">Price</th>
+                        <th style="width: 10%;">Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-label="Products">
+                            <div class="product-info">
+                                <img src="https://via.placeholder.com/80" alt="Sneakers" class="product-img">
+                                <div class="product-details">
+                                    <div class="product-name">Mollis nunc sed id semper risus in hendrerit</div>
+                                    <div class="product-price">₹45.00</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Quantity">
+                            <div class="quantity-control">
+                                <div class="quantity-btn">-</div>
+                                <input type="text" value="1" class="quantity-input">
+                                <div class="quantity-btn">+</div>
+                            </div>
+                        </td>
+                        <td data-label="Price">₹4500</td>
+                        <td data-label="Delete">
+                            <div class="delete-btn">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td data-label="Products">
+                            <div class="product-info">
+                                <img src="https://via.placeholder.com/80" alt="Sneakers" class="product-img">
+                                <div class="product-details">
+                                    <div class="product-name">Mollis nunc sed id semper risus in hendrerit</div>
+                                    <div class="product-price">₹45.00</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Quantity">
+                            <div class="quantity-control">
+                                <div class="quantity-btn">-</div>
+                                <input type="text" value="1" class="quantity-input">
+                                <div class="quantity-btn">+</div>
+                            </div>
+                        </td>
+                        <td data-label="Price">₹4500</td>
+                        <td data-label="Delete">
+                            <div class="delete-btn">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="cart-summary">
+                <h3 class="cart-total-title">Cart total</h3>
+                <div class="cart-summary-row">
+                    <span class="cart-summary-label">Subtotal</span>
+                    <span class="cart-summary-value">₹4500</span>
+                </div>
+                <div class="cart-summary-row total-row">
+                    <span class="cart-summary-label">Total</span>
+                    <span class="cart-summary-value">₹4500</span>
+                </div>
+                <button class="checkout-btn">Proceed to Checkout</button>
+            </div>
+        </div>
+
+        <%-include("../../views/partials/user/footer")%>
+
+</body>
+</html>

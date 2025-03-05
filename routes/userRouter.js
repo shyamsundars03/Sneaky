@@ -17,12 +17,12 @@ router.get("/", userController.loadHomepage );
 router.get("/signup", userController.loadSignup);
 router.get("/signin", userController.loadSignin); 
 router.get("/about", userController.loadAbout);   
-router.get("/shop", userController.loadShop);     
+    
 router.get("/contact", userController.loadContact);
 router.get("/otpsend",userController.otpSend)
 router.get("/otp",userController.otpPage)
 router.get('/auth/google', passport.authenticate('google',{scope:['email','profile']}))
-// router.get('/auth/google/callback', passport.authenticate('google',{failureRedirect:'http://localhost:3000/login'}),userController.googleCallback)
+router.get('/auth/google/callback', passport.authenticate('google',{failureRedirect:'/signin'}),userController.googleCallback)
 router.get("/blocked",userController.blockedUser)
 
 router.post("/signup",userController.signupPost)

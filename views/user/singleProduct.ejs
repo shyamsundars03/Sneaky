@@ -3,7 +3,7 @@
 <!-- Hero Section -->
 <section class="shop-hero">
     <div class="hero-hero-content">
-        <h1>SINGLE PRODUCT</h1>
+
         <div class="breadcrumb">
             <a href="/">HOME</a> / <a href="/shop">SHOP</a> / <span><%= product.productName %></span>
         </div>
@@ -35,7 +35,7 @@
                 <div class="rating">★★★★★ <span>(1 customer review)</span></div>
                 <div class="price">
                     ₹<%= product.offerPrice %>
-                    <% if (product.price && product.price > 0) { %>
+                    <% if (product.price && product.price > 0  && product.offerPrice!==product.price) { %>
                         <span class="discount">₹<%= product.price %></span>
                     <% } %>
                 </div>

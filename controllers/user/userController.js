@@ -30,7 +30,7 @@ const loadSignup = async (req, res) => {
             return res.redirect("/")
         } else {
             const signErr =  req.session.signError
-            res.render("signup",{signErr})
+            res.render("signup", { signErr, user: req.session.user }); 
         }
     } catch (error){
         console.log(error)
@@ -44,7 +44,7 @@ const loadSignin = async (req, res) => {
             return res.redirect("/")
         } else {
             const logErr = req.session.logError
-            res.render("/signin",{logErr})
+            res.render("signin", { logErr, user: req.session.user }); 
         } 
     } catch (error){
         console.log(error)
@@ -61,39 +61,72 @@ const otpSend = async(req,res)=>{
     console.log(generatedOtp)
     console.log(req.session.user)
     sendotp(generatedOtp,req.session.user.email)
-    console.log("wefsdfdfdf")
+    console.log("otpsend1")
     const hashedOtp = await encryptPassword(generatedOtp)
-    console.log("annnbuu")
+    console.log("otpsend2")
     await otpCollection.updateOne({email:req.session.user.email},{$set:{otp:hashedOtp}},{upsert:true})
-    console.log("eeeeee")
+    console.log("otpsend3")
     req.session.otpStartTime = null
     res.redirect("/otp")
 }
 
 
-const otpPost = async(req,res)=>{
-    const findOtp = await otpCollection.findOne({email:req.session.user.email})
-    console.log(findOtp) 
-    console.log(await comparePassword(req.body.otp,findOtp.otp))
-    if(await comparePassword(req.body.otp,findOtp.otp)){
-        console.log("Hii")
-        const user = new usercollection({
-            name: req.session.user.name,
-            email: req.session.user.email,
-            phone: req.session.user.phone,
-            password: req.session.user.password,
-            isActive: true
-        });
-        console.log(user)
-        await user.save();
-        console.log("rgbedrs")
-        req.session.signupSession = true
-        res.status(200).send({ ok: true });
-    } else {
-        res.status(200).send({ ok: false });
-    }
-}
+const otpPost = async (req, res) => {
+    try {
+        console.log("Session User:", req.session.user);
 
+        if (!req.session.user || !req.session.user.email) {
+            return res.status(400).json({ error: "Session expired or user not logged in" });
+        }
+
+        const findOtp = await otpCollection.findOne({ email: req.session.user.email });
+        console.log(findOtp);
+
+        if (!findOtp) {
+            return res.status(400).json({ error: "OTP not found" });
+        }
+
+        // Check if OTP has expired
+        if (findOtp.expiresAt < new Date()) {
+            return res.status(400).json({ error: "OTP has expired" });
+        }
+
+        const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
+        console.log(isOtpValid);
+
+        if (isOtpValid) {
+            console.log("Hii");
+
+
+            const userData = new usercollection({
+                name: req.session.user.name,
+                email: req.session.user.email,
+                phone: req.session.user.phone,
+                password: req.session.user.password,
+                isActive: true,
+            });
+
+
+            const user = new usercollection(userData);
+            console.log(user);
+            await user.save();
+            console.log("user saved");
+
+
+            req.session.user = {
+                name: user.name,
+                email: user.email,
+            };
+            req.session.signupSession = true;
+            res.status(200).send({ ok: true });
+        } else {
+            res.status(200).send({ ok: false });
+        }
+    } catch (error) {
+        console.error("Error in otpPost:", error);
+        res.status(500).json({ error: "An error occurred during OTP verification." });
+    }
+};
 
 
 
@@ -111,7 +144,7 @@ const otpPost = async(req,res)=>{
 
 const loadAbout = async (req, res) => {
     try {
-        return res.render("about");
+        return res.render("about", { user: req.session.user }); 
     } catch (error) {
         console.log("About page not found");
         res.status(500).send("Server error");
@@ -153,7 +186,8 @@ const loadShop = async (req, res) => {
             categories,
             currentPage: page,
             totalPages,
-            totalProducts
+            totalProducts,
+            user: req.session.user,
         });
     } catch (error) {
         console.error('Error in loadShop:', error);
@@ -163,14 +197,15 @@ const loadShop = async (req, res) => {
             categories: [], 
             currentPage: 1,
             totalPages: 0,
-            totalProducts: 0
+            totalProducts: 0,
+            user: req.session.user, 
         });
     }
 };
 
 const loadContact = async (req, res) => {
     try {
-        return res.render("contact");
+        return res.render("contact", { user: req.session.user }); 
     } catch (error) {
         console.log("Contact page not found");
         res.status(500).send("Server error");
@@ -179,7 +214,7 @@ const loadContact = async (req, res) => {
 
 const pageNotFound = async (req, res) => {
     try {
-        res.render("page-404");
+        res.render("page-404", { user: req.session.user });
     } catch (error) {
         res.redirect("/pageNotFound");
     }
@@ -192,13 +227,15 @@ const loadHomepage = async (req, res) => {
 
 
         res.render("home", {
-            categories 
+            categories,
+            user: req.session.user, 
         });
     } catch (error) {
         console.error('Error in loadHomepage:', error);
         res.render("home", {
             error: 'Failed to load homepage',
-            categories: [] 
+            categories: [] ,
+            user: req.session.user, 
         });
     }
 };
@@ -214,8 +251,9 @@ const signinPost = async (req, res) => {
                 console.log("Hi3")
               req.session.loginSession = true;
               req.session.user = {
-                email:req.body.email
-              }
+                name: userData.name,
+                email: userData.email,
+            };
              
               return res.status(200).send({ success: true })
             } else {
@@ -240,12 +278,14 @@ const signupPost = async (req, res) => {
             return res.status(409).send({ success: false });
         } else {
             const hashedPassword = await encryptPassword(req.body.password)
-            const user = new usercollection({
+            const user = {
                 name: req.body.username,
                 email: req.body.email,
                 phone: req.body.phone,
-                password: hashedPassword
-            });
+                password: hashedPassword,
+            };
+
+
             req.session.user=user
             return res.status(200).send({ success: true });
         }
@@ -260,38 +300,38 @@ const signupPost = async (req, res) => {
 
 
 
-
-const googleCallback=async (req, res) => {
+const googleCallback = async (req, res, next) => {
     try {
-      const user = await usercollection.findOneAndUpdate(
-        { email: req.user._json.email},
-        { $set: { name: req.user.displayName} },
-        { upsert: true, new :true }
-      );
-      const userId = await usercollection.findOne({ email:req.user._json.email })
-      const walletData = await wallet.updateOne(
-        {userId: userId._id},
-        {$set: {userId: userId._id} },
-        {upsert:true, new :true});
+        const user = await usercollection.findOne({ email: req.user._json.email });
 
-      req.session.user = {
-        email:req.user._json.email
-      }
-      // Set the user session
-      req.session.loginSession = true
-      // Redirect to the homepage
-      res.redirect('/');
+
+        if (!user) {
+            // Create a new user for Google-authenticated users
+            const newUser = {
+                name: req.user.displayName,
+                email: req.user._json.email,
+            };
+            await usercollection.create(newUser);
+        }
+
+        req.session.user = {
+            name: req.user.displayName,
+            email: req.user._json.email,
+        };
+
+        req.session.loginSession = true;
+        res.redirect('/');
     } catch (err) {
-      console.error(err);
-      next(new AppError('Sorry...Something went wrong', 500));
+        console.error("Error in googleCallback:", err);
+        next(new AppError('Sorry...Something went wrong', 500));
     }
-  } 
+};
 
 
   const blockedUser = async(req,res)=>{
     const user = await usercollection.findOne({ email: req.session.user.email })
     if(user.isActive == false){
-        return res.render("user/blockedUser")
+ return res.render("user/blockedUser", { user: req.session.user });
     } else {
         return res.redirect("/")
     }
@@ -312,7 +352,7 @@ const loadSingleProduct = async (req, res) => {
 
         const product = await Product.findById(productId).populate('category');
         if (!product || product.isDeleted) {
-            return res.status(404).render("user/page-404", { error: "Product not found" });
+            return res.status(404).render("user/page-404", { error: "Product not found", user: req.session.user  });
         }
 
         if (!Array.isArray(product.size)) {
@@ -345,11 +385,12 @@ const loadSingleProduct = async (req, res) => {
 
         res.render("singleProduct", {
             product: fixedProduct,
-            relatedProducts: fixedRelatedProducts
+            relatedProducts: fixedRelatedProducts,
+            user: req.session.user,
         });
     } catch (error) {
         console.error('Error in loadSingleProduct:', error);
-        res.status(500).render("shop", { error: "Failed to load product" });
+        res.status(500).render("shop", { error: "Failed to load product", user: req.session.user });
     }
 };
 
@@ -362,7 +403,7 @@ const otpPage = async(req,res)=>{
         }
         const elapsedTime = Math.floor((Date.now() - req.session.otpStartTime) / 1000);
         const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
-        return res.render("otp",{otpError:otpError,time:remainingTime})
+        return res.render("otp",{otpError:otpError,time:remainingTime, user: req.session.user})
     } else {
         return res.redirect("/signin")
     }
@@ -370,27 +411,20 @@ const otpPage = async(req,res)=>{
 
 
 
-const logout = async(req,res)=>{
-    req.session.loginSession = null
-    req.session.signupSession = null
-    req.session.user = null
-    req.session.logError = null
-    req.session.signError = null
-    req.session.otp = null
-    req.session.otpError = null
-    req.session.checkOne = null
-    req.session.firstName = null
-    req.session.lastName = null
-    req.session.phone = null
-    req.session.email = null
-    req.session.addressId = null
-    req.session.doorNums = null
-    req.session.street = null
-    req.session.city = null
-    req.session.district = null
-    req.session.postcode = null
-    return res.redirect('/')
-}
+const logout = async (req, res) => {
+    try {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Error destroying session:", err);
+                return res.status(500).send("Internal Server Error");
+            }
+            res.redirect('/');
+        });
+    } catch (error) {
+        console.error("Error in logout:", error);
+        res.status(500).send("Internal Server Error");
+    }
+};
 
 
 
