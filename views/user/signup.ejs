@@ -120,7 +120,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <form id="signupForm" action="/signup" method="POST">
@@ -137,7 +136,11 @@
             <div class="form-group">
                 <input type="password" id="password" name="password" placeholder="Password">
             </div>
+            <div class="form-group">
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password">
+            </div>
             <button type="submit">Sign Up</button>
+
             <div class="divider">or</div>
             <button type="button" id="googleSignUp" class="google-btn">
                 GOOGLE
@@ -158,7 +161,16 @@
                 } else {
                     switch (field.id) {
                         case 'username':
-                            if (value.trim().length < 2) {
+                            // Rule 1: Username must start with a letter
+                            if (!/^[a-zA-Z]/.test(value)) {
+                                error = `${field.placeholder} must start with a letter`;
+                            }
+                            // Rule 2: Username must not have leading or trailing spaces
+                            else if (value.trim() !== value) {
+                                error = `${field.placeholder} must not have leading or trailing spaces`;
+                            }
+                            // Rule 3: Username must be at least 2 characters
+                            else if (value.trim().length < 2) {
                                 error = `${field.placeholder} must be at least 2 characters`;
                             }
                             break;
@@ -174,6 +186,14 @@
                             break;
                         case 'password':
                             if (value.length < 6) {
+                                error = 'Password must be at least 6 characters';
+                            }
+                            break;
+                        case 'confirmPassword':
+                            const password = document.getElementById('password').value;
+                            if (value !== password) {
+                                error = 'Passwords do not match';
+                            } else if (value.length < 6) {
                                 error = 'Password must be at least 6 characters';
                             }
                             break;
@@ -207,7 +227,7 @@
 
             const signupForm = document.getElementById('signupForm');
             if (signupForm) {
-                const fields = ['username', 'email', 'phone', 'password'];
+                const fields = ['username', 'email', 'phone', 'password', 'confirmPassword'];
 
                 fields.forEach(fieldId => {
                     const field = document.getElementById(fieldId);
@@ -227,6 +247,14 @@
                             isValid = false;
                         }
                     });
+
+                    // Additional validation for confirm password
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    if (password !== confirmPassword) {
+                        isValid = false;
+                        validateField(document.getElementById('confirmPassword'), confirmPassword);
+                    }
 
                     if (!isValid) return;
 
@@ -268,4 +296,3 @@
         });
     </script>
 </body>
-</html>
