@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/images/sneaky.png" type="image/png">
-    <title>Sneaky - User Management</title>
+    <title>Sneaky - Order Management</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -20,6 +20,8 @@
             --border-color: #e1e1e1;
             --success-color: #28a745;
             --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
         }
 
         body {
@@ -95,7 +97,7 @@
 
         /* Main Content */
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -112,6 +114,13 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             width: 300px;
+        }
+
+        .order-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
         }
 
         /* Table Styles */
@@ -145,16 +154,33 @@
             border-radius: 4px;
             font-size: 0.85rem;
             display: inline-block;
+            text-align: center;
         }
 
-        .status-badge.block {
+
+        .shipped {
             background: var(--success-color);
             color: white;
         }
 
-        .status-badge.unblock {
+        .pending {
+            background: var(--warning-color);
+            color: black;
+        }
+
+        .cancel {
             background: var(--danger-color);
             color: white;
+        }
+
+        .processing {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
         }
 
         .action-btn {
@@ -169,26 +195,47 @@
             background: #f8f9fa;
         }
 
-        /* Pagination */
+        /* Pagination Styles */
         .pagination {
             display: flex;
-            justify-content: center;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 1.5rem;
             gap: 0.5rem;
-            margin-top: 2rem;
         }
 
-        .pagination a {
+        .pagination-text {
+            margin-right: auto;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .pagination-btn {
             padding: 0.5rem 1rem;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            text-decoration: none;
-            color: var(--text-color);
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
         }
 
-        .pagination a.active {
+        .pagination-btn.active {
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
+        }
+
+        .pagination-btn:hover:not(.active) {
+            background: #f8f9fa;
+        }
+
+        /* Footer Styles */
+        footer {
+            background: #1e1e1e;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.8rem;
         }
 
         /* Responsive Design */
@@ -221,6 +268,47 @@
                 margin: 0 -1rem;
             }
         }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .pagination-text {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 0.5rem;
+            }
+        }
+
+        .buttons {
+            display: flex;
+            justify-content:left;
+            margin-bottom: 30px;
+            margin-top: 30px;
+            gap: 20px;
+        }
+
+        .btn {
+            background-color: #ff0000;
+            color: #fff;
+            border: none;
+            padding: 5px 40px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #d00000;
+        }
+
     </style>
 </head>
 <body>
@@ -234,48 +322,158 @@
                 <a href="/admin/productManagement">PRODUCTS</a>
                 <a href="/admin/categoryManagement">CATEGORIES</a>
                 <a href="/admin/couponManagement">COUPONS</a>
-                <a href="/admin/offerManagemnt">OFFERS</a>
+                <a href="/admin/offerManagement">OFFERS</a>
                 <a href="/admin/sales">SALES REPORT</a>
             </div>
-            <a href="/admin/logout" class="sign-out" style="text-decoration: none;">Sign Out</a>
+            <a href="/admin/logout" class="sign-out">Sign Out</a>
         </nav>
     </header>
 
     <section class="hero">
-        <h1>ORDERS</h1>
+        <h1>ORDERS LIST</h1>
         <div class="wave"></div>
     </section>
 
+    <main class="container">
+        <div class="order-title">Overall Order list</div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Product Name</th>
+                        <th>Payment Method</th>
+                        <th>Order Date</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#FC0005</td>
+                        <td>Nike Pegasus Trail 5</td>
+                        <td>Cash on Delivery</td>
+                        <td>28 March 2023</td>
+                        <td>₹1800.00</td>
+                        <td><span class="status-badge shipped">Shipped</span></td>
+                        <td><div class="buttons">
+                            <a href="#" class="btn">view</a>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td>#FC0004</td>
+                        <td>Nike Pegasus Trail 5</td>
+                        <td>PayPal</td>
+                        <td>24 March 2023</td>
+                        <td>₹1800.00</td>
+                        <td><span class="status-badge pending">Pending</span></td>
+                        <td><div class="buttons">
+                            <a href="#" class="btn">view</a>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td>#FC0003</td>
+                        <td>Nike Pegasus Trail 5</td>
+                        <td>Cash on Delivery</td>
+                        <td>8 Feb 2023</td>
+                        <td>₹1800.00</td>
+                        <td><span class="status-badge cancel">Cancel</span></td>
+                        <td><div class="buttons">
+                            <a href="#" class="btn">view</a>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td>#FC0002</td>
+                        <td>Nike Pegasus Trail 5</td>
+                        <td>Cash on Delivery</td>
+                        <td>20 Jan 2023</td>
+                        <td>₹1800.00</td>
+                        <td><span class="status-badge pending">Pending</span></td>
+                        <td><div class="buttons">
+                            <a href="#" class="btn">view</a>
+                        </div></td>
+                    </tr>
+                    <tr>
+                        <td>#FC0001</td>
+                        <td>Nike Pegasus Trail 5</td>
+                        <td>Wallet</td>
+                        <td>14 Jan 2023</td>
+                        <td>₹8.00</td>
+                        <td><span class="status-badge processing">Processing</span></td>
+                        <td><div class="buttons">
+                            <a href="#" class="btn">view</a>
+                        </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <div class="pagination-text">Showing 1 to 8 of 12 entries</div>
+            <button class="pagination-btn">Previous</button>
+            <button class="pagination-btn">1</button>
+            <button class="pagination-btn active">2</button>
+            <button class="pagination-btn">3</button>
+            <button class="pagination-btn">Next</button>
+        </div>
+    </main>
+
+    <footer>
+        Copyright © SNEAKY 2025
+    </footer>
 
     <script>
         // Search functionality
-        const searchBox = document.querySelector('.search-box');
-        searchBox.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBox = document.createElement('input');
+            searchBox.type = 'text';
+            searchBox.className = 'search-box';
+            searchBox.placeholder = 'Search Orders...';
             
-            rows.forEach(row => {
-                const firstName = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                const lastName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            const container = document.querySelector('.order-title');
+            container.parentNode.insertBefore(searchBox, container);
+            
+            searchBox.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('tbody tr');
                 
-                if (firstName.includes(searchTerm) || 
-                    lastName.includes(searchTerm) || 
-                    email.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                rows.forEach(row => {
+                    const orderNumber = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                    const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                    const paymentMethod = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                    const orderDate = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                    
+                    if (orderNumber.includes(searchTerm) || 
+                        productName.includes(searchTerm) || 
+                        paymentMethod.includes(searchTerm) || 
+                        orderDate.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
         });
 
-        // Toggle block/unblock status
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.addEventListener('click', function() {
-                const isBlocked = this.textContent === 'Block';
-                this.textContent = isBlocked ? 'Unblock' : 'Block';
-                this.classList.toggle('block');
-                this.classList.toggle('unblock');
+        // Pagination functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const paginationBtns = document.querySelectorAll('.pagination-btn');
+            
+            paginationBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    paginationBtns.forEach(b => b.classList.remove('active'));
+                    
+                    // Add active class to clicked button if it's a number
+                    if (!isNaN(btn.textContent) && btn.textContent.trim() !== '') {
+                        btn.classList.add('active');
+                    }
+                    
+                    // Here you would typically fetch or display the appropriate page of data
+                    // For demo purposes, we're just highlighting the button
+                });
             });
         });
     </script>

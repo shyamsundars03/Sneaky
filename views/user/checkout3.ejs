@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNEAKY - Checkout</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+/* Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #ff0000;
+    --secondary-color: #000000;
+    --tertiary-color: #ffffff;
+    --light-gray: #f5f5f5;
+    --mid-gray: #e0e0e0;
+    --dark-gray: #888888;
+    --text-color: #333333;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f5f5f5;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.main-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+/* Header Styles */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background-color: var(--secondary-color);
+    color: var(--tertiary-color);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-circle {
+    width: 25px;
+    height: 25px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.logo-text {
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.main-nav ul {
+    display: flex;
+    gap: 20px;
+}
+
+.main-nav a {
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.main-nav a:hover, .main-nav a.active {
+    color: var(--primary-color);
+}
+
+.header-icons {
+    display: flex;
+    gap: 15px;
+}
+
+.mode-toggle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background-color: var(--tertiary-color);
+    border-radius: 50%;
+}
+
+/* Checkout Banner */
+.checkout-banner {
+    background-color: var(--secondary-color);
+    padding: 40px 0;
+    text-align: center;
+    color: var(--tertiary-color);
+    position: relative;
+}
+
+.checkout-banner h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.wave-divider {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: var(--tertiary-color);
+    border-radius: 100% 100% 0 0;
+}
+
+/* Checkout Container */
+.checkout-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    margin-top: -2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.checkout-left {
+    flex: 1 1 60%;
+    min-width: 300px;
+}
+
+.checkout-right {
+    flex: 1 1 30%;
+    min-width: 250px;
+}
+
+/* Progress bar */
+.progress-bar {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.progress-item {
+    flex: 1;
+    padding: 1rem;
+    border-bottom: 2px solid #eee;
+}
+
+.progress-item.active {
+    border-bottom-color: #ff0000;
+}
+
+/* Order Review */
+.order-review {
+    margin-bottom: 2rem;
+}
+
+.order-review h2 {
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Products Table */
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.products-table th {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 1px solid var(--mid-gray);
+    font-weight: 500;
+}
+
+.products-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--mid-gray);
+}
+
+.product-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-info img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.delete-btn {
+    color: #ff0000;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Checkout Details */
+.checkout-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.detail-section {
+    border: 1px solid #eee;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid red;
+}
+
+.detail-section h3 {
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    font-weight: 500;
+
+}
+
+.detail-section p {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: var(--dark-gray);
+
+    
+}
+
+/* Coupon Section */
+.coupon-section {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.coupon-section input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--mid-gray);
+    border-radius: 4px;
+}
+
+.apply-btn, .back-btn {
+    background-color: #ff0000;
+    color: #fff;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Order Summary */
+.order-summary {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.order-summary h2 {
+    padding-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.summary-item.total {
+    color: #ff0000;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.price.discount {
+    color: var(--primary-color);
+}
+
+.place-order-btn {
+    background: #ff0000;
+    color: #fff;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .main-nav {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .checkout-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .checkout-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .products-table {
+        font-size: 0.9rem;
+    }
+    
+    .product-info img {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 576px) {
+    .progress-bar {
+        flex-direction: column;
+    }
+    
+    .coupon-section {
+        flex-wrap: wrap;
+    }
+    
+    .coupon-section input, 
+    .apply-btn, 
+    .back-btn {
+        width: 100%;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="checkout-banner">
+        <h1>CHECKOUT</h1>
+        <div class="wave-divider"></div>
+    </div>
+
+    <main class="main-content">
+        <div class="checkout-container">
+            <div class="checkout-left">
+                <div class="progress-bar">
+                    <div class="progress-item">Shipping Method</div>
+                    <div class="progress-item">Payment Method</div>
+                    <div class="progress-item active">Review</div>
+                </div>
+
+                <div class="order-review">
+                    <h2>Order Review</h2>
+                    
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Products</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="product-info">
+                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
+                                    <span>Nike Air Plus Drift</span>
+                                </td>
+                                <td>1</td>
+                                <td>₹ 23.00</td>
+                                <td><div class="delete-btn">
+                                    <i class="fas fa-trash"></i>
+                                </div></td>
+                            </tr>
+                            <tr>
+                                <td class="product-info">
+                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
+                                    <span>Nike Air Plus Drift</span>
+                                </td>
+                                <td>1</td>
+                                <td>₹ 23.00</td>
+                                <td><div class="delete-btn">
+                                    <i class="fas fa-trash"></i>
+                                </div></td>
+                            </tr>
+                            <tr>
+                                <td class="product-info">
+                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
+                                    <span>Nike Air Plus Drift</span>
+                                </td>
+                                <td>1</td>
+                                <td>₹ 23.00</td>
+                                <td><div class="delete-btn">
+                                    <i class="fas fa-trash"></i>
+                                </div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="checkout-details">
+                        <div class="detail-section">
+                            <h3>Shipping Address</h3>
+                            <p>Sz Osim</p>
+                            <p>Shamoli, Dhaka 09, Bangladesh</p>
+                            <p>+86 555 2647</p>
+                            <p>example78@gmail.com</p>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h3>Shipping Method</h3>
+                            <p>Standard Ground (USPS) · $7.50</p>
+                            <p>Delivered in 8-12 business days</p>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h3>Payment Method</h3>
+                            <p>Credit Card</p>
+                            <p>**** **** **** 2641</p>
+                        </div>
+                    </div>
+
+                    <div class="coupon-section">
+                        <input type="text" placeholder="Coupon Code">
+                        <button class="apply-btn">Apply</button>
+                        <button class="back-btn">Back</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="checkout-right">
+                <div class="order-summary">
+                    <h2>Your order</h2>
+                    
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <span class="price">$4500</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span>Shipping & Handling</span>
+                        <span class="price">$500</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span>Coupon Amount</span>
+                        <span class="price discount">-$1500</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span>Tax</span>
+                        <span class="price">$500</span>
+                    </div>
+                    
+                    <div class="summary-item total">
+                        <span>Total</span>
+                        <span class="price total">$4000</span>
+                    </div>
+                    
+                    <button class="place-order-btn">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

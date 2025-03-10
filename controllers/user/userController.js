@@ -242,29 +242,37 @@ const loadHomepage = async (req, res) => {
 
 
 const signinPost = async (req, res) => {
-    try{
+    try {
         const userData = await usercollection.findOne({ email: req.body.email });
-        console.log("Hi1")
+        console.log("Hi1");
         if (userData) {
-            console.log("Hi2")
-            if (userData.password && await comparePassword(req.body.password,userData.password)) {
-                console.log("Hi3")
-              req.session.loginSession = true;
-              req.session.user = {
-                name: userData.name,
-                email: userData.email,
-            };
-             
-              return res.status(200).send({ success: true })
+            console.log("Hi2");
+            if (userData.password) {
+                const isPasswordValid = await comparePassword(req.body.password, userData.password);
+                console.log("Hi3 - Password comparison result:", isPasswordValid);
+                if (isPasswordValid) {
+                    req.session.loginSession = true;
+                    req.session.user = {
+                        name: userData.name,
+                        email: userData.email,
+                    };
+                    console.log("Session set:", req.session.user);
+                    return res.status(200).send({ success: true });
+                } else {
+                    console.log("Invalid password");
+                    return res.status(208).send({ success: false, message: "Invalid password." });
+                }
             } else {
-                return res.status(208).send({ success: false })
+                console.log("No password found for user");
+                return res.status(208).send({ success: false, message: "Invalid user." });
             }
-          } else {
-            return res.status(208).send({ success: false })
-          }
+        } else {
+            console.log("User not found");
+            return res.status(208).send({ success: false, message: "Invalid user." });
+        }
     } catch (error) {
-        console.log(error);
-        next(new AppError('Sorry...Something went wrong', 500));
+        console.error("Error in signinPost:", error);
+        res.status(500).send({ success: false, message: "An error occurred. Please try again." });
     }
 };
 

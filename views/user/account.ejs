@@ -632,7 +632,7 @@
     <!-- Account Banner -->
     <section class="account-banner">
         <div class="container">
-            <h1>ACCOUNT</h1>
+            <h1>PROFILE</h1>
         </div>
     </section>
     
@@ -680,44 +680,61 @@
                 </div>
                 
                 <!-- Account Details Form -->
-                <div class="account-details">
-                    <h2>Account Details</h2>
-                    
-                    <form>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="firstName">UserName</label>
-                                <input type="text" id="firstName" placeholder="Enter your userName" />
-                            </div>
-                            
-                            <!-- <div class="form-group">
-                                <label for="lastName">Last Name</label>
-                                <input type="text" id="lastName" placeholder="Enter your last name" />
-                            </div>
-                        </div> -->
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" value="example@gmail.com" />
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="phone">Phone</label>
-                                <input type="tel" id="phone" placeholder="Enter your Number" />
-                            </div>
-                        </div>
-                        
-                        <div class="action-buttons">
-                            <button type="submit" class="btn">Save Details</button>
-                            <a href="#" class="btn">Change Password</a>
-                        </div>
-                        
-                        <div class="action-buttons" >
-                            <a href="#" class="btn">Click to get Referral Link</a>
-                        </div>
-                    </form>
-                </div>
+               <!-- Account Details Form -->
+<div class="account-details">
+    <h2>Profile Details</h2>
+    
+    <form>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="firstName">UserName</label>
+                <input type="text" id="firstName" placeholder="Enter your userName" />
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" value="example@gmail.com" />
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" placeholder="Enter your Number" />
+            </div>
+        </div>
+        
+        <!-- Password Section -->
+        <h3 style="margin-top: 30px; margin-bottom: 20px;">Password</h3>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" placeholder="••••••••" />
+            </div>
+            
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" placeholder="••••••••" />
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <a href="#" id="forgotPasswordLink" style="color: #777; font-size: 14px; text-decoration: none;">Can't remember your current password?</a>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button type="submit" class="btn">Save Details</button>
+            <button type="button" id="resetPasswordBtn" class="btn" style="background-color: #6c757d;">Change password</button>
+        </div>
+        
+        <div class="action-buttons" style="margin-top: 15px;">
+            <a href="#" class="btn">Click to get Referral Link</a>
+        </div>
+    </form>
+</div>
             </div>
         </div>
     </section>
@@ -804,6 +821,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const cropImage = document.getElementById('cropImage');
     const applyCropBtn = document.getElementById('applyCropBtn');
     const cancelCropBtn = document.getElementById('cancelCropBtn');
+    const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     
     // Store the original image for reset purposes
     let originalImage = profileImg.src;
@@ -873,6 +892,27 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Image has been cropped successfully!');
         cropModal.style.display = 'none';
     });
+
+
+    if (resetPasswordBtn) {
+        resetPasswordBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Clear password fields
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            alert('Password fields have been reset.');
+        });
+    }
+    
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Password reset link has been sent to your email.');
+        });
+    }
+
+
+
     
     // Close modal if clicking outside
     window.addEventListener('click', function(e) {

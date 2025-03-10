@@ -133,6 +133,21 @@
             align-items: center;
             gap: 1rem;
             padding: 1rem;
+            border: 1px solid red;
+            border-radius: 8px;
+        }
+
+        .payment-methods {
+            display: grid;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
             border: 1px solid #eee;
             border-radius: 8px;
         }
@@ -142,7 +157,6 @@
             padding: 1.5rem;
             border-radius: 8px;
         }
-
         .order-summary h2 {
             padding-bottom: 20px;
         }
@@ -209,18 +223,19 @@
 </head>
 <body>
 
+    <%-include("../../views/partials/user/header")%>
+
     <div class="checkout-header">
         <h1>CHECKOUT</h1>
-
     </div>
 
     <main class="main-content">
         <div class="checkout-container">
             <div class="checkout-form">
-                <h2>Bill details</h2>
+                <h2>Shipping Information</h2>
                 <div class="progress-bar">
-                    <div class="progress-item active">Shipping Method</div>
-                    <div class="progress-item">Payment Method</div>
+                    <div class="progress-item">Shipping Method</div>
+                    <div class="progress-item active">Payment Method</div>
                     <div class="progress-item">Review</div>
                 </div>
 
@@ -229,66 +244,74 @@
                     <div class="address-cards">
                         <div class="address-card selected">
                             <h4>Default</h4>
-                            <p>Sr Dalen</p>
-                            <p>Dwandi, Dhaka 370, Bangladesh</p>
-                            <p>415-555-0123</p>
-                            <p>example@gmail.com</p>
-                        </div>
-                        <div class="address-card">
-                            <h4>Office</h4>
-                            <p>Sr Dalen</p>
-                            <p>Dwandi, Dhaka 370, Bangladesh</p>
-                            <p>415-555-0123</p>
-                            <p>example@gmail.com</p>
+                            <p>$n.0xlm</p>
+                            <p>Shared, Drake 120, Bangladesh</p>
+                            <p>45-555-267</p>
+                            <p>comepr@physical.com</p>
                         </div>
                     </div>
-                    <button class="btn">add</button>
-
-                    <div class="shipping-methods">
-                        <h3>Select a Shipping Method</h3>
-                        <div class="shipping-option">
-                            <input type="radio" name="shipping" checked>
-                            <div>
-                                <h4>Standard Ground (USPS) - $7.50</h4>
-                                <p>Delivered in 8-12 business days</p>
-                            </div>
-                        </div>
-                        <div class="shipping-option">
-                            <input type="radio" name="shipping">
-                            <div>
-                                <h4>Premium Ground (UPS) - $12.50</h4>
-                                <p>Delivered in 4-7 business days</p>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <button class="btn">Continue</button>
+                    <button class="btn">Add</button>
                 </div>
+
+                <div class="shipping-methods">
+                    <h3>Shipping Method</h3>
+                    <div class="shipping-option">
+        
+                            <h4>Standard Ground (USPS) - $7.50</h4>
+                            <p>Delivered in S.P. business days</p>
+
+                    </div>
+                </div>
+
+                <div class="payment-methods">
+                    <h3>Payment Method</h3>
+                    <div class="payment-option">
+                        <input type="radio" name="payment" checked>
+                        <div>
+                            <h4>Pay with Paypal</h4>
+                        </div>
+                    </div>
+                    <div class="payment-option">
+                        <input type="radio" name="payment">
+                        <div>
+                            <h4>Wallet</h4>
+                        </div>
+                    </div>
+                    <div class="payment-option">
+                        <input type="radio" name="payment">
+                        <div>
+                            <h4>Cash on Delivery</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn">Back</button>
+                <button class="btn">Continue</button>
             </div>
 
             <div class="order-summary">
                 <h2>Your order</h2>
                 <div class="summary-item">
                     <span>Subtotal</span>
-                    <span>₹4500</span>
+                    <span>$4500</span>
                 </div>
                 <div class="summary-item">
                     <span>Shipping & Handling</span>
-                    <span>₹500</span>
+                    <span>$500</span>
                 </div>
                 <div class="summary-item">
                     <span>Tax</span>
-                    <span>₹500</span>
+                    <span>$500</span>
                 </div>
                 <div class="summary-item total">
                     <span>Total</span>
-                    <span>₹5500</span>
+                    <span>$5500</span>
                 </div>
             </div>
         </div>
     </main>
 
+    <%-include("../../views/partials/user/footer")%>
 
 </body>
 </html>

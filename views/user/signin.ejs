@@ -4,7 +4,7 @@
     <title>SignIn</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/public/images/sneaky.png" type="image/png">
+    <link rel="icon" href="/images/sneaky.png" type="image/png">
     <style>
         * {
             margin: 0;
@@ -131,7 +131,7 @@
             const validateField = (field, value) => {
                 const errorDiv = field.nextElementSibling;
                 let error = '';
-
+    
                 if (!value.trim()) {
                     error = `${field.placeholder} is required`;
                 } else {
@@ -148,7 +148,7 @@
                             break;
                     }
                 }
-
+    
                 if (error) {
                     if (errorDiv && errorDiv.classList.contains('field-error')) {
                         errorDiv.textContent = error;
@@ -160,33 +160,33 @@
                     }
                     return false;
                 }
-
+    
                 if (errorDiv && errorDiv.classList.contains('field-error')) {
                     errorDiv.remove();
                 }
                 return true;
             };
-
+    
             const signinForm = document.getElementById('signinForm');
             if (signinForm) {
                 const emailField = document.getElementById('email');
                 const passwordField = document.getElementById('password');
-
+    
                 [emailField, passwordField].forEach(field => {
                     if (field) {
                         field.addEventListener('blur', () => validateField(field, field.value));
                     }
                 });
-
+    
                 signinForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     
                     let isValid = true;
                     if (!validateField(emailField, emailField.value)) isValid = false;
                     if (!validateField(passwordField, passwordField.value)) isValid = false;
-
+    
                     if (!isValid) return;
-
+    
                     try {
                         const response = await fetch('/signin', {
                             method: 'POST',
@@ -196,9 +196,9 @@
                                 password: passwordField.value
                             })
                         });
-
+    
                         const data = await response.json();
-
+    
                         if (response.ok) {
                             Swal.fire({
                                 icon: 'success',
@@ -210,10 +210,11 @@
                                 window.location.href = '/';
                             });
                         } else {
+                            // Display the specific error message from the backend
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error!',
-                                text: data.error || 'Invalid email or password'
+                                text: data.message || 'Invalid email or password'
                             });
                         }
                     } catch (error) {
