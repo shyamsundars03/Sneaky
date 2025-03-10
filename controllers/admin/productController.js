@@ -1,50 +1,37 @@
 const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
-const { CURSOR_FLAGS } = require('mongodb');
 
 // Helper function to validate product data
 const validateProduct = async (productData, productId = null) => {
     const errors = [];
 
+    // Validate product name, category, etc.
     if (!productData.productName?.trim()) {
         errors.push('Product name is required');
-    } else {
-        // Check for duplicate product name
-        const existingProduct = await Product.findOne({
-            productName: { $regex: new RegExp(`^${productData.productName}$`, 'i') },
-            _id: { $ne: productId },
-            isDeleted: false
-        });
-
-        if (existingProduct) {
-            errors.push('Product name already exists');
-        }
     }
 
     if (!productData.category) {
         errors.push('Category is required');
     }
 
-    if (!productData.price || productData.price <= 0) {
-        errors.push('Valid price is required');
-    }
-
-    if (productData.stock < 0) {
-        errors.push('Stock cannot be negative');
-    }
-
-    // Validate size
-    if (!productData.size || !Array.isArray(productData.size) || productData.size.length === 0) {
+    // Validate size-specific data
+    if (!productData.sizes || productData.sizes.length === 0) {
         errors.push('At least one size is required');
-    }
-
-    if (!productData.description?.trim()) {
-        errors.push('Description is required');
+    } else {
+        productData.sizes.forEach(size => {
+            if (!size.price || size.price <= 0) {
+                errors.push(`Price for size ${size.size} is invalid`);
+            }
+            if (size.stock < 0) {
+                errors.push(`Stock for size ${size.size} cannot be negative`);
+            }
+        });
     }
 
     return errors;
 };
 
+// Load product management page
 const loadProductManagement = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -80,7 +67,7 @@ const loadProductManagement = async (req, res) => {
 
         const totalProducts = await Product.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalProducts / limit);
-        const categories = await Category.find({ isDeleted: false });
+
 
         // Fix image paths
         const fixedProducts = products.map(product => {
@@ -92,7 +79,7 @@ const loadProductManagement = async (req, res) => {
                 productImage: fixedImages
             };
         });
-
+        const categories = await Category.find({ isDeleted: false });
         res.render('productManagement', {
             products: fixedProducts,
             currentPage: page,
@@ -114,66 +101,50 @@ const loadProductManagement = async (req, res) => {
     }
 };
 
+// Add a new product
 const addProduct = async (req, res) => {
     try {
-        const price = parseFloat(req.body.price);
-        const discount = parseFloat(req.body.discount) || 0;
+        const { productName, description, category, isListed } = req.body;
 
-        const sizes = Array.isArray(req.body.size) ? req.body.size : [req.body.size];
+        // Extract size-specific data
+        const sizes = ['7', '8', '9', '10'].filter(size => req.body[`size_${size}_price`]);
+        const sizeDetails = sizes.map(size => ({
+            size,
+            price: parseFloat(req.body[`size_${size}_price`]),
+            discount: parseFloat(req.body[`size_${size}_discount`]) || 0,
+            offerPrice: parseFloat(req.body[`size_${size}_offerPrice`]),
+            stock: parseInt(req.body[`size_${size}_stock`])
+        }));
 
         const productData = {
-            productName: req.body.productName,
-            description: req.body.description,
-            category: req.body.category,
-            price: price,
-            discount: discount,
-            offerPrice: price - (price * (discount / 100)), // Calculate offer price
-            stock: parseInt(req.body.stock),
-            isListed: req.body.isListed === 'list',
-            size: sizes // Array of selected sizes
+            productName,
+            description,
+            category,
+            isListed: isListed === 'list',
+            productImage: req.files.map(file => file.path),
+            sizes: sizeDetails
         };
 
         // Validate product data
         const errors = await validateProduct(productData);
-
-        // Check for required images
-        if (req.files && req.files.length > 0 && req.files.length !== 4) {
-            errors.push('Exactly four product images are required');
-        }
-
         if (errors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: errors[0]
-            });
+            return res.status(400).json({ success: false, error: errors[0] });
         }
-
-        // Add image paths
-        productData.productImage = req.files.map(file => file.path);
 
         const newProduct = new Product(productData);
         await newProduct.save();
 
-        res.status(201).json({
-            success: true,
-            message: 'Product added successfully'
-        });
+        res.status(201).json({ success: true, message: 'Product added successfully' });
     } catch (error) {
         console.error('Error in addProduct:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to add product'
-        });
+        res.status(500).json({ success: false, error: 'Failed to add product' });
     }
 };
 
+// Update an existing product
 const updateProduct = async (req, res) => {
     try {
-        console.log("Request Params:", req.params); // Debugging line
-        console.log("Request Body:", req.body); // Debugging line
-
-        const productId = req.params.id;// Ensure productId is extracted from req.params
-        console.log("Product ID:", productId);
+        const productId = req.params.id;
 
         if (!productId) {
             return res.status(400).json({
@@ -182,22 +153,22 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        const price = parseFloat(req.body.price);
-        const discount = parseFloat(req.body.discount) || 0;
-
-        // Get selected sizes as an array
-        const sizes = Array.isArray(req.body.size) ? req.body.size : [req.body.size];
+        // Extract size-specific data
+        const sizes = ['7', '8', '9', '10'].filter(size => req.body[`size_${size}_price`]);
+        const sizeDetails = sizes.map(size => ({
+            size,
+            price: parseFloat(req.body[`size_${size}_price`]),
+            discount: parseFloat(req.body[`size_${size}_discount`]) || 0,
+            offerPrice: parseFloat(req.body[`size_${size}_offerPrice`]),
+            stock: parseInt(req.body[`size_${size}_stock`])
+        }));
 
         const productData = {
             productName: req.body.productName,
             description: req.body.description,
             category: req.body.category,
-            price: price,
-            discount: discount,
-            offerPrice: price - (price * (discount / 100)),
-            stock: parseInt(req.body.stock),
             isListed: req.body.isListed === 'list',
-            size: sizes // Array of selected sizes
+            sizes: sizeDetails
         };
 
         // Validate product data
@@ -232,7 +203,7 @@ const updateProduct = async (req, res) => {
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(
-            productId, // Ensure productId is used here
+            productId,
             productData,
             { new: true }
         );
@@ -251,8 +222,8 @@ const updateProduct = async (req, res) => {
     }
 };
 
+// Delete a product
 const deleteProduct = async (req, res) => {
-
     try {
         const productId = req.params.id;
         const product = await Product.findById(productId);
@@ -267,13 +238,6 @@ const deleteProduct = async (req, res) => {
         product.isDeleted = true;
         await product.save();
 
-
-
-        const result = await Product.findByIdAndUpdate(productId, { isDeleted: true }, { new: true });
-        console.log("Delete Result:", result);
-        console.log("this is try dele porduct")
-
-
         res.json({
             success: true,
             message: 'Product deleted successfully'
@@ -287,6 +251,7 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+// Toggle product listing status
 const toggleProductStatus = async (req, res) => {
     try {
         const productId = req.params.id;
@@ -315,28 +280,29 @@ const toggleProductStatus = async (req, res) => {
     }
 };
 
+// Get product by ID
 const getProductById = async (req, res) => {
     try {
         const productId = req.params.id;
-        const product = await Product.findById(productId);
-        
+        const product = await Product.findById(productId).populate('category');
+
         if (!product || product.isDeleted) {
             return res.status(404).json({
                 success: false,
                 error: 'Product not found'
             });
         }
-        
+
         // Fix image paths
         const fixedImages = product.productImage.map(img =>
             img.replace(/\\/g, '/').replace(/^public\//, '/')
         );
-        
+
         const productData = {
             ...product.toObject(),
             productImage: fixedImages
         };
-        
+
         res.json({
             success: true,
             product: productData
@@ -350,14 +316,12 @@ const getProductById = async (req, res) => {
     }
 };
 
-
-
 module.exports = {
     loadProductManagement,
     addProduct,
     updateProduct,
     deleteProduct,
     toggleProductStatus,
-    validateProduct,
-    getProductById 
+    getProductById,
+    validateProduct
 };

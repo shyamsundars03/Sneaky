@@ -126,6 +126,29 @@
             gap: 20px;
         }
 
+
+/* Add this to your existing CSS */
+.account-icon {
+    display: flex;
+    align-items: center; /* Vertically center the icon and text */
+    gap: 8px; /* Add some spacing between the icon and text */
+    text-decoration: none; /* Remove underline */
+    color: white; /* Ensure the text color is white */
+}
+
+.account-icon img {
+    width: 24px; /* Ensure the icon has a consistent size */
+    height: 24px;
+}
+
+.account-icon span {
+    font-size: 14px; /* Adjust font size as needed */
+    color: white; /* Ensure the text color is white */
+    text-decoration: none; /* Remove underline */
+}
+
+
+
         .mobile-menu-btn {
             display: none;
             background: none;
@@ -1325,7 +1348,7 @@
                             <a href="/account" class="account-icon">
                                    
                                 <img src="/images/icons/person.svg" alt="Account">
-                                <span style="color: white; text-decoration: none; "><%= user.name %></span>
+                                <span ><%= user.name %></span>
                             </a>
                             <div class="dropdown-content">
                                 <a href="/profile">Profile</a>
@@ -1345,8 +1368,14 @@
                             </div>
                         <% } %>
                     </div>
-                    <a href="/cart"><img src="/images/icons/cart.svg" alt="Cart"></a>
-                    <a href="/wishlist"><img src="/images/icons/fav.svg" alt="Wishlist"></a>
+                     <!-- Conditionally render cart and wishlist icons -->
+                     <% if (user) { %>
+                        <a href="/cart"><img src="/images/icons/cart.svg" alt="Cart"></a>
+                        <a href="/wishlist"><img src="/images/icons/fav.svg" alt="Wishlist"></a>
+                    <% } else { %>
+                        <a href="/signin"><img src="/images/icons/cart.svg" alt="Cart"></a>
+                        <a href="/signin"><img src="/images/icons/fav.svg" alt="Wishlist"></a>
+                    <% } %>
                 </div>
             </nav>
         </div>

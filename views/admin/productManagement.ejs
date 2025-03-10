@@ -593,15 +593,13 @@
                         <th>Image</th>
                         <th>Product Name</th>
                         <th>Category</th>
-                        <th>Stock</th>
-                        <th>Price</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% if (typeof products !=='undefined' && products && products.length> 0) { %>
-                        <% products.forEach(product=> { %>
+                    <% if (typeof products !== 'undefined' && products && products.length > 0) { %>
+                        <% products.forEach(product => { %>
                             <tr>
                                 <td>
                                     <img src='<%= product.productImage[0] %>' alt="<%= product.productName %>"
@@ -612,11 +610,6 @@
                                 </td>
                                 <td>
                                     <%= product.category ? product.category.name : 'N/A' %>
-                                </td>
-                                <td class="<%= product.stock <= 0 ? 'out-of-stock' : 'stock-status' %>">
-                                    <%= product.stock %>
-                                </td>
-                                <td>₹<%= product.price %>
                                 </td>
                                 <td>
                                     <span class="status-badge <%= product.isListed ? 'listed' : 'unlisted' %>"
@@ -636,12 +629,12 @@
                                     </div>
                                 </td>
                             </tr>
-                            <% }); %>
-                                <% } else { %>
-                                    <tr>
-                                        <td colspan="7" style="text-align: center;">No products found</td>
-                                    </tr>
-                                    <% } %>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="5" style="text-align: center;">No products found</td>
+                        </tr>
+                    <% } %>
                 </tbody>
             </table>
         </div>
@@ -689,17 +682,17 @@
                             <label class="form-label">Category *</label>
                             <select name="category" id="category" class="form-input">
                                 <option value="" selected disabled>Select Category</option>
-                                <% if (typeof categories !=='undefined' && categories) { %>
-                                    <% categories.forEach(category=> { %>
+                                <% if (typeof categories !== 'undefined' && categories) { %>
+                                    <% categories.forEach(category => { %>
                                         <option value="<%= category._id %>">
                                             <%= category.name %>
                                         </option>
-                                        <% }); %>
+                                    <% }); %>
                                 <% } %>
                             </select>
                             <div class="form-error" id="categoryError"></div>
                         </div>
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label class="form-label">Price *</label>
                             <input type="number" name="price" id="price" class="form-input" min="0" oninput="calculateOfferPrice()">
                             <div class="form-error" id="priceError"></div>
@@ -718,27 +711,30 @@
                             <label class="form-label">Stock *</label>
                             <input type="number" name="stock" id="stock" class="form-input" min="0">
                             <div class="form-error" id="stockError"></div>
-                        </div>
+                        </div> -->
 
-                                    <!-- Add this after the stock form group and before the images section -->
-                                    <div class="form-group full-width">
-                                        <label class="form-label">Size *</label>
-                                        <div class="form-error" id="sizeError"></div>
-                                        <div class="checkbox-group">
-                                            <label class="checkbox-option">
-                                                <input type="checkbox" name="size" value="7"> 7
-                                            </label>
-                                            <label class="checkbox-option">
-                                                <input type="checkbox" name="size" value="8"> 8
-                                            </label>
-                                            <label class="checkbox-option">
-                                                <input type="checkbox" name="size" value="9"> 9
-                                            </label>
-                                            <label class="checkbox-option">
-                                                <input type="checkbox" name="size" value="10"> 10
-                                            </label>
-                                        </div>
-                                    </div>
+<!-- Add this inside the modal-body -->
+<div class="form-group full-width">
+    <label class="form-label">Size *</label>
+    <div class="form-error" id="sizeError"></div>
+    <div class="checkbox-group">
+        <label class="checkbox-option">
+            <input type="checkbox" name="size" value="7" onchange="toggleSizeFields('7')"> 7
+        </label>
+        <label class="checkbox-option">
+            <input type="checkbox" name="size" value="8" onchange="toggleSizeFields('8')"> 8
+        </label>
+        <label class="checkbox-option">
+            <input type="checkbox" name="size" value="9" onchange="toggleSizeFields('9')"> 9
+        </label>
+        <label class="checkbox-option">
+            <input type="checkbox" name="size" value="10" onchange="toggleSizeFields('10')"> 10
+        </label>
+    </div>
+</div>
+
+<!-- Dynamic size-specific fields will be appended here -->
+<div id="sizeFieldsContainer"></div>
 
 
                         <div class="form-group full-width">
@@ -896,7 +892,7 @@
         }
 
      // Load product data for editing
-async function loadProductData(productId) {
+     async function loadProductData(productId) {
     try {
         const response = await fetch(`/admin/product/${productId}`);
         const data = await response.json();
@@ -905,35 +901,36 @@ async function loadProductData(productId) {
             const form = document.getElementById('productForm');
             const product = data.product;
 
+            // Set basic fields
             form.elements.productId.value = product._id;
             form.elements.productName.value = product.productName;
-            form.elements.category.value = product.category;
-            form.elements.price.value = product.price;
-            form.elements.discount.value = product.discount || 0;
-            form.elements.offerPrice.value = product.offerPrice || '';
-            form.elements.stock.value = product.stock;
+            form.elements.category.value = product.category._id;
             form.elements.description.value = product.description;
 
-
-            // Set size checkboxes
+            // Set size checkboxes and size-specific fields
             const sizeCheckboxes = form.querySelectorAll('input[name="size"]');
             sizeCheckboxes.forEach(checkbox => {
-                if (product.size.includes(checkbox.value)) {
-                    checkbox.checked = true;
-                }
+                checkbox.checked = false; // Reset all checkboxes
             });
 
+            if (product.sizes && product.sizes.length > 0) {
+                product.sizes.forEach(size => {
+                    const sizeCheckbox = form.querySelector(`input[name="size"][value="${size.size}"]`);
+                    if (sizeCheckbox) {
+                        sizeCheckbox.checked = true;
+                        toggleSizeFields(size.size); // Create fields for this size
 
-            // Set radio button value
-            const listStatus = product.isListed ? 'list' : 'unlist';
-            form.querySelector(`input[name="isListed"][value="${listStatus}"]`).checked = true;
-
-
-
-            // Clear image previews first
-            clearImagePreviews();
+                        // Populate size-specific fields
+                        document.querySelector(`input[name="size_${size.size}_price"]`).value = size.price;
+                        document.querySelector(`input[name="size_${size.size}_discount"]`).value = size.discount;
+                        document.querySelector(`input[name="size_${size.size}_offerPrice"]`).value = size.offerPrice;
+                        document.querySelector(`input[name="size_${size.size}_stock"]`).value = size.stock;
+                    }
+                });
+            }
 
             // Load existing images
+            clearImagePreviews();
             if (product.productImage && product.productImage.length) {
                 product.productImage.forEach((imgUrl, index) => {
                     if (index < 4) {
@@ -960,9 +957,9 @@ async function loadProductData(productId) {
             const form = document.getElementById('productForm');
             const productName = form.elements.productName.value.trim();
             const category = form.elements.category.value;
-            const price = form.elements.price.value;
-            const offerPrice = form.elements.offerPrice.value;
-            const stock = form.elements.stock.value;
+            // const price = form.elements.price.value;
+            // const offerPrice = form.elements.offerPrice.value;
+            // const stock = form.elements.stock.value;
             const description = form.elements.description.value.trim();
             const sizeSelected = form.querySelector('input[name="size"]:checked');
             let isValid = true;
@@ -999,29 +996,29 @@ async function loadProductData(productId) {
                 isValid = false;
             }
 
-            // Validate price
-            if (!price) {
-                showFormError('priceError', 'Price is required');
-                isValid = false;
-            } else if (price <= 0) {
-                showFormError('priceError', 'Price must be greater than 0');
-                isValid = false;
-            }
+            // // Validate price
+            // if (!price) {
+            //     showFormError('priceError', 'Price is required');
+            //     isValid = false;
+            // } else if (price <= 0) {
+            //     showFormError('priceError', 'Price must be greater than 0');
+            //     isValid = false;
+            // }
 
-            // Validate offer price if provided
-            if (offerPrice && Number(offerPrice) >= Number(price)) {
-                showFormError('offerPriceError', 'Offer price must be less than regular price');
-                isValid = false;
-            }
+            // // Validate offer price if provided
+            // if (offerPrice && Number(offerPrice) >= Number(price)) {
+            //     showFormError('offerPriceError', 'Offer price must be less than regular price');
+            //     isValid = false;
+            // }
 
-            // Validate stock
-            if (!stock && stock !== '0') {
-                showFormError('stockError', 'Stock is required');
-                isValid = false;
-            } else if (Number(stock) < 0) {
-                showFormError('stockError', 'Stock cannot be negative');
-                isValid = false;
-            }
+            // // Validate stock
+            // if (!stock && stock !== '0') {
+            //     showFormError('stockError', 'Stock is required');
+            //     isValid = false;
+            // } else if (Number(stock) < 0) {
+            //     showFormError('stockError', 'Stock cannot be negative');
+            //     isValid = false;
+            // }
 
                 // Validate size
    
@@ -1030,6 +1027,10 @@ async function loadProductData(productId) {
                 isValid = false;
             }
 
+    // Validate size-specific fields
+    if (!validateSizeFields()) {
+        isValid = false;
+    }
 
 
 
@@ -1346,8 +1347,86 @@ async function loadProductData(productId) {
     document.getElementById('offerPrice').value = offerPrice.toFixed(2);
 }
 
+function toggleSizeFields(size) {
+    const container = document.getElementById('sizeFieldsContainer');
+    const sizeField = document.getElementById(`sizeFields_${size}`);
 
+    if (sizeField) {
+        // If fields already exist, remove them
+        container.removeChild(sizeField);
+    } else {
+        // Create new fields for the selected size
+        const sizeFields = document.createElement('div');
+        sizeFields.id = `sizeFields_${size}`;
+        sizeFields.innerHTML = `
+            <div class="form-group">
+                <label class="form-label">Price for Size ${size} *</label>
+                <input type="number" name="size_${size}_price" class="form-input" min="0" required>
+                <div class="form-error" id="size_${size}_priceError"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Discount for Size ${size} (%)</label>
+                <input type="number" name="size_${size}_discount" class="form-input" min="0" max="100" oninput="calculateOfferPrice('${size}')">
+                <div class="form-error" id="size_${size}_discountError"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Offer Price for Size ${size}</label>
+                <input type="number" name="size_${size}_offerPrice" class="form-input" min="0" readonly>
+                <div class="form-error" id="size_${size}_offerPriceError"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Stock for Size ${size} *</label>
+                <input type="number" name="size_${size}_stock" class="form-input" min="0" required>
+                <div class="form-error" id="size_${size}_stockError"></div>
+            </div>
+        `;
+        container.appendChild(sizeFields);
+    }
+}
 
+function calculateOfferPrice(size) {
+    const price = parseFloat(document.querySelector(`input[name="size_${size}_price"]`).value) || 0;
+    const discount = parseFloat(document.querySelector(`input[name="size_${size}_discount"]`).value) || 0;
+
+    if (discount < 0 || discount > 100) {
+        document.getElementById(`size_${size}_discountError`).textContent = 'Discount must be between 0% and 100%';
+        document.querySelector(`input[name="size_${size}_offerPrice"]`).value = '';
+        return;
+    } else {
+        document.getElementById(`size_${size}_discountError`).textContent = '';
+    }
+
+    const offerPrice = price - (price * (discount / 100));
+    document.querySelector(`input[name="size_${size}_offerPrice"]`).value = offerPrice.toFixed(2);
+}
+function validateSizeFields() {
+    let isValid = true;
+    const sizeCheckboxes = document.querySelectorAll('input[name="size"]:checked');
+
+    sizeCheckboxes.forEach(checkbox => {
+        const size = checkbox.value;
+        const price = document.querySelector(`input[name="size_${size}_price"]`).value;
+        const discount = document.querySelector(`input[name="size_${size}_discount"]`).value;
+        const stock = document.querySelector(`input[name="size_${size}_stock"]`).value;
+
+        if (!price || price <= 0) {
+            showFormError(`size_${size}_priceError`, 'Price must be greater than 0');
+            isValid = false;
+        }
+
+        if (discount && (discount < 0 || discount > 100)) {
+            showFormError(`size_${size}_discountError`, 'Discount must be between 0% and 100%');
+            isValid = false;
+        }
+
+        if (!stock || stock < 0) {
+            showFormError(`size_${size}_stockError`, 'Stock must be a non-negative number');
+            isValid = false;
+        }
+    });
+
+    return isValid;
+}
 
 
     </script>

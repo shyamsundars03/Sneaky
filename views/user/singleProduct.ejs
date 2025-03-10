@@ -3,7 +3,6 @@
 <!-- Hero Section -->
 <section class="shop-hero">
     <div class="hero-hero-content">
-
         <div class="breadcrumb">
             <a href="/">HOME</a> / <a href="/shop">SHOP</a> / <span><%= product.productName %></span>
         </div>
@@ -34,9 +33,9 @@
                 <h2><%= product.productName %></h2>
                 <div class="rating">★★★★★ <span>(1 customer review)</span></div>
                 <div class="price">
-                    ₹<%= product.offerPrice %>
-                    <% if (product.price && product.price > 0  && product.offerPrice!==product.price) { %>
-                        <span class="discount">₹<%= product.price %></span>
+                    ₹<span id="offerPrice"><%= product.sizes[0].offerPrice %></span>
+                    <% if (product.sizes[0].price && product.sizes[0].price > 0 && product.sizes[0].offerPrice !== product.sizes[0].price) { %>
+                        <span class="discount">₹<span id="price"><%= product.sizes[0].price %></span></span>
                     <% } %>
                 </div>
                 <p><%= product.description %></p>
@@ -47,9 +46,18 @@
                         </div>
                         <div class="filter-options">
                             <div class="size-options">
-                                <% if (Array.isArray(product.size) && product.size.length > 0) { %>
-                                    <% product.size.forEach((size, index) => { %>
-                                        <button class="size-option <%= index === 0 ? 'active' : '' %>"><%= size %></button>
+                                <% if (Array.isArray(product.sizes) && product.sizes.length > 0) { %>
+                                    <% product.sizes.forEach((size, index) => { %>
+                                        <button 
+                                            class="size-option <%= index === 0 ? 'active' : '' %>" 
+                                            data-size="<%= size.size %>"
+                                            data-price="<%= size.price %>"
+                                            data-offer-price="<%= size.offerPrice %>"
+                                            data-stock="<%= size.stock %>"
+                                            onclick="selectSize(this)"
+                                        >
+                                            <%= size.size %>
+                                        </button>
                                     <% }) %>
                                 <% } else { %>
                                     <p>No sizes available</p>
@@ -60,11 +68,13 @@
                 </div>
                 <div>
                     <h3>Stock</h3>
-                    <% if (product.stock === 0) { %>
-                        <p style="color: red;">Out of Stock</p>
-                    <% } else { %>
-                        <p><%= product.stock %> items available</p>
-                    <% } %>
+                    <p id="stock">
+                        <% if (product.sizes[0].stock === 0) { %>
+                            <span style="color: red;">Out of Stock</span>
+                        <% } else { %>
+                            <%= product.sizes[0].stock %> items available
+                        <% } %>
+                    </p>
                 </div>
                 <div>
                     <h3>Quantity</h3>
@@ -96,7 +106,6 @@
                         </a>
                         <div class="product-info">
                             <div class="product-price">
-
                                 <% if (relatedProduct.offerPrice && relatedProduct.offerPrice > 0) { %>
                                     <span class="related-original-price">₹<%= relatedProduct.offerPrice %></span>
                                 <% } %>
@@ -117,53 +126,56 @@
     </div>
 </section>
 
-<!-- Add the JavaScript for zoom and thumbnail functionality -->
+<!-- JavaScript for Dynamic Updates -->
 <script>
+    // Function to handle size selection
+    function selectSize(button) {
+        // Remove active class from all size buttons
+        document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
 
+        // Add active class to the selected button
+        button.classList.add('active');
 
+        // Update price, offer price, and stock based on the selected size
+        const price = button.getAttribute('data-price');
+        const offerPrice = button.getAttribute('data-offer-price');
+        const stock = button.getAttribute('data-stock');
 
-document.addEventListener('DOMContentLoaded', function () {
-    const sizeButtons = document.querySelectorAll('.size-btn');
+        document.getElementById('price').textContent = price;
+        document.getElementById('offerPrice').textContent = offerPrice;
 
-    sizeButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            // Remove active class from all buttons
-            sizeButtons.forEach(btn => btn.classList.remove('active'));
-
-            // Add active class to the clicked button
-            this.classList.add('active');
-
-            // Optionally, store the selected size in a hidden input or variable
-            const selectedSize = this.getAttribute('data-size');
-            console.log('Selected size:', selectedSize);
-        });
-    });
-});
-
-    // Function to change the main image when a thumbnail is clicked
-    function changeMainImage(imageSrc) {
-        const mainImage = document.getElementById("main-image");
-        const zoomOverlay = document.getElementById("zoom-overlay");
-
-        // Update the main image and its zoom overlay
-        mainImage.src = imageSrc;
-        zoomOverlay.style.backgroundImage = `url('${imageSrc}')`;
+        const stockElement = document.getElementById('stock');
+        if (stock == 0) {
+            stockElement.innerHTML = '<span style="color: red;">Out of Stock</span>';
+        } else {
+            stockElement.textContent = `${stock} items available`;
+        }
     }
 
     // Function to handle quantity increase
     function increaseQuantity() {
-        const quantityElement = document.getElementById("quantity");
+        const quantityElement = document.getElementById('quantity');
         let quantity = parseInt(quantityElement.textContent);
         quantityElement.textContent = quantity + 1;
     }
 
     // Function to handle quantity decrease
     function decreaseQuantity() {
-        const quantityElement = document.getElementById("quantity");
+        const quantityElement = document.getElementById('quantity');
         let quantity = parseInt(quantityElement.textContent);
         if (quantity > 1) {
             quantityElement.textContent = quantity - 1;
         }
+    }
+
+    // Function to change the main image when a thumbnail is clicked
+    function changeMainImage(imageSrc) {
+        const mainImage = document.getElementById('main-image');
+        const zoomOverlay = document.getElementById('zoom-overlay');
+
+        // Update the main image and its zoom overlay
+        mainImage.src = imageSrc;
+        zoomOverlay.style.backgroundImage = `url('${imageSrc}')`;
     }
 
     // JavaScript for magnifying glass zoom effect

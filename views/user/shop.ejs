@@ -22,13 +22,20 @@
                 <h4>CATEGORIES</h4>
                 <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
             </div>
-            <div class="filter-options">
+            <div class="filter-options" id="category-filters">
                 <% if (categories.length > 0) { %>
                     <% categories.forEach(category => { %>
-                        <label class="filter-option">
-                            <input type="checkbox" checked>
-                            <%= category.name %>
-                        </label>
+                        <% if (category.isListed && !category.isDeleted) { %>
+                            <label class="filter-option">
+                                <input 
+                                    type="checkbox" 
+                                    name="category" 
+                                    value="<%= category._id %>" 
+                                    onchange="filterProducts()"
+                                >
+                                <%= category.name %>
+                            </label>
+                        <% } %>
                     <% }) %>
                 <% } else { %>
                     <p>No categories found.</p>
@@ -47,28 +54,35 @@
                         <input type="text" placeholder="Min" value="₹0">
                         <input type="text" placeholder="Max" value="₹5000">
                     </div>
-                    <input type="range" min="0" max="10000" class="range-slider">
+                    <!-- <input type="range" min="0" max="10000" class="range-slider"> -->
                     <button class="apply-button">Apply</button>
                 </div>
             </div>
         </div>
 
+        <!-- Size Section -->
         <div class="filter-section">
             <div class="filter-header">
                 <h4>SIZE</h4>
                 <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
             </div>
-            <div class="filter-options">
+            <div class="filter-options" id="size-filters">
                 <div class="size-options">
-                    <button class="size-option">7</button>
-                    <button class="size-option active">8</button>
-                    <button class="size-option">9</button>
-                    <button class="size-option">10</button>
+                    <% const sizes = ['7', '8', '9', '10']; %>
+                    <% sizes.forEach(size => { %>
+                        <button 
+                            class="size-option" 
+                            data-size="<%= size %>" 
+                            onclick="toggleSizeFilter('<%= size %>')"
+                        >
+                            <%= size %>
+                        </button>
+                    <% }) %>
                 </div>
             </div>
         </div>
 
-        <div class="filter-section">
+        <!-- <div class="filter-section">
             <div class="filter-header">
                 <h4>RATINGS</h4>
                 <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
@@ -95,7 +109,7 @@
                     <div class="stars">★☆☆☆☆</div>
                 </label>
             </div>
-        </div>
+        </div> -->
     </aside>
 
     <div class="products-container">
@@ -112,35 +126,41 @@
             </div>
         </div>
 
-        <!-- Product Grid -->
-        <div class="products-grid">
-            <% if (products.length > 0) { %>
-                <% products.forEach(product => { %>
-                    <div class="product-card">
-                        <a href="/product/<%= product._id %>" class="product-image">
-                            <img src="<%= product.productImage[0] %>" alt="<%= product.productName %>">
-                        </a>
-                        <div class="product-info">
-                            <div class="product-price">
-                                <% if (product.offerPrice && product.offerPrice > 0 && product.offerPrice!==product.price  ) { %>
-                                    <span class="offer-price">₹<%= product.offerPrice %></span>
-                                    <span class="original-price">₹<%= product.price %></span>
-                                <% } else { %>
-                                    <span class="current-price">₹<%= product.price %></span>
-                                <% } %>
-                            </div>
-                            <h4 class="product-name"><%= product.productName %></h4>
-                            <div class="product-actions">
-                                <button class="add-to-cart">Add to cart</button>
-                                <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+               <!-- Product Grid -->
+               <div class="products-grid" id="products-grid">
+                <% if (products.length > 0) { %>
+                    <% products.forEach(product => { %>
+                        <div class="product-card" data-category="<%= product.category._id || product.category %>" data-sizes="<%= product.sizes ? product.sizes.map(size => size.size).join(',') : '' %>">
+                            <a href="/product/<%= product._id %>" class="product-image">
+                                <img src="<%= product.productImage[0] %>" alt="<%= product.productName %>">
+                            </a>
+                            <div class="product-info">
+                                <div class="product-price">
+                                    <% if (product.sizes && product.sizes.length > 0) { %>
+                                        <% const minSize = product.sizes.reduce((min, size) => size.size < min.size ? size : min); %>
+                                        <% if (minSize.offerPrice && minSize.offerPrice > 0 && minSize.offerPrice !== minSize.price) { %>
+                                            <span class="offer-price">₹<%= minSize.offerPrice %></span>
+                                            <span class="original-price">₹<%= minSize.price %></span>
+                                        <% } else { %>
+                                            <span class="current-price">₹<%= minSize.price %></span>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span class="current-price">₹0</span>
+                                        <span class="original-price" style="display: none;"></span>
+                                    <% } %>
+                                </div>
+                                <h4 class="product-name"><%= product.productName %></h4>
+                                <div class="product-actions">
+                                    <button class="add-to-cart">Add to cart</button>
+                                    <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                <% }) %>
-            <% } else { %>
-                <p>No products found.</p>
-            <% } %>
-        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p>No products found.</p>
+                <% } %>
+            </div>
 
         <!-- Pagination -->
         <div class="pagination">
@@ -159,5 +179,52 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Function to filter products based on selected categories and sizes
+    function filterProducts() {
+    // Get selected categories
+    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+
+    // Get selected sizes
+    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+
+    // Get all product cards
+    const productCards = document.querySelectorAll('.product-card');
+
+    console.log('Selected Categories:', selectedCategories); // Debugging
+
+    productCards.forEach(card => {
+        // Get the product's category and sizes from data attributes
+        const category = card.getAttribute('data-category');
+        const sizes = card.getAttribute('data-sizes').split(',');
+
+        console.log('Product Category:', category); // Debugging
+
+        // Check if the product matches the selected categories
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
+
+        // Check if the product matches the selected sizes
+        const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
+
+        // Show or hide the product card based on the filters
+        if (matchesCategory && matchesSize) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+    // Function to toggle size filter
+    function toggleSizeFilter(size) {
+        const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
+        sizeButton.classList.toggle('active');
+        filterProducts();
+    }
+</script>
+
+
+
 
 <%- include("../../views/partials/user/footer") %>

@@ -223,7 +223,7 @@ const pageNotFound = async (req, res) => {
 const loadHomepage = async (req, res) => {
     try {
 
-        const categories = await Category.find({ isDeleted: false });
+        const categories = await Category.find({ isListed: true  });
 
 
         res.render("home", {
