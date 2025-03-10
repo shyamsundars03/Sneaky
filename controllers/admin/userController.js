@@ -124,15 +124,18 @@ const listUsers = async (req, res) => {
 
         // Validate page number
         if (page < 1) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid page number'
+            return res.status(400).render('admin/userManagement', {
+                error: 'Invalid page number',
+                users: [],
+                currentPage: 1,
+                totalPages: 0,
+                totalUsers: 0,
+                searchQuery: search
             });
         }
 
         // Create search query
         const searchQuery = {
-            isDeleted: false,
             ...(search && {
                 $or: [
                     { name: { $regex: search, $options: 'i' } },
@@ -142,26 +145,38 @@ const listUsers = async (req, res) => {
             })
         };
 
+        // Debugging: Log the search query
+        console.log('Search Query:', searchQuery);
+
+        // Fetch users
         const users = await User.find(searchQuery)
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 });
 
+        // Debugging: Log the fetched users
+        console.log('Fetched Users:', users);
+
         const totalUsers = await User.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalUsers / limit);
 
-        res.json({
-            success: true,
+        // Render the userManagement.ejs template with the data
+        res.render('userManagement', {
             users,
             currentPage: page,
             totalPages,
-            totalUsers
+            totalUsers,
+            searchQuery: search
         });
     } catch (error) {
         console.error('Error in listUsers:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to load user data'
+        res.status(500).render('admin/userManagement', {
+            error: 'Failed to load user data',
+            users: [],
+            currentPage: 1,
+            totalPages: 0,
+            totalUsers: 0,
+            searchQuery: ''
         });
     }
 };
