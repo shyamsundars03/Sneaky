@@ -43,7 +43,8 @@ const toggleUserStatus = async (req, res) => {
             });
         }
 
-        user.isActive = !user.isActive; // Toggle user status
+        // Toggle the user's status
+        user.isActive = !user.isActive;
         await user.save();
 
         res.json({

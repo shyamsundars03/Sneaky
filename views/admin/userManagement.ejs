@@ -308,52 +308,63 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Search functionality
-        const searchBox = document.getElementById('searchBox');
-        searchBox.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.trim();
-            window.location.href = `/admin/userManagement?page=1&search=${searchTerm}`;
-        });
+// Search functionality
+const searchBox = document.getElementById('searchBox');
+
+// Set the search box value from the URL query parameter
+const urlParams = new URLSearchParams(window.location.search);
+const searchTerm = urlParams.get('search') || '';
+searchBox.value = searchTerm;
+
+searchBox.addEventListener('input', function (e) {
+    const searchTerm = e.target.value.trim();
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', searchTerm);
+    url.searchParams.set('page', 1); // Reset to the first page when searching
+    window.location.href = url.toString();
+});
 
         // Toggle block/unblock status
-        document.querySelectorAll('.toggle-status').forEach(button => {
-            button.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-user-id');
-                const action = this.textContent.toLowerCase(); // 'block' or 'unblock'
 
-                try {
-                    const response = await fetch(`/admin/users/${userId}/toggle-status`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
+document.querySelectorAll('.toggle-status').forEach(button => {
+    button.addEventListener('click', async function () {
+        const userId = this.getAttribute('data-user-id');
+        const action = this.textContent.toLowerCase(); // 'block' or 'unblock'
 
-                    const data = await response.json();
-
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: `User ${action}ed successfully`,
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.reload(); // Reload the page to reflect changes
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: data.error || 'Failed to update user status'
-                        });
-                    }
-                } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'Server error, please try again'
-                    });
-                }
+        try {
+            const response = await fetch(`/admin/userManagement/${userId}/toggle-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
-        });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `User ${action}ed successfully`,
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    window.location.reload(); // Reload the page to reflect changes
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: data.error || 'Failed to update user status'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Server error, please try again'
+            });
+        }
+    });
+});
     </script>
 </body>
 </html>
