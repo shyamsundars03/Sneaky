@@ -20,6 +20,10 @@ const userSchema = new Schema({
         type: String,
         default: null, // Optional for Google-authenticated users
     },
+    googleId: {
+        type: String,
+        default: null,
+    },
     isActive: {
         type: Boolean,
         default: true,
