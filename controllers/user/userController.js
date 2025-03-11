@@ -53,22 +53,23 @@ const loadSignin = async (req, res) => {
 };
 
 
-const otpSend = async(req,res)=>{
-    req.session.otpSession = true
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString()
-    req.session.otpError = null
-    req.session.otpTime = 75; 
-    console.log(generatedOtp)
-    console.log(req.session.user)
-    sendotp(generatedOtp,req.session.user.email)
-    console.log("otpsend1")
-    const hashedOtp = await encryptPassword(generatedOtp)
-    console.log("otpsend2")
-    await otpCollection.updateOne({email:req.session.user.email},{$set:{otp:hashedOtp}},{upsert:true})
-    console.log("otpsend3")
-    req.session.otpStartTime = null
-    res.redirect("/otp")
-}
+const otpSend = async (req, res) => {
+    req.session.otpSession = true;
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    req.session.otpError = null;
+    req.session.otpTime = 75; // OTP expiry time in seconds
+    req.session.otpStartTime = Date.now(); // Store the start time in session
+    console.log(generatedOtp);
+    console.log(req.session.user);
+    sendotp(generatedOtp, req.session.user.email);
+    const hashedOtp = await encryptPassword(generatedOtp);
+    await otpCollection.updateOne(
+        { email: req.session.user.email },
+        { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } }, // Set OTP expiry time
+        { upsert: true }
+    );
+    res.redirect("/otp");
+};
 
 
 const otpPost = async (req, res) => {
@@ -244,31 +245,24 @@ const loadHomepage = async (req, res) => {
 const signinPost = async (req, res) => {
     try {
         const userData = await usercollection.findOne({ email: req.body.email });
-        console.log("Hi1");
         if (userData) {
-            console.log("Hi2");
             if (userData.password) {
                 const isPasswordValid = await comparePassword(req.body.password, userData.password);
-                console.log("Hi3 - Password comparison result:", isPasswordValid);
                 if (isPasswordValid) {
                     req.session.loginSession = true;
                     req.session.user = {
                         name: userData.name,
                         email: userData.email,
                     };
-                    console.log("Session set:", req.session.user);
                     return res.status(200).send({ success: true });
                 } else {
-                    console.log("Invalid password");
-                    return res.status(208).send({ success: false, message: "Invalid password." });
+                    return res.status(401).send({ success: false, message: "Invalid password." });
                 }
             } else {
-                console.log("No password found for user");
-                return res.status(208).send({ success: false, message: "Invalid user." });
+                return res.status(401).send({ success: false, message: "Invalid user." });
             }
         } else {
-            console.log("User not found");
-            return res.status(208).send({ success: false, message: "Invalid user." });
+            return res.status(401).send({ success: false, message: "User not found." });
         }
     } catch (error) {
         console.error("Error in signinPost:", error);
@@ -310,24 +304,19 @@ const signupPost = async (req, res) => {
 
 const googleCallback = async (req, res, next) => {
     try {
-        const user = await usercollection.findOne({ email: req.user._json.email });
-
-
-        if (!user) {
-            // Create a new user for Google-authenticated users
-            const newUser = {
-                name: req.user.displayName,
-                email: req.user._json.email,
-            };
-            await usercollection.create(newUser);
+        // Check if the user is authenticated via Google
+        if (!req.user) {
+            return res.redirect('/signin?error=Google authentication failed.');
         }
 
+        // Set session data
         req.session.user = {
-            name: req.user.displayName,
-            email: req.user._json.email,
+            name: req.user.name,
+            email: req.user.email,
         };
-
         req.session.loginSession = true;
+
+        // Redirect to the home page
         res.redirect('/');
     } catch (err) {
         console.error("Error in googleCallback:", err);
@@ -434,7 +423,23 @@ const logout = async (req, res) => {
     }
 };
 
-
+const resendOtp = async (req, res) => {
+    try {
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpStartTime = Date.now(); // Reset the start time
+        sendotp(generatedOtp, req.session.user.email);
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: req.session.user.email },
+            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
+            { upsert: true }
+        );
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error in resendOtp:", error);
+        res.status(500).json({ success: false });
+    }
+};
 
 
 
@@ -459,7 +464,8 @@ module.exports = {
     googleCallback,
     otpSend,
     otpPost,
-    otpPage
+    otpPage,
+    resendOtp
 
 
 
