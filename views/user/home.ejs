@@ -42,19 +42,19 @@
 </div>
 
  <!-- Categories Section -->
-<div class="container">
+ <div class="container">
     <% if (categories.length > 0) { %>
         <section class="categories">
             <% categories.slice(0, 3).forEach((category, index) => { %>
-                <div class="category-card">
+                <a href="/shop?category=<%= category._id %>" class="category-card">
                     <h2><%= category.name.toUpperCase() %></h2>
                     <img src="/images/<%= ['MenShoe.png', 'WomenShoe.png', 'KidsShoe.png'][index] %>" alt="<%= category.name %> Shoes">
-                </div>
+                </a>
             <% }) %>
         </section>
-        <% } else { %>
-            <p>No categories available.</p>
-        <% } %>
+    <% } else { %>
+        <p>No categories available.</p>
+    <% } %>
 </div>
 
         <section class="promo">

@@ -31,11 +31,11 @@
             <div class="product-info">
                 <span class="category"><%= product.category.name %></span>
                 <h2><%= product.productName %></h2>
-                <div class="rating">★★★★★ <span>(1 customer review)</span></div>
+                <!-- <div class="rating">★★★★★ <span>(1 customer review)</span></div> -->
                 <div class="price">
-                    ₹<span id="offerPrice"><%= product.sizes[0].offerPrice %></span>
-                    <% if (product.sizes[0].price && product.sizes[0].price > 0 && product.sizes[0].offerPrice !== product.sizes[0].price) { %>
-                        <span class="discount">₹<span id="price"><%= product.sizes[0].price %></span></span>
+                    ₹<span id="offerPrice"><%= product.offerPrice %></span>
+                    <% if (product.price && product.price > 0 && product.offerPrice !== product.price) { %>
+                        <span class="discount">₹<span id="price"><%= product.price %></span></span>
                     <% } %>
                 </div>
                 <p><%= product.description %></p>
@@ -49,15 +49,13 @@
                                 <% if (Array.isArray(product.sizes) && product.sizes.length > 0) { %>
                                     <% product.sizes.forEach((size, index) => { %>
                                         <button 
-                                            class="size-option <%= index === 0 ? 'active' : '' %>" 
-                                            data-size="<%= size.size %>"
-                                            data-price="<%= size.price %>"
-                                            data-offer-price="<%= size.offerPrice %>"
-                                            data-stock="<%= size.stock %>"
-                                            onclick="selectSize(this)"
-                                        >
-                                            <%= size.size %>
-                                        </button>
+                                        class="size-option <%= index === 0 ? 'active' : '' %>" 
+                                        data-size="<%= size.size %>"
+                                        data-stock="<%= size.stock %>" 
+                                        onclick="selectSize(this)"
+                                    >
+                                        <%= size.size %>
+                                    </button>
                                     <% }) %>
                                 <% } else { %>
                                     <p>No sizes available</p>
@@ -86,7 +84,6 @@
                 </div>
                 <div class="action-buttons">
                     <button class="buy-now">Add to cart</button>
-                    <button class="buy-now">Buy Now</button>
                 </div>
             </div>
         </div>
@@ -129,28 +126,26 @@
 <!-- JavaScript for Dynamic Updates -->
 <script>
     // Function to handle size selection
-    function selectSize(button) {
-        // Remove active class from all size buttons
-        document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
 
-        // Add active class to the selected button
-        button.classList.add('active');
+// Function to handle size selection
+function selectSize(button) {
+    // Remove active class from all size buttons
+    document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
 
-        // Update price, offer price, and stock based on the selected size
-        const price = button.getAttribute('data-price');
-        const offerPrice = button.getAttribute('data-offer-price');
-        const stock = button.getAttribute('data-stock');
+    // Add active class to the selected button
+    button.classList.add('active');
 
-        document.getElementById('price').textContent = price;
-        document.getElementById('offerPrice').textContent = offerPrice;
+    // Update stock based on the selected size
+    const stock = button.getAttribute('data-stock');
 
-        const stockElement = document.getElementById('stock');
-        if (stock == 0) {
-            stockElement.innerHTML = '<span style="color: red;">Out of Stock</span>';
-        } else {
-            stockElement.textContent = `${stock} items available`;
-        }
+    // Update the stock display
+    const stockElement = document.getElementById('stock');
+    if (stock == 0) {
+        stockElement.innerHTML = '<span style="color: red;">Out of Stock</span>';
+    } else {
+        stockElement.textContent = `${stock} items available`;
     }
+}
 
     // Function to handle quantity increase
     function increaseQuantity() {

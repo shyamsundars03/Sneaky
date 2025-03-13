@@ -5,7 +5,7 @@ let sendOtp = async (otp, email) => {
 
     try {
         await transporter.sendMail({
-            from: process.env.EMAIL_USERNAME, // Use email from environment variables
+            from: process.env.EMAIL_USERNAME, 
             to: email,
             subject: 'Your OTP Code',
             text: `here is your OTP :${otp}`

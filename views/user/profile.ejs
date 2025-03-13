@@ -210,7 +210,7 @@
             font-size: 1rem;
         }
         
-        .btn {
+        .profile-btn {
             display: inline-block;
             padding: 12px 24px;
             background-color: #ff0000;
@@ -604,31 +604,8 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="#" class="logo">
-                    <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                    <span class="logo-text">SNEAKY</span>
-                </a>
-                <button class="mobile-menu-btn">☰</button>
-                <div class="nav-links">
-                    <a href="home.html">HOME</a>
-                    <a href="about.html">ABOUT</a>
-                    <a href="shop.html">SHOP</a>
-                    <a href="contact.html">CONTACT</a>
-                </div>
-                <div class="nav-icons">
-                    <a href="#"><img src="/public/images/icons//search.svg" alt="Search"></a>
-                    <a href="#"><img src="/public/images/icons/person.svg" alt="Account"></a>
-                    <a href="#"><img src="/public/images/icons/cart.svg" alt="Cart"></a>
-                    <a href="#"><img src="/public/images/icons/fav.svg" alt="Wishlist"></a>
-                </div>
-            </nav>
-        </div>
-    </header>
-    
+    <%-include("../../views/partials/user/header")%>
+
     <!-- Account Banner -->
     <section class="account-banner">
         <div class="container">
@@ -671,9 +648,9 @@
                     <p class="account-email">michealjordan@gmail.com</p>
                     
                     <ul class="sidebar-menu">
-                        <li><a href="#"><i class="far fa-heart"></i> WishList</a></li>
-                        <li><a href="#"><i class="fas fa-box"></i> Orders</a></li>
-                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> Address</a></li>
+                        <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li>
+                        <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
+                        <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
                         <li><a href="#"><i class="fas fa-wallet"></i> My Wallet</a></li>
                         <li><a href="#"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                     </ul>
@@ -726,13 +703,13 @@
         </div>
         
         <div class="action-buttons">
-            <button type="submit" class="btn">Save Details</button>
-            <button type="button" id="resetPasswordBtn" class="btn" style="background-color: #6c757d;">Change password</button>
+            <button type="submit" class="profile-btn">Save Details</button>
+            <button type="button" id="resetPasswordBtn" class="profile-btn" >Change password</button>
         </div>
         
-        <div class="action-buttons" style="margin-top: 15px;">
+        <!-- <div class="action-buttons" style="margin-top: 15px;">
             <a href="#" class="btn">Click to get Referral Link</a>
-        </div>
+        </div> -->
     </form>
 </div>
             </div>
@@ -760,45 +737,7 @@
 
 
     
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-links">
-                    <a href="#" class="footer-logo">
-                        <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                        <span class="logo-text">SNEAKY</span>
-                    </a>
-                    <p>Get 20 percent lifetime discount of shoes at stores.</p>
-                </div>
-                <div class="footer-links">
-                    <h3>Useful Links</h3>
-                    <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Shop</a></li>
-                        <li><a href="#">Sign Up</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>Account</h3>
-                    <ul>
-                        <li><a href="#">Orders</a></li>
-                        <li><a href="#">Downloads</a></li>
-                        <li><a href="#">Addresses</a></li>
-                        <li><a href="#">Sign Out</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>More Info</h3>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 SNEAKY. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <%-include("../../views/partials/user/footer")%>
     
     <script>
         // Simple mobile menu toggle

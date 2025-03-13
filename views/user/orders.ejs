@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNEAKY - Orders</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/images/sneaky.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>SNEAKY</title>
     <style>
         /* Reset and base styles */
         * {
@@ -432,30 +433,7 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="#" class="logo">
-                    <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                    <span class="logo-text">SNEAKY</span>
-                </a>
-                <button class="mobile-menu-btn">☰</button>
-                <div class="nav-links">
-                    <a href="home.html">HOME</a>
-                    <a href="about.html">ABOUT</a>
-                    <a href="shop.html">SHOP</a>
-                    <a href="contact.html">CONTACT</a>
-                </div>
-                <div class="nav-icons">
-                    <a href="#"><img src="/public/images/icons/search.svg" alt="Search"></a>
-                    <a href="#"><img src="/public/images/icons/person.svg" alt="Account"></a>
-                    <a href="#"><img src="/public/images/icons/cart.svg" alt="Cart"></a>
-                    <a href="#"><img src="/public/images/icons/fav.svg" alt="Wishlist"></a>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <%-include("../../views/partials/user/header")%>
     
     <!-- Orders Banner -->
     <section class="orders-banner">
@@ -480,9 +458,9 @@
                     <p class="account-email">example@gmail.com</p>
                     
                     <ul class="sidebar-menu">
-                        <li><a href="#"><i class="far fa-heart"></i> WishList</a></li>
-                        <li><a href="#"><i class="fas fa-box"></i> Orders</a></li>
-                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> Address</a></li>
+                        <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li>
+                        <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
+                        <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
                         <li><a href="#"><i class="fas fa-wallet"></i> My Wallet</a></li>
                         <li><a href="#"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                     </ul>
@@ -510,7 +488,7 @@
                                 <td>4</td>
                                 <td>₹ 2300</td>
                                 <td><span class="status-badge status-pending">Pending</span></td>
-                                <td><a href="#" class="view-btn">View</a></td>
+                                <td><a href="/orders/:id" class="view-btn">View</a></td>
                             </tr>
                             <tr>
                                 <td>PN002</td>
@@ -518,7 +496,7 @@
                                 <td>3</td>
                                 <td>₹ 2300</td>
                                 <td><span class="status-badge status-shipped">Shipped</span></td>
-                                <td><a href="#" class="view-btn">View</a></td>
+                                <td><a href="/orders/:id" class="view-btn">View</a></td>
                             </tr>
                             <tr>
                                 <td>PN003</td>
@@ -526,7 +504,7 @@
                                 <td>5</td>
                                 <td>₹ 2000</td>
                                 <td><span class="status-badge status-returned">Returned</span></td>
-                                <td><a href="#" class="view-btn">View</a></td>
+                                <td><a href="/orders/:id" class="view-btn">View</a></td>
                             </tr>
                             <tr>
                                 <td>PN004</td>
@@ -534,7 +512,7 @@
                                 <td>3</td>
                                 <td>₹ 2000</td>
                                 <td><span class="status-badge status-completed">Completed</span></td>
-                                <td><a href="#" class="view-btn">View</a></td>
+                                <td><a href="/orders/:id" class="view-btn">View</a></td>
                             </tr>
                         </tbody>
                     </table>
@@ -543,54 +521,7 @@
         </div>
     </section>
     
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-links">
-                    <a href="#" class="footer-logo">
-                        <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                        <span class="logo-text">SNEAKY</span>
-                    </a>
-                    <p>Get 20 percent lifetime discount of shoes at stores.</p>
-                </div>
-                <div class="footer-links">
-                    <h3>Useful Links</h3>
-                    <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Shop</a></li>
-                        <li><a href="#">Sign Up</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>Account</h3>
-                    <ul>
-                        <li><a href="#">My Account</a></li>
-                        <li><a href="#">My Orders</a></li>
-                        <li><a href="#">My Settings</a></li>
-                        <li><a href="#">Address</a></li>
-                        <li><a href="#">Wallet</a></li>
-                        <li><a href="#">Sign Out</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>More Info.</h3>
-                    <p>Aliquam faucibus, odio nec commodo aliquam, neque felis placerat dui, a porta ante lectus. Sed do eiusmod tempor incididunt ut labore.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-pinterest"></i></a>
-                        <a href="#"><i class="fab fa-tiktok"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>Copyright © SNEAKY 2025</p>
-            </div>
-        </div>
-    </footer>
+    <%-include("../../views/partials/user/footer")%>
     
     <script>
         // Simple mobile menu toggle

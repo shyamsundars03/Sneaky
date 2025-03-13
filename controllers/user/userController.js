@@ -1,4 +1,4 @@
-const Product = require('../../models/productSchema'); // Import the Product model
+const Product = require('../../models/productSchema'); 
 const Category = require('../../models/categorySchema');
 const bcrypt = require('bcrypt')
 const usercollection = require("../../models/userSchema");
@@ -57,15 +57,16 @@ const otpSend = async (req, res) => {
     req.session.otpSession = true;
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     req.session.otpError = null;
-    req.session.otpTime = 75; // OTP expiry time in seconds
-    req.session.otpStartTime = Date.now(); // Store the start time in session
-    console.log(generatedOtp);
-    console.log(req.session.user);
+    req.session.otpTime = 75; 
+    req.session.otpStartTime = Date.now(); 
+    // console.log(generatedOtp);
+    console.log("otpSend used");
+    // console.log(req.session.user);
     sendotp(generatedOtp, req.session.user.email);
     const hashedOtp = await encryptPassword(generatedOtp);
     await otpCollection.updateOne(
         { email: req.session.user.email },
-        { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } }, // Set OTP expiry time
+        { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } }, 
         { upsert: true }
     );
     res.redirect("/otp");
@@ -81,22 +82,22 @@ const otpPost = async (req, res) => {
         }
 
         const findOtp = await otpCollection.findOne({ email: req.session.user.email });
-        console.log(findOtp);
+        // console.log(findOtp);
 
         if (!findOtp) {
             return res.status(400).json({ error: "OTP not found" });
         }
 
-        // Check if OTP has expired
+
         if (findOtp.expiresAt < new Date()) {
             return res.status(400).json({ error: "OTP has expired" });
         }
 
         const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
-        console.log(isOtpValid);
+        // console.log(isOtpValid);
 
         if (isOtpValid) {
-            console.log("Hii");
+            // console.log("Hii");
 
 
             const userData = new usercollection({
@@ -109,7 +110,7 @@ const otpPost = async (req, res) => {
 
 
             const user = new usercollection(userData);
-            console.log(user);
+            console.log("otpPost used");
             await user.save();
             console.log("user saved");
 
@@ -130,122 +131,15 @@ const otpPost = async (req, res) => {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-const loadAbout = async (req, res) => {
-    try {
-        return res.render("about", { user: req.session.user }); 
-    } catch (error) {
-        console.log("About page not found");
-        res.status(500).send("Server error");
-    }
-};
-
-const loadShop = async (req, res) => {
-    try {
-
-        const page = parseInt(req.query.page) || 1;
-        const limit = 6;
-        const skip = (page - 1) * limit;
-
-        const products = await Product.find({ isDeleted: false, isListed: true })
-            .populate('category')
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
-
-        const categories = await Category.find({ isDeleted: false });
-
-
-
-        const totalProducts = await Product.countDocuments({ isDeleted: false, isListed: true });
-        const totalPages = Math.ceil(totalProducts / limit);
-
-        const fixedProducts = products.map(product => {
-            const fixedImages = product.productImage.map(img =>
-                img.replace(/\\/g, '/').replace(/^public\//, '/')
-            );
-            return {
-                ...product.toObject(),
-                productImage: fixedImages
-            };
-        });
-
-        res.render("shop", {
-            products: fixedProducts,
-            categories,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-            user: req.session.user,
-        });
-    } catch (error) {
-        console.error('Error in loadShop:', error);
-        res.render("shop", {
-            error: 'Failed to load products',
-            products: [],
-            categories: [], 
-            currentPage: 1,
-            totalPages: 0,
-            totalProducts: 0,
-            user: req.session.user, 
-        });
-    }
-};
-
-const loadContact = async (req, res) => {
-    try {
-        return res.render("contact", { user: req.session.user }); 
-    } catch (error) {
-        console.log("Contact page not found");
-        res.status(500).send("Server error");
-    }
-};
-
-const pageNotFound = async (req, res) => {
-    try {
-        res.render("page-404", { user: req.session.user });
-    } catch (error) {
-        res.redirect("/pageNotFound");
-    }
-};
-
-const loadHomepage = async (req, res) => {
-    try {
-
-        const categories = await Category.find({ isListed: true  });
-
-
-        res.render("home", {
-            categories,
-            user: req.session.user, 
-        });
-    } catch (error) {
-        console.error('Error in loadHomepage:', error);
-        res.render("home", {
-            error: 'Failed to load homepage',
-            categories: [] ,
-            user: req.session.user, 
-        });
-    }
-};
-
-
 const signinPost = async (req, res) => {
     try {
         const userData = await usercollection.findOne({ email: req.body.email });
         if (userData) {
+            // Check if the user is blocked
+            if (userData.isActive === false) {
+                return res.status(403).send({ success: false, message: "Your account has been blocked. Please contact support." });
+            }
+
             if (userData.password) {
                 const isPasswordValid = await comparePassword(req.body.password, userData.password);
                 if (isPasswordValid) {
@@ -304,19 +198,17 @@ const signupPost = async (req, res) => {
 
 const googleCallback = async (req, res, next) => {
     try {
-        // Check if the user is authenticated via Google
+
         if (!req.user) {
             return res.redirect('/signin?error=Google authentication failed.');
         }
 
-        // Set session data
         req.session.user = {
             name: req.user.name,
             email: req.user.email,
         };
         req.session.loginSession = true;
 
-        // Redirect to the home page
         res.redirect('/');
     } catch (err) {
         console.error("Error in googleCallback:", err);
@@ -325,22 +217,192 @@ const googleCallback = async (req, res, next) => {
 };
 
 
-  const blockedUser = async(req,res)=>{
-    const user = await usercollection.findOne({ email: req.session.user.email })
-    if(user.isActive == false){
- return res.render("user/blockedUser", { user: req.session.user });
-    } else {
-        return res.redirect("/")
+const blockedUser = async (req, res) => {
+    try {
+        if (!req.session.user || !req.session.user.email) {
+            return res.redirect('/signin'); // Redirect to signin if no session exists
+        }
+
+        const user = await usercollection.findOne({ email: req.session.user.email });
+        if (user && user.isActive === false) {
+           
+        req.session.loginSession = false;
+
+        
+        req.session.user = null;
+
+       
+        res.redirect('/signin');
+        } else {
+            return res.redirect("/"); // Redirect to home if the user is not blocked
+        }
+    } catch (error) {
+        console.error("Error in blockedUser:", error);
+        res.status(500).send("Internal Server Error");
     }
-}
+};
 
 
+const resendOtp = async (req, res) => {
+    try {
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpStartTime = Date.now(); 
+        sendotp(generatedOtp, req.session.user.email);
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: req.session.user.email },
+            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
+            { upsert: true }
+        );
+        console.log("resendOTP used");
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error in resendOtp:", error);
+        res.status(500).json({ success: false });
+    }
+};
+
+const otpPage = async(req,res)=>{
+    if(req.session.otpSession){
+        const otpError = req.session.otpError
+
+        if (!req.session.otpStartTime) {
+            req.session.otpStartTime = Date.now();
+        }
+        const elapsedTime = Math.floor((Date.now() - req.session.otpStartTime) / 1000);
+        const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
+        console.log("otpPage used");
+        return res.render("otp",{otpError:otpError,time:remainingTime, user: req.session.user})
+    } else {
+        return res.redirect("/signin")
+    }
+} 
+
+const otpTime = (req, res) => {
+    try {
+        if (req.session.otpStartTime) {
+            const elapsedTime = Math.floor((Date.now() - req.session.otpStartTime) / 1000);
+            const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
+            res.status(200).json({ success: true, remainingTime });
+        } else {
+            res.status(200).json({ success: true, remainingTime: 0 });
+        }
+        console.log("otptime used");
+    } catch (error) {
+        console.error("Error in otpTime:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const loadAbout = async (req, res) => {
+    try {
+        return res.render("about", { user: req.session.user }); 
+    } catch (error) {
+        console.log("About page not found");
+        res.status(500).send("Server error");
+    }
+};
+
+const loadShop = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1; // Get the page number from the query parameter
+        const limit = 6; // Number of products per page
+        const skip = (page - 1) * limit; // Calculate the number of documents to skip
+        const categoryId = req.query.category; // Get the category ID from the query parameter
+
+        // Build the search query
+        const searchQuery = {
+            isDeleted: false,
+            isListed: true,
+            ...(categoryId && { category: categoryId }) // Add category filter if categoryId exists
+        };
+
+        // Fetch products based on the search query
+        const products = await Product.find(searchQuery)
+            .populate('category')
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+
+        // Fetch all categories for the sidebar
+        const categories = await Category.find({ isDeleted: false });
+
+        // Count total products matching the search query
+        const totalProducts = await Product.countDocuments(searchQuery);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        // Fix image paths for the products
+        const fixedProducts = products.map(product => {
+            const fixedImages = product.productImage.map(img =>
+                img.replace(/\\/g, '/').replace(/^public\//, '/')
+            );
+            return {
+                ...product.toObject(),
+                productImage: fixedImages
+            };
+        });
+
+        // Render the shop page with the filtered products and other data
+        res.render("shop", {
+            products: fixedProducts,
+            categories,
+            currentPage: page,
+            totalPages,
+            totalProducts,
+            selectedCategory: categoryId, // Pass the selected category ID to the view
+            user: req.session.user,
+        });
+    } catch (error) {
+        console.error('Error in loadShop:', error);
+        res.render("shop", {
+            error: 'Failed to load products',
+            products: [],
+            categories: [],
+            currentPage: 1,
+            totalPages: 0,
+            totalProducts: 0,
+            selectedCategory: null, // No category selected in case of an error
+            user: req.session.user,
+        });
+    }
+};
+
+const loadContact = async (req, res) => {
+    try {
+        return res.render("contact", { user: req.session.user }); 
+    } catch (error) {
+        console.log("Contact page not found");
+        res.status(500).send("Server error");
+    }
+};
+
+const pageNotFound = async (req, res) => {
+    try {
+        res.render("page-404", { user: req.session.user });
+    } catch (error) {
+        res.redirect("/pageNotFound");
+    }
+};
+
+const loadHomepage = async (req, res) => {
+    try {
+
+        const categories = await Category.find({ isListed: true  });
 
 
-
-
-
-
+        res.render("home", {
+            categories,
+            user: req.session.user, 
+        });
+    } catch (error) {
+        console.error('Error in loadHomepage:', error);
+        res.render("home", {
+            error: 'Failed to load homepage',
+            categories: [] ,
+            user: req.session.user, 
+        });
+    }
+};
 
 
 const loadSingleProduct = async (req, res) => {
@@ -391,56 +453,22 @@ const loadSingleProduct = async (req, res) => {
     }
 };
 
-const otpPage = async(req,res)=>{
-    if(req.session.otpSession){
-        const otpError = req.session.otpError
-        // If OTP time isn't set, set it
-        if (!req.session.otpStartTime) {
-            req.session.otpStartTime = Date.now();
-        }
-        const elapsedTime = Math.floor((Date.now() - req.session.otpStartTime) / 1000);
-        const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
-        return res.render("otp",{otpError:otpError,time:remainingTime, user: req.session.user})
-    } else {
-        return res.redirect("/signin")
-    }
-} 
-
-
 
 const logout = async (req, res) => {
     try {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error("Error destroying session:", err);
-                return res.status(500).send("Internal Server Error");
-            }
-            res.redirect('/');
-        });
+        // Set loginSession to false instead of destroying the session
+        req.session.loginSession = false;
+
+        // Optionally, you can also clear the user data from the session
+        req.session.user = null;
+
+        // Redirect to the home page
+        res.redirect('/');
     } catch (error) {
         console.error("Error in logout:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send({ success: false, message: "Internal Server Error" });
     }
 };
-
-const resendOtp = async (req, res) => {
-    try {
-        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        req.session.otpStartTime = Date.now(); // Reset the start time
-        sendotp(generatedOtp, req.session.user.email);
-        const hashedOtp = await encryptPassword(generatedOtp);
-        await otpCollection.updateOne(
-            { email: req.session.user.email },
-            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
-            { upsert: true }
-        );
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error in resendOtp:", error);
-        res.status(500).json({ success: false });
-    }
-};
-
 
 
 
@@ -465,9 +493,7 @@ module.exports = {
     otpSend,
     otpPost,
     otpPage,
-    resendOtp
-
-
-
+    resendOtp,
+    otpTime
 
 };

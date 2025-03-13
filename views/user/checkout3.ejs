@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNEAKY - Checkout</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/images/sneaky.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>SNEAKY</title>
     <style>
 /* Global Styles */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -116,7 +116,7 @@ ul {
 /* Checkout Banner */
 .checkout-banner {
     background-color: var(--secondary-color);
-    padding: 40px 0;
+    padding: 30px 0;
     text-align: center;
     color: var(--tertiary-color);
     position: relative;
@@ -284,25 +284,24 @@ ul {
 
 /* Order Summary */
 .order-summary {
-    background: #f9f9f9;
-    padding: 1.5rem;
-    border-radius: 8px;
-}
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
 
-.order-summary h2 {
-    padding-bottom: 20px;
-    font-size: 1.5rem;
-}
+        .order-summary h2 {
+            padding-bottom: 20px;
+        }
 
-.summary-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
-}
+        .checkout-summary-item {
+            display: flex;
+            justify-content: space-between;
+            /* margin-bottom: 1rem; */
+            /* padding-bottom: 1rem; */
+            border-bottom: 1px solid #eee;
+        }
 
-.summary-item.total {
+.checkout-summary-item.total {
     color: #ff0000;
     font-weight: bold;
     font-size: 1.2rem;
@@ -368,14 +367,16 @@ ul {
     </style>
 </head>
 <body>
+
+    <%-include("../../views/partials/user/header")%>
     <div class="checkout-banner">
-        <h1>CHECKOUT</h1>
-        <div class="wave-divider"></div>
+        <h1>CHECKOUT 3</h1>
     </div>
 
     <main class="main-content">
         <div class="checkout-container">
             <div class="checkout-left">
+                <h2>Final review</h2>
                 <div class="progress-bar">
                     <div class="progress-item">Shipping Method</div>
                     <div class="progress-item">Payment Method</div>
@@ -453,11 +454,11 @@ ul {
                         </div>
                     </div>
 
-                    <div class="coupon-section">
+                    <!-- <div class="coupon-section">
                         <input type="text" placeholder="Coupon Code">
                         <button class="apply-btn">Apply</button>
                         <button class="back-btn">Back</button>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -465,27 +466,27 @@ ul {
                 <div class="order-summary">
                     <h2>Your order</h2>
                     
-                    <div class="summary-item">
+                    <div class="checkout-summary-item">
                         <span>Subtotal</span>
                         <span class="price">$4500</span>
                     </div>
                     
-                    <div class="summary-item">
+                    <div class="checkout-summary-item">
                         <span>Shipping & Handling</span>
                         <span class="price">$500</span>
                     </div>
                     
-                    <div class="summary-item">
+                    <!-- <div class="checkout-summary-item">
                         <span>Coupon Amount</span>
                         <span class="price discount">-$1500</span>
                     </div>
                     
-                    <div class="summary-item">
+                    <div class="checkout-summary-item">
                         <span>Tax</span>
                         <span class="price">$500</span>
-                    </div>
+                    </div> -->
                     
-                    <div class="summary-item total">
+                    <div class="checkout-summary-item total">
                         <span>Total</span>
                         <span class="price total">$4000</span>
                     </div>
@@ -495,5 +496,6 @@ ul {
             </div>
         </div>
     </main>
+    <%-include("../../views/partials/user/footer")%>
 </body>
 </html>

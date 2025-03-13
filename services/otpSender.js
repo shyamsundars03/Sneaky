@@ -1,5 +1,5 @@
 const nodemailer=require('nodemailer')
-console.log(process.env.EMAIL_USERNAME,process.env.EMAIL_PASSWORD)
+
 const transpoter=  nodemailer.createTransport({
     service:'gmail',
     host: "smtp.gmail.com",

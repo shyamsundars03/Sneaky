@@ -1,6 +1,6 @@
 const User = require('../../models/userSchema');
 
-// Helper function to validate user data
+
 const validateUser = async (userData, userId = null) => {
     const errors = [];
 
@@ -11,7 +11,7 @@ const validateUser = async (userData, userId = null) => {
     if (!userData.email?.trim()) {
         errors.push('Email is required');
     } else {
-        // Check for duplicate email
+      
         const existingUser = await User.findOne({
             email: { $regex: new RegExp(`^${userData.email}$`, 'i') },
             _id: { $ne: userId },
@@ -30,7 +30,6 @@ const validateUser = async (userData, userId = null) => {
     return errors;
 };
 
-// Block/Unblock User
 const toggleUserStatus = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -43,7 +42,7 @@ const toggleUserStatus = async (req, res) => {
             });
         }
 
-        // Toggle the user's status
+     
         user.isActive = !user.isActive;
         await user.save();
 
@@ -60,7 +59,7 @@ const toggleUserStatus = async (req, res) => {
     }
 };
 
-// Delete User (Soft Delete)
+
 const deleteUser = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -73,7 +72,7 @@ const deleteUser = async (req, res) => {
             });
         }
 
-        user.isDeleted = true; // Soft delete the user
+        user.isDeleted = true; 
         await user.save();
 
         res.json({
@@ -89,7 +88,7 @@ const deleteUser = async (req, res) => {
     }
 };
 
-// Get User by ID
+
 const getUserById = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -115,15 +114,15 @@ const getUserById = async (req, res) => {
     }
 };
 
-// List Users with Pagination and Search
+
 const listUsers = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 10; // Number of users per page
+        const limit = 10; 
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
 
-        // Validate page number
+     
         if (page < 1) {
             return res.status(400).render('admin/userManagement', {
                 error: 'Invalid page number',
@@ -135,7 +134,6 @@ const listUsers = async (req, res) => {
             });
         }
 
-        // Create search query
         const searchQuery = {
             ...(search && {
                 $or: [
@@ -146,22 +144,21 @@ const listUsers = async (req, res) => {
             })
         };
 
-        // Debugging: Log the search query
-        console.log('Search Query:', searchQuery);
+    
+        // console.log('Search Query:', searchQuery);
 
-        // Fetch users
+    
         const users = await User.find(searchQuery)
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 });
 
-        // Debugging: Log the fetched users
-        console.log('Fetched Users:', users);
+     
+        // console.log('Fetched Users:', users);
 
         const totalUsers = await User.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalUsers / limit);
 
-        // Render the userManagement.ejs template with the data
         res.render('userManagement', {
             users,
             currentPage: page,

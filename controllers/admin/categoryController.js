@@ -30,18 +30,15 @@ const addCategory = async (req, res) => {
     try {
         const { name, description } = req.body;
         
-        // Validate required fields
         if (!name || !description) {
             return res.status(400).json({ error: "Name and description are required" });
         }
 
-        // Check for existing category
         const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
         if (existingCategory) {
             return res.status(400).json({ error: "Category already exists" });
         }
 
-        // Create new category with initial values
         const newCategory = new Category({
             name,
             description,
@@ -66,12 +63,10 @@ const updateCategory = async (req, res) => {
         const { id } = req.params;
         const { name, description, isListed } = req.body;
 
-        // Validate required fields
         if (!name || !description) {
             return res.status(400).json({ error: "Name and description are required" });
         }
 
-        // Check if new name already exists (excluding current category)
         const existingCategory = await Category.findOne({
             name: { $regex: new RegExp(`^${name}$`, 'i') },
             _id: { $ne: id }

@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNEAKY - Order Details</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/images/sneaky.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>SNEAKY</title>
     <style>
         /* Reset and base styles */
         * {
@@ -148,26 +149,29 @@
             gap: 10px;
         }
         
-        .btn {
+        .singleorder-btn {
             display: inline-block;
             padding: 8px 16px;
             border-radius: 5px;
             font-size: 0.9rem;
             cursor: pointer;
             text-decoration: none;
-        }
-        
-        .btn-primary {
             background-color: #ff0000;
             color: white;
             border: none;
         }
         
-        .btn-secondary {
+        /* .singleorder-btn primary {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+        
+        .singleorder-btn secondary {
             background-color: #f8f9fa;
             color: #333;
             border: 1px solid #ddd;
-        }
+        } */
         
         .order-details-grid {
             display: grid;
@@ -355,6 +359,16 @@
             border-top: 1px solid #333;
         }
         
+        .breadcrumb {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        .breadcrumb a {
+            color: red;
+            font-weight: bold;
+        }
+
+
         /* Responsive styles */
 
 
@@ -509,35 +523,16 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="#" class="logo">
-                    <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                    <span class="logo-text">SNEAKY</span>
-                </a>
-                <button class="mobile-menu-btn">☰</button>
-                <div class="nav-links">
-                    <a href="home.html">HOME</a>
-                    <a href="about.html">ABOUT</a>
-                    <a href="shop.html">SHOP</a>
-                    <a href="contact.html">CONTACT</a>
-                </div>
-                <div class="nav-icons">
-                    <a href="#"><img src="/public/images/icons//search.svg" alt="Search"></a>
-                    <a href="#"><img src="/public/images/icons/person.svg" alt="Account"></a>
-                    <a href="#"><img src="/public/images/icons/cart.svg" alt="Cart"></a>
-                    <a href="#"><img src="/public/images/icons/fav.svg" alt="Wishlist"></a>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <%-include("../../views/partials/user/header")%>
+    
     
     <!-- Orders Banner -->
     <section class="orders-banner">
         <div class="container">
-            <h1>YOUR ORDERS</h1>
+            <h1>ORDERS</h1>
+            <div class="breadcrumb">
+                <a href="/orders">ORDERS</a> / <span>TRANSACTION ID</span>
+            </div>
         </div>
     </section>
     
@@ -553,9 +548,9 @@
                     </div>
                     
                     <div class="order-actions">
-                        <button class="btn btn-primary">Buy Again</button>
-                        <button class="btn btn-secondary">Save</button>
-                        <button class="btn btn-secondary">Download Invoice</button>
+                        <button class="singleorder-btn ">Buy Again</button>
+                        <button class="singleorder-btn ">Save</button>
+                        <button class="singleorder-btn ">Download Invoice</button>
                     </div>
                 </div>
                 
@@ -670,52 +665,15 @@
                 
                 <!-- Bottom Actions -->
                 <div class="bottom-actions">
-                    <a href="#" class="btn btn-secondary">Back</a>
-                    <a href="#" class="btn btn-primary">Cancel Order</a>
+                    <a href="#" class="singleorder-btn ">Back</a>
+                    <a href="#" class="singleorder-btn ">Cancel Order</a>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-links">
-                    <a href="#" class="footer-logo">
-                        <img src="/public/images/sneaky.png" alt="" class="logo-icon">
-                        <span class="logo-text">SNEAKY</span>
-                    </a>
-                    <p>Get 20 percent lifetime discount of shoes at stores.</p>
-                </div>
-                <div class="footer-links">
-                    <h3>Useful Links</h3>
-                    <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Shop</a></li>
-                        <li><a href="#">Sign Up</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>Account</h3>
-                    <ul>
-                        <li><a href="#">Orders</a></li>
-                        <li><a href="#">Downloads</a></li>
-                        <li><a href="#">Addresses</a></li>
-                        <li><a href="#">Sign Out</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h3>More Info</h3>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 SNEAKY. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <%-include("../../views/partials/user/footer")%>
+    
 
     
     <script>

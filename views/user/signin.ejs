@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Redirect to home only if login is successful
+             
                     Swal.fire({
                         icon: 'success',
                         title: 'Welcome!',
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.href = '/';
                     });
                 } else {
-                    // Stay on the sign-in page and show the error message
+            
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',

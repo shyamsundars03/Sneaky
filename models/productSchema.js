@@ -7,18 +7,6 @@ const sizeDetailsSchema = new Schema({
         enum: ['7', '8', '9', '10'],
         required: true
     },
-    price: {
-        type: Number,
-        required: true
-    },
-    discount: {
-        type: Number,
-        default: 0
-    },
-    offerPrice: {
-        type: Number,
-        required: true
-    },
     stock: {
         type: Number,
         required: true
@@ -50,6 +38,18 @@ const productSchema = new Schema({
     isListed: {
         type: Boolean,
         default: true
+    },
+    price: {
+        type: Number,
+        required: true
+    },
+    discount: {
+        type: Number,
+        default: 0
+    },
+    offerPrice: {
+        type: Number,
+        required: true
     },
     sizes: [sizeDetailsSchema] // Array of size-specific details
 }, { timestamps: true });

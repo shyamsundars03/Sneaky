@@ -8,8 +8,8 @@ const session = require("express-session");
 const userRouter = require("./routes/userRouter")
 const adminRouter = require("./routes/adminRouter")
 db()
-const passport = require('passport'); // Add this line at the top
-require('./config/passport'); // Import the Passport configuration
+const passport = require('passport'); 
+require('./config/passport'); 
 
 
 app.use(express.json());

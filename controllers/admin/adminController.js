@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const loadLogin = (req, res) => {
-    console.log("wefwef")
+
     try {
         if (req.session.admin) {
             res.redirect('/admin/dashboard');

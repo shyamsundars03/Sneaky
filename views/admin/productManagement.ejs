@@ -564,7 +564,7 @@
                 <a href="/admin/productManagement">PRODUCTS</a>
                 <a href="/admin/categoryManagement">CATEGORIES</a>
                 <a href="/admin/couponManagement">COUPONS</a>
-                <a href="/admin/offerManagemnt">OFFERS</a>
+                <a href="/admin/offerManagement">OFFERS</a>
                 <a href="/admin/sales">SALES REPORT</a>
             </div>
             <a href="/admin/logout" class="sign-out" style="text-decoration: none;">Sign Out</a>
@@ -661,7 +661,6 @@
             </div>
         </div>
     </main>
-
     <!-- Add Product Form Modal -->
     <div class="modal-overlay" id="productFormModal">
         <div class="modal">
@@ -692,7 +691,8 @@
                             </select>
                             <div class="form-error" id="categoryError"></div>
                         </div>
-                        <!-- <div class="form-group">
+                       <!-- Add this inside the modal-body -->
+                        <div class="form-group">
                             <label class="form-label">Price *</label>
                             <input type="number" name="price" id="price" class="form-input" min="0" oninput="calculateOfferPrice()">
                             <div class="form-error" id="priceError"></div>
@@ -707,34 +707,28 @@
                             <input type="number" name="offerPrice" id="offerPrice" class="form-input" min="0" readonly>
                             <div class="form-error" id="offerPriceError"></div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Stock *</label>
-                            <input type="number" name="stock" id="stock" class="form-input" min="0">
-                            <div class="form-error" id="stockError"></div>
-                        </div> -->
 
-<!-- Add this inside the modal-body -->
-<div class="form-group full-width">
-    <label class="form-label">Size *</label>
-    <div class="form-error" id="sizeError"></div>
-    <div class="checkbox-group">
-        <label class="checkbox-option">
-            <input type="checkbox" name="size" value="7" onchange="toggleSizeFields('7')"> 7
-        </label>
-        <label class="checkbox-option">
-            <input type="checkbox" name="size" value="8" onchange="toggleSizeFields('8')"> 8
-        </label>
-        <label class="checkbox-option">
-            <input type="checkbox" name="size" value="9" onchange="toggleSizeFields('9')"> 9
-        </label>
-        <label class="checkbox-option">
-            <input type="checkbox" name="size" value="10" onchange="toggleSizeFields('10')"> 10
-        </label>
-    </div>
-</div>
-
-<!-- Dynamic size-specific fields will be appended here -->
-<div id="sizeFieldsContainer"></div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Size *</label>
+                            <div class="form-error" id="sizeError"></div>
+                            <div class="checkbox-group">
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="size" value="7" onchange="toggleSizeFields('7')"> 7
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="size" value="8" onchange="toggleSizeFields('8')"> 8
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="size" value="9" onchange="toggleSizeFields('9')"> 9
+                                </label>
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="size" value="10" onchange="toggleSizeFields('10')"> 10
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Dynamic size-specific stock fields will be appended here -->
+                        <div id="sizeFieldsContainer"></div>
 
 
                         <div class="form-group full-width">
@@ -893,38 +887,52 @@
 
      // Load product data for editing
      async function loadProductData(productId) {
+    console.log('Loading product data for productId:', productId); // Debugging
     try {
         const response = await fetch(`/admin/product/${productId}`);
+        console.log('Response:', response); // Debugging
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Data:', data); // Debugging
 
         if (data.success) {
             const form = document.getElementById('productForm');
             const product = data.product;
+
+            console.log('Product data:', product); // Debugging
 
             // Set basic fields
             form.elements.productId.value = product._id;
             form.elements.productName.value = product.productName;
             form.elements.category.value = product.category._id;
             form.elements.description.value = product.description;
+            form.elements.price.value = product.price; // Set common price
+            form.elements.discount.value = product.discount; // Set common discount
+            form.elements.offerPrice.value = product.offerPrice; // Set common offer price
 
-            // Set size checkboxes and size-specific fields
+            // Reset size checkboxes
             const sizeCheckboxes = form.querySelectorAll('input[name="size"]');
             sizeCheckboxes.forEach(checkbox => {
                 checkbox.checked = false; // Reset all checkboxes
             });
 
+            // Populate size-specific stock fields
             if (product.sizes && product.sizes.length > 0) {
                 product.sizes.forEach(size => {
                     const sizeCheckbox = form.querySelector(`input[name="size"][value="${size.size}"]`);
                     if (sizeCheckbox) {
-                        sizeCheckbox.checked = true;
+                        sizeCheckbox.checked = true; // Check the checkbox for this size
                         toggleSizeFields(size.size); // Create fields for this size
 
-                        // Populate size-specific fields
-                        document.querySelector(`input[name="size_${size.size}_price"]`).value = size.price;
-                        document.querySelector(`input[name="size_${size.size}_discount"]`).value = size.discount;
-                        document.querySelector(`input[name="size_${size.size}_offerPrice"]`).value = size.offerPrice;
-                        document.querySelector(`input[name="size_${size.size}_stock"]`).value = size.stock;
+                        // Populate stock field for this size
+                        const stockInput = document.querySelector(`input[name="size_${size.size}_stock"]`);
+                        if (stockInput) {
+                            stockInput.value = size.stock; // Only stock is needed
+                        }
                     }
                 });
             }
@@ -941,6 +949,9 @@
                     }
                 });
             }
+
+            // Debugging: Check if images are being set
+            console.log('Product Images:', product.productImage);
         } else {
             showAlert(data.error || 'Failed to load product data', 'error');
         }
@@ -950,16 +961,21 @@
     }
 }
 
-        // Validate and save product
-        function validateAndSaveProduct() {
+
+
+ // Validate and save product
+ function validateAndSaveProduct() {
+            console.log('validateAndSaveProduct called'); // Debugging
             clearFormErrors();
 
             const form = document.getElementById('productForm');
+            console.log('Form:', form); // Debugging
+
             const productName = form.elements.productName.value.trim();
             const category = form.elements.category.value;
-            // const price = form.elements.price.value;
-            // const offerPrice = form.elements.offerPrice.value;
-            // const stock = form.elements.stock.value;
+            const price = form.elements.price.value;
+            const discount = form.elements.discount.value;
+            const offerPrice = form.elements.offerPrice.value;
             const description = form.elements.description.value.trim();
             const sizeSelected = form.querySelector('input[name="size"]:checked');
             let isValid = true;
@@ -968,26 +984,6 @@
             if (!productName) {
                 showFormError('productNameError', 'Product name is required');
                 isValid = false;
-            } else {
-                // Check if product name already exists (for new products)
-                const mode = form.dataset.mode;
-                const productId = form.elements.productId.value;
-                const productNameLower = productName.toLowerCase();
-
-                if (mode === 'add' && existingProductNames.some(name => name.toLowerCase() === productNameLower)) {
-                    showFormError('productNameError', 'This product name already exists');
-                    isValid = false;
-                } else if (mode === 'edit' && productId) {
-                    // For edit mode, check if name exists but it's not the current product
-                    const filteredNames = existingProductNames.filter(item => {
-                        return item.id !== productId && item.name.toLowerCase() === productNameLower;
-                    });
-
-                    if (filteredNames.length > 0) {
-                        showFormError('productNameError', 'This product name already exists');
-                        isValid = false;
-                    }
-                }
             }
 
             // Validate category
@@ -996,44 +992,34 @@
                 isValid = false;
             }
 
-            // // Validate price
-            // if (!price) {
-            //     showFormError('priceError', 'Price is required');
-            //     isValid = false;
-            // } else if (price <= 0) {
-            //     showFormError('priceError', 'Price must be greater than 0');
-            //     isValid = false;
-            // }
+            // Validate price
+            if (!price || price <= 0) {
+                showFormError('priceError', 'Price is required and must be greater than 0');
+                isValid = false;
+            }
 
-            // // Validate offer price if provided
-            // if (offerPrice && Number(offerPrice) >= Number(price)) {
-            //     showFormError('offerPriceError', 'Offer price must be less than regular price');
-            //     isValid = false;
-            // }
+            // Validate discount
+            if (discount && (discount < 0 || discount > 100)) {
+                showFormError('discountError', 'Discount must be between 0% and 100%');
+                isValid = false;
+            }
 
-            // // Validate stock
-            // if (!stock && stock !== '0') {
-            //     showFormError('stockError', 'Stock is required');
-            //     isValid = false;
-            // } else if (Number(stock) < 0) {
-            //     showFormError('stockError', 'Stock cannot be negative');
-            //     isValid = false;
-            // }
+            // Validate offer price
+            if (offerPrice && offerPrice >= price) {
+                showFormError('offerPriceError', 'Offer price must be less than the regular price');
+                isValid = false;
+            }
 
-                // Validate size
-   
+            // Validate size
             if (!sizeSelected) {
                 showFormError('sizeError', 'Size selection is required');
                 isValid = false;
             }
 
-    // Validate size-specific fields
-    if (!validateSizeFields()) {
-        isValid = false;
-    }
-
-
-
+            // Validate size-specific stock fields
+            if (!validateSizeFields()) {
+                isValid = false;
+            }
 
             // Validate description
             if (!description) {
@@ -1083,19 +1069,20 @@
             if (isValid) {
                 saveProduct();
             }
+
+            return false; // Prevent form submission
         }
 
         // Save product function
         async function saveProduct() {
+    console.log('saveProduct called'); // Debugging
     const form = document.getElementById('productForm');
     const formData = new FormData(form);
     const mode = form.dataset.mode;
-    const productId = form.elements.productId.value; 
+    const productId = form.elements.productId.value;
 
     // Clean up existing images data
     const existingImagesInputs = form.querySelectorAll('.existing-image-input');
-    formData.delete('existingImages[]');
-
     existingImagesInputs.forEach((input, index) => {
         if (input.value) {
             formData.append('existingImages', input.value);
@@ -1106,7 +1093,7 @@
 
     try {
         let url, method;
-        
+
         if (mode === 'add') {
             url = '/admin/product/add';
             method = 'POST';
@@ -1114,7 +1101,7 @@
             url = `/admin/product/${productId}`;
             method = 'PUT';
         }
-        
+
         const response = await fetch(url, {
             method: method,
             body: formData
@@ -1355,25 +1342,10 @@ function toggleSizeFields(size) {
         // If fields already exist, remove them
         container.removeChild(sizeField);
     } else {
-        // Create new fields for the selected size
+        // Create new fields for the selected size (only stock)
         const sizeFields = document.createElement('div');
         sizeFields.id = `sizeFields_${size}`;
         sizeFields.innerHTML = `
-            <div class="form-group">
-                <label class="form-label">Price for Size ${size} *</label>
-                <input type="number" name="size_${size}_price" class="form-input" min="0" required>
-                <div class="form-error" id="size_${size}_priceError"></div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Discount for Size ${size} (%)</label>
-                <input type="number" name="size_${size}_discount" class="form-input" min="0" max="100" oninput="calculateOfferPrice('${size}')">
-                <div class="form-error" id="size_${size}_discountError"></div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Offer Price for Size ${size}</label>
-                <input type="number" name="size_${size}_offerPrice" class="form-input" min="0" readonly>
-                <div class="form-error" id="size_${size}_offerPriceError"></div>
-            </div>
             <div class="form-group">
                 <label class="form-label">Stock for Size ${size} *</label>
                 <input type="number" name="size_${size}_stock" class="form-input" min="0" required>
@@ -1384,49 +1356,40 @@ function toggleSizeFields(size) {
     }
 }
 
-function calculateOfferPrice(size) {
-    const price = parseFloat(document.querySelector(`input[name="size_${size}_price"]`).value) || 0;
-    const discount = parseFloat(document.querySelector(`input[name="size_${size}_discount"]`).value) || 0;
+function calculateOfferPrice() {
+    const price = parseFloat(document.getElementById('price').value) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
 
     if (discount < 0 || discount > 100) {
-        document.getElementById(`size_${size}_discountError`).textContent = 'Discount must be between 0% and 100%';
-        document.querySelector(`input[name="size_${size}_offerPrice"]`).value = '';
+        document.getElementById('discountError').textContent = 'Discount must be between 0% and 100%';
+        document.getElementById('offerPrice').value = '';
         return;
     } else {
-        document.getElementById(`size_${size}_discountError`).textContent = '';
+        document.getElementById('discountError').textContent = '';
     }
 
     const offerPrice = price - (price * (discount / 100));
-    document.querySelector(`input[name="size_${size}_offerPrice"]`).value = offerPrice.toFixed(2);
+    document.getElementById('offerPrice').value = offerPrice.toFixed(2);
 }
+
+
+
 function validateSizeFields() {
-    let isValid = true;
-    const sizeCheckboxes = document.querySelectorAll('input[name="size"]:checked');
+            let isValid = true;
+            const sizeCheckboxes = document.querySelectorAll('input[name="size"]:checked');
 
-    sizeCheckboxes.forEach(checkbox => {
-        const size = checkbox.value;
-        const price = document.querySelector(`input[name="size_${size}_price"]`).value;
-        const discount = document.querySelector(`input[name="size_${size}_discount"]`).value;
-        const stock = document.querySelector(`input[name="size_${size}_stock"]`).value;
+            sizeCheckboxes.forEach(checkbox => {
+                const size = checkbox.value;
+                const stock = document.querySelector(`input[name="size_${size}_stock"]`).value;
 
-        if (!price || price <= 0) {
-            showFormError(`size_${size}_priceError`, 'Price must be greater than 0');
-            isValid = false;
+                if (!stock || stock < 0) {
+                    showFormError(`size_${size}_stockError`, 'Stock must be a non-negative number');
+                    isValid = false;
+                }
+            });
+
+            return isValid;
         }
-
-        if (discount && (discount < 0 || discount > 100)) {
-            showFormError(`size_${size}_discountError`, 'Discount must be between 0% and 100%');
-            isValid = false;
-        }
-
-        if (!stock || stock < 0) {
-            showFormError(`size_${size}_stockError`, 'Stock must be a non-negative number');
-            isValid = false;
-        }
-    });
-
-    return isValid;
-}
 
 
     </script>

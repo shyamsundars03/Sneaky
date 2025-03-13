@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <title>Wishlist - SNEAKY</title>
+    <link rel="icon" href="/images/sneaky.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>SNEAKY</title>
     <style>
         /* Reset and base styles */
         * {
@@ -23,7 +24,7 @@
             background-color: #000;
             color: #fff;
             text-align: center;
-            padding: 80px 0 120px;
+            padding: 40px 0 40px;
             position: relative;
         }
 
@@ -181,10 +182,10 @@
     </style>
 </head>
 <body>
-    <!-- Wishlist header section with curved bottom -->
+    <%-include("../../views/partials/user/header")%>
+
     <div class="wishlist-header">
         <h1>WISHLIST</h1>
-        <div class="curve"></div>
     </div>
 
     <!-- Wishlist content section -->
@@ -239,5 +240,6 @@
             </tbody>
         </table>
     </div>
+    <%-include("../../views/partials/user/footer")%>
 </body>
 </html>

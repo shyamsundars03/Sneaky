@@ -1,9 +1,7 @@
-<%-include("../../views/partials/user/header")%>
-  
-  
-  
-  <!-- Hero Section -->
-  <section class="shop-hero">
+<%- include("../../views/partials/user/header") %>
+
+<!-- Hero Section -->
+<section class="shop-hero">
     <div class="shop-hero-content">
         <h1>SHOP</h1>
         <div class="breadcrumb">
@@ -16,6 +14,7 @@
 <!-- Shop Content -->
 <div class="shop-container">
     <aside class="shop-sidebar">
+        <button  class="filter-button"  onclick="clearFilters()">Clear Filters</button>
         <!-- Categories Section -->
         <div class="filter-section">
             <div class="filter-header">
@@ -32,6 +31,7 @@
                                     name="category" 
                                     value="<%= category._id %>" 
                                     onchange="filterProducts()"
+                                    <%= selectedCategory === category._id.toString() ? 'checked' : '' %>
                                 >
                                 <%= category.name %>
                             </label>
@@ -43,6 +43,7 @@
             </div>
         </div>
 
+        <!-- Price Section -->
         <div class="filter-section">
             <div class="filter-header">
                 <h4>PRICE</h4>
@@ -54,8 +55,7 @@
                         <input type="text" placeholder="Min" value="₹0">
                         <input type="text" placeholder="Max" value="₹5000">
                     </div>
-                    <!-- <input type="range" min="0" max="10000" class="range-slider"> -->
-                    <button class="apply-button">Apply</button>
+                    <button class="apply-button" onclick="filterProducts()">Apply</button>
                 </div>
             </div>
         </div>
@@ -81,35 +81,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- <div class="filter-section">
-            <div class="filter-header">
-                <h4>RATINGS</h4>
-                <button class="toggle-filter"><i class="fas fa-chevron-up"></i></button>
-            </div>
-            <div class="filter-options">
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    <div class="stars">★★★★★</div>
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    <div class="stars">★★★★☆</div>
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    <div class="stars">★★★☆☆</div>
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    <div class="stars">★★☆☆☆</div>
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" checked>
-                    <div class="stars">★☆☆☆☆</div>
-                </label>
-            </div>
-        </div> -->
     </aside>
 
     <div class="products-container">
@@ -119,48 +90,38 @@
                 <select class="sort-select">
                     <option>Best match</option>
                 </select>
-                <div class="view-options">
-                    <button class="view-grid active"><i class="fas fa-th"></i></button>
-                    <button class="view-list"><i class="fas fa-list"></i></button>
-                </div>
             </div>
         </div>
 
-               <!-- Product Grid -->
-               <div class="products-grid" id="products-grid">
-                <% if (products.length > 0) { %>
-                    <% products.forEach(product => { %>
-                        <div class="product-card" data-category="<%= product.category._id || product.category %>" data-sizes="<%= product.sizes ? product.sizes.map(size => size.size).join(',') : '' %>">
-                            <a href="/product/<%= product._id %>" class="product-image">
-                                <img src="<%= product.productImage[0] %>" alt="<%= product.productName %>">
-                            </a>
-                            <div class="product-info">
-                                <div class="product-price">
-                                    <% if (product.sizes && product.sizes.length > 0) { %>
-                                        <% const minSize = product.sizes.reduce((min, size) => size.size < min.size ? size : min); %>
-                                        <% if (minSize.offerPrice && minSize.offerPrice > 0 && minSize.offerPrice !== minSize.price) { %>
-                                            <span class="offer-price">₹<%= minSize.offerPrice %></span>
-                                            <span class="original-price">₹<%= minSize.price %></span>
-                                        <% } else { %>
-                                            <span class="current-price">₹<%= minSize.price %></span>
-                                        <% } %>
-                                    <% } else { %>
-                                        <span class="current-price">₹0</span>
-                                        <span class="original-price" style="display: none;"></span>
-                                    <% } %>
-                                </div>
-                                <h4 class="product-name"><%= product.productName %></h4>
-                                <div class="product-actions">
-                                    <button class="add-to-cart">Add to cart</button>
-                                    <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
-                                </div>
+        <!-- Product Grid -->
+        <div class="products-grid" id="products-grid">
+            <% if (products.length > 0) { %>
+                <% products.forEach(product => { %>
+                    <div class="product-card" data-category="<%= product.category._id || product.category %>" data-sizes="<%= product.sizes ? product.sizes.map(size => size.size).join(',') : '' %>">
+                        <a href="/product/<%= product._id %>" class="product-image">
+                            <img src="<%= product.productImage[0] %>" alt="<%= product.productName %>">
+                        </a>
+                        <div class="product-info">
+                            <div class="product-price">
+                                <% if (product.offerPrice && product.offerPrice > 0 && product.offerPrice !== product.price) { %>
+                                    <span class="offer-price">₹<%= product.offerPrice %></span>
+                                    <span class="original-price">₹<%= product.price %></span>
+                                <% } else { %>
+                                    <span class="current-price">₹<%= product.price %></span>
+                                <% } %>
+                            </div>
+                            <h4 class="product-name"><%= product.productName %></h4>
+                            <div class="product-actions">
+                                <button class="add-to-cart">Add to cart</button>
+                                <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
                             </div>
                         </div>
-                    <% }) %>
-                <% } else { %>
-                    <p>No products found.</p>
-                <% } %>
-            </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p>No products found.</p>
+            <% } %>
+        </div>
 
         <!-- Pagination -->
         <div class="pagination">
@@ -183,38 +144,50 @@
 <script>
     // Function to filter products based on selected categories and sizes
     function filterProducts() {
-    // Get selected categories
-    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+        const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+        const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+        const productCards = document.querySelectorAll('.product-card');
 
-    // Get selected sizes
-    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+        let visibleProductsCount = 0;
 
-    // Get all product cards
-    const productCards = document.querySelectorAll('.product-card');
+        // Build the new URL with the applied filters
+        const url = new URL(window.location.href);
+        url.searchParams.delete('category'); // Remove existing category filter
+        url.searchParams.delete('size'); // Remove existing size filter
 
-    console.log('Selected Categories:', selectedCategories); // Debugging
-
-    productCards.forEach(card => {
-        // Get the product's category and sizes from data attributes
-        const category = card.getAttribute('data-category');
-        const sizes = card.getAttribute('data-sizes').split(',');
-
-        console.log('Product Category:', category); // Debugging
-
-        // Check if the product matches the selected categories
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
-
-        // Check if the product matches the selected sizes
-        const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
-
-        // Show or hide the product card based on the filters
-        if (matchesCategory && matchesSize) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
+        // Add selected filters to the URL
+        if (selectedCategories.length > 0) {
+            url.searchParams.set('category', selectedCategories.join(','));
         }
-    });
-}
+        if (selectedSizes.length > 0) {
+            url.searchParams.set('size', selectedSizes.join(','));
+        }
+
+        // Update the URL without reloading the page
+        window.history.pushState({}, '', url);
+
+        // Apply the filters to the products
+        productCards.forEach(card => {
+            const category = card.getAttribute('data-category');
+            const sizes = card.getAttribute('data-sizes').split(',');
+
+            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
+            const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
+
+            if (matchesCategory && matchesSize) {
+                card.style.display = 'block';
+                visibleProductsCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Update the total products count displayed above the grid
+        const totalProductsHeader = document.querySelector('.products-header h3');
+        if (totalProductsHeader) {
+            totalProductsHeader.textContent = `${visibleProductsCount} items found`;
+        }
+    }
 
     // Function to toggle size filter
     function toggleSizeFilter(size) {
@@ -222,9 +195,58 @@
         sizeButton.classList.toggle('active');
         filterProducts();
     }
+
+    // Function to read URL parameters and apply filters on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Apply category filter
+        const selectedCategory = urlParams.get('category');
+        if (selectedCategory) {
+            selectedCategory.split(',').forEach(categoryId => {
+                const categoryCheckbox = document.querySelector(`#category-filters input[value="${categoryId}"]`);
+                if (categoryCheckbox) {
+                    categoryCheckbox.checked = true;
+                }
+            });
+        }
+
+        // Apply size filter
+        const selectedSizes = urlParams.get('size');
+        if (selectedSizes) {
+            selectedSizes.split(',').forEach(size => {
+                const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
+                if (sizeButton) {
+                    sizeButton.classList.add('active');
+                }
+            });
+        }
+
+        // Apply the filters
+        filterProducts();
+    });
+
+    // Function to clear all filters
+    function clearFilters() {
+        // Clear the URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('category');
+        url.searchParams.delete('size');
+        window.history.pushState({}, '', url);
+
+        // Uncheck all category checkboxes
+        document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Remove active class from all size buttons
+        document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
+            button.classList.remove('active');
+        });
+
+        // Apply the filters (which will now show all products)
+        filterProducts();
+    }
 </script>
-
-
-
 
 <%- include("../../views/partials/user/footer") %>
