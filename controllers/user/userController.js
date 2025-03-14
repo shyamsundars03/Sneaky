@@ -199,14 +199,17 @@ const signupPost = async (req, res) => {
 
 const googleCallback = async (req, res, next) => {
     try {
-
         if (!req.user) {
             return res.redirect('/signin?error=Google authentication failed.');
         }
 
+        // Set the session with user details
         req.session.user = {
+            _id: req.user._id,
             name: req.user.name,
             email: req.user.email,
+            googleId: req.user.googleId, // Ensure googleId is included
+            profileImage: req.user.profileImage || 'https://via.placeholder.com/150', // Default image if none
         };
         req.session.loginSession = true;
 
