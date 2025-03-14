@@ -1,92 +1,140 @@
- <%-include("../../views/partials/user/header")%>
-    
+<%- include("../../views/partials/user/header") %>
 
-    <div class="cart-container">
+<div class="cart-container">
+    <!-- Hero Section -->
+    <section class="cart-hero">
+        <h1>CART</h1>
+    </section>
 
-        <!-- Hero Section -->
-        <section class="cart-hero">
-            <h1>CART</h1>
+    <!-- Cart Content -->
+    <div class="cart-content">
+        <h2 class="cart-items-title">Cart Items</h2>
 
-        </section>
-
-        <!-- Cart Content -->
-        <div class="cart-content">
-            <h2 class="cart-items-title">Cart Items</h2>
-            
-            <table class="cart-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50%;font-weight: bolder;">Products</th>
-                        <th style="width: 15%;font-weight: bolder;">Quantity</th>
-                        <th style="width: 15%;font-weight: bolder;">Price</th>
-                        <th style="width: 10%;font-weight: bolder;">Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td data-label="cart-Products">
-                            <div class="cart-product-info">
-                                <img src="/public/images/pro1.2.png" alt="Sneakers" class="product-img">
-                                <div class="product-details">
-                                    <div class="cart-product-name">Mollis nunc sed id semper risus in hendrerit</div>
-                                    <div class="cart-product-price">₹45.00</div>
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%; font-weight: bolder;">Products</th>
+                    <th style="width: 15%; font-weight: bolder;">Quantity</th>
+                    <th style="width: 15%; font-weight: bolder;">Price</th>
+                    <th style="width: 10%; font-weight: bolder;">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (cart.cartItems.length > 0) { %>
+                    <% cart.cartItems.forEach(item => { %>
+                        <tr>
+                            <td data-label="cart-Products">
+                                <div class="cart-product-info">
+                                    <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img">
+                                    <div class="product-details">
+                                        <div class="cart-product-name"><%= item.product.productName %></div>
+                                        <div class="cart-product-price">₹<%= item.price %></div>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td data-label="cart-Quantity">
-                            <div class="cart-quantity-control">
-                                <div class="cart-quantity-btn">-</div>
-                                <input type="text" value="1" class="cart-quantity-input">
-                                <div class="cart-quantity-btn">+</div>
-                            </div>
-                        </td>
-                        <td data-label="cart-Price">₹4500</td>
-                        <td data-label="Delete">
-                            <div class="cart-delete-btn">
-                                <i class="fas fa-trash"></i>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td data-label="cart-Products">
-                            <div class="cart-product-info">
-                                <img src="/public/images/pro1.2.png" alt="Sneakers" class="product-img">
-                                <div class="product-details">
-                                    <div class="cart-product-name">Mollis nunc sed id semper risus in hendrerit</div>
-                                    <div class="cart-product-price">₹45.00</div>
+                            </td>
+                            <td data-label="cart-Quantity">
+                                <div class="cart-quantity-control">
+                                    <div class="cart-quantity-btn" onclick="updateQuantity('<%= item.product._id %>', 'decrease')">-</div>
+                                    <input type="text" value="<%= item.quantity %>" class="cart-quantity-input" id="quantity-<%= item.product._id %>">
+                                    <div class="cart-quantity-btn" onclick="updateQuantity('<%= item.product._id %>', 'increase')">+</div>
                                 </div>
-                            </div>
-                        </td>
-                        <td data-label="cart-Quantity">
-                            <div class="cart-quantity-control">
-                                <div class="cart-quantity-btn">-</div>
-                                <input type="text" value="1" class="cart-quantity-input">
-                                <div class="cart-quantity-btn">+</div>
-                            </div>
-                        </td>
-                        <td data-label="cart-Price">₹4500</td>
-                        <td data-label="Delete">
-                            <div class="cart-delete-btn">
-                                <i class="fas fa-trash"></i>
-                            </div>
-                        </td>
+                            </td>
+                            <td data-label="cart-Price">₹<%= item.price * item.quantity %></td>
+                            <td data-label="Delete">
+                                <div class="cart-delete-btn" onclick="removeFromCart('<%= item.product._id %>')">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4" style="text-align: center;">Your cart is empty.</td>
                     </tr>
-                </tbody>
-            </table>
+                <% } %>
+            </tbody>
+        </table>
 
-            <div class="cart-summary">
-                <h3 class="cart-total-title">Cart total</h3>
-                <div class="cart-summary-row">
-                    <span class="cart-summary-label">Subtotal</span>
-                    <span class="cart-summary-value">₹4500</span>
-                </div>
-                <div class="cart-summary-row total-row">
-                    <span class="cart-summary-label">Total</span>
-                    <span class="cart-summary-value">₹4500</span>
-                </div>
-                <button class="cart-checkout-btn">Proceed to Checkout</button>
+        <div class="cart-summary">
+            <h3 class="cart-total-title">Cart Total</h3>
+            <div class="cart-summary-row">
+                <span class="cart-summary-label">Subtotal</span>
+                <span class="cart-summary-value">₹<%= cartTotal %></span>
             </div>
+            <div class="cart-summary-row total-row">
+                <span class="cart-summary-label">Total</span>
+                <span class="cart-summary-value">₹<%= cartTotal %></span>
+            </div>
+            <button class="cart-checkout-btn">Proceed to Checkout</button>
         </div>
+    </div>
+</div>
 
-  
-        <%-include("../../views/partials/user/footer")%>
+<%- include("../../views/partials/user/footer") %>
+
+<script>
+ 
+ // Update Quantity Function
+ async function updateQuantity(productId, action) {
+        try {
+            const response = await fetch('/cart/update-quantity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId, action }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.reload(); // Reload to reflect updated quantity
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to update quantity.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+
+    // Remove from Cart Function
+    async function removeFromCart(productId) {
+        try {
+            const response = await fetch('/cart/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.reload(); // Reload to reflect updated cart
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to remove from cart.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+</script>

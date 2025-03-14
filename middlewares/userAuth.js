@@ -2,17 +2,18 @@ const usercollection = require("../models/userSchema");
 
 module.exports = async function (req, res, next) {
     try {
-        if (req.session.loginSession || req.session.signupSession) {
-            const user = await usercollection.findOne({ email: req.session.user.email });
+        if (req.session.user) {
+            const user = await usercollection.findOne({ _id: req.session.user._id });
+
             if (!user || user.isActive === false) {
-                // Destroy the session if the user is blocked
                 req.session.destroy((err) => {
                     if (err) {
                         console.error("Error destroying session:", err);
                     }
-                    return res.redirect("/page-404");
+                    return res.redirect("/signin");
                 });
             } else {
+                req.user = user; 
                 next();
             }
         } else {

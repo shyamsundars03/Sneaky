@@ -112,8 +112,12 @@
                             </div>
                             <h4 class="product-name"><%= product.productName %></h4>
                             <div class="product-actions">
-                                <button class="add-to-cart">Add to cart</button>
-                                <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                            <!-- Add to Cart Button -->
+                            <button class="add-to-cart-btn" onclick="addToCart('<%= product._id %>', '<%= product.sizes[0].size %>')">Add to cart</button>
+                            <!-- Add to Wishlist Button -->
+                            <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
+                                <i class="far fa-heart"></i>
+                            </button>
                             </div>
                         </div>
                     </div>
@@ -247,6 +251,234 @@
         // Apply the filters (which will now show all products)
         filterProducts();
     }
+
+
+
+    // Function to handle "Add to Cart" button click
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', async function () {
+            const productId = this.getAttribute('data-product-id');
+
+            // Check if the user is logged in
+            const isLoggedIn = <%= user ? true : false %>; // Use the user object passed from the controller
+
+            if (!isLoggedIn) {
+                // Redirect to the signin page with the current page as the redirect URL
+                window.location.href = '/signin?redirect=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+
+            // Add the product to the cart
+            try {
+                const response = await fetch('/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ productId }), // Only send productId
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show SweetAlert for "Added to Cart"
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added to Cart!',
+                        text: 'The product has been added to your cart.',
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: result.message || 'Failed to add the product to the cart.',
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Something went wrong!',
+                });
+            }
+        });
+    });
+
+
+    async function addToCart(productId, size) {
+        try {
+            const response = await fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId, size }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Added to Cart!',
+                    text: 'The product has been added to your cart.',
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to add to cart.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+    
+    // Function to update wishlist heart icons
+    async function updateWishlistIcons() {
+        try {
+            const response = await fetch('/wishlist/status');
+            const result = await response.json();
+
+            if (result.success) {
+                result.wishlistItems.forEach(productId => {
+                    const wishlistButton = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"]`);
+                    if (wishlistButton) {
+                        const heartIcon = wishlistButton.querySelector('i');
+                        heartIcon.classList.remove('far'); // Remove outline heart
+                        heartIcon.classList.add('fas'); // Add filled heart
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error updating wishlist icons:', error);
+        }
+    }
+
+    // Update wishlist icons when the page loads
+    document.addEventListener('DOMContentLoaded', updateWishlistIcons);
+
+    // Function to handle "Add to Wishlist" button click
+// Function to handle "Add to Wishlist" button click
+document.querySelectorAll('.add-to-wishlist').forEach(button => {
+    button.addEventListener('click', async function () {
+        const productId = this.getAttribute('data-product-id');
+        const productSize = this.getAttribute('data-product-size'); // Ensure size is included
+
+        // Check if the user is logged in
+        const isLoggedIn = <%= user ? true : false %>; // Use the user object passed from the controller
+
+        if (!isLoggedIn) {
+            // Redirect to the signin page with the current page as the redirect URL
+            window.location.href = '/signin?redirect=' + encodeURIComponent(window.location.pathname);
+            return;
+        }
+
+        // Toggle the product in the wishlist
+        try {
+            const response = await fetch('/wishlist/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId, size: productSize }), // Ensure size is included
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Toggle the heart icon
+                const heartIcon = this.querySelector('i');
+                heartIcon.classList.toggle('far'); // Outline heart
+                heartIcon.classList.toggle('fas'); // Filled heart
+
+                // Show SweetAlert for "Added to Wishlist" or "Removed from Wishlist"
+                Swal.fire({
+                    icon: 'success',
+                    title: result.message,
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to update the wishlist.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    });
+});
+
+ // Toggle Wishlist Function
+ async function toggleWishlist(productId) {
+        try {
+            const response = await fetch('/wishlist/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Toggle the heart icon
+                const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
+                heartIcon.classList.toggle('far'); // Outline heart
+                heartIcon.classList.toggle('fas'); // Filled heart
+
+                // Show SweetAlert for "Added to Wishlist" or "Removed from Wishlist"
+                Swal.fire({
+                    icon: 'success',
+                    title: result.message,
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to update the wishlist.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+
+
+
+
+
+
+
 </script>
+
+<style>
+    .add-to-wishlist i.fas {
+    color: red; 
+}
+
+.add-to-wishlist i.far {
+    color: black; 
+}
+</style>
 
 <%- include("../../views/partials/user/footer") %>

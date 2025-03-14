@@ -51,7 +51,7 @@ const productSchema = new Schema({
         type: Number,
         required: true
     },
-    sizes: [sizeDetailsSchema] // Array of size-specific details
+    sizes: [sizeDetailsSchema] 
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);

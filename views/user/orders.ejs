@@ -442,34 +442,31 @@
         </div>
     </section>
     
-    <!-- Orders Section -->
     <section class="orders-section">
         <div class="container">
             <div class="orders-content">
                 <!-- Sidebar -->
                 <div class="account-sidebar">
                     <div class="profile-image-container">
-                        <div class="profile-image">
-                            <img id="profileImg" src="https://via.placeholder.com/150" alt="Profile Picture">
-                        </div>
+                        <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;" >
+                            <!-- address.ejs -->
+                                 <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
+                         </div>
                     </div>
-                    
-                    <h2 class="account-name">Jose Fuller</h2>
-                    <p class="account-email">example@gmail.com</p>
-                    
+                    <h2 class="account-name"><%= user.username || '' %></h2>
+                    <p class="account-email"><%= user.email || '' %></p>
                     <ul class="sidebar-menu">
-                        <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li>
+                        <!-- <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li> -->
                         <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
                         <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
                         <li><a href="#"><i class="fas fa-wallet"></i> My Wallet</a></li>
-                        <li><a href="#"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+                        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                     </ul>
                 </div>
                 
                 <!-- Orders Details -->
                 <div class="orders-details">
                     <h2>Orders</h2>
-                    
                     <table class="orders-table">
                         <thead>
                             <tr>
@@ -520,15 +517,11 @@
             </div>
         </div>
     </section>
-    
-    <%-include("../../views/partials/user/footer")%>
-    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
     <script>
-        // Simple mobile menu toggle
-        document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
-            const navLinks = document.querySelector('.nav-links');
-            navLinks.classList.toggle('active');
-        });
+        // Add any necessary JavaScript for orders page
     </script>
+        <%-include("../../views/partials/user/footer")%>
 </body>
 </html>

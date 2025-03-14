@@ -5,6 +5,7 @@ env.config();
 const path = require("path")
 const db = require("./config/db")
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const userRouter = require("./routes/userRouter")
 const adminRouter = require("./routes/adminRouter")
 db()
@@ -25,6 +26,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET ,
     resave: false,
     saveUninitialized: true,
+    store: MongoStore.create({
+        mongoUrl: "mongodb://localhost:27017/SneakyDB",
+        ttl: 14 * 24 * 60 * 60, 
+    }),
     cookie: { secure: false }
 }));
 

@@ -83,7 +83,7 @@
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <button class="buy-now">Add to cart</button>
+                    <button class="buy-now" onclick="addToCart('<%= product._id %>', selectedSize, quantity)">Add to cart</button>
                 </div>
             </div>
         </div>
@@ -111,7 +111,9 @@
                             <h4 class="product-name"><%= relatedProduct.productName %></h4>
                             <div class="product-actions">
                                 <button class="add-to-cart">Add to cart</button>
-                                <button class="add-to-wishlist"><i class="far fa-heart"></i></button>
+                                <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
+                                    <i class="far fa-heart"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -125,44 +127,75 @@
 
 <!-- JavaScript for Dynamic Updates -->
 <script>
+   
+   let selectedSize = '<%= product.sizes[0].size %>'; // Default size
+    let quantity = 1; // Default quantity
+
     // Function to handle size selection
-
-// Function to handle size selection
-function selectSize(button) {
-    // Remove active class from all size buttons
-    document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
-
-    // Add active class to the selected button
-    button.classList.add('active');
-
-    // Update stock based on the selected size
-    const stock = button.getAttribute('data-stock');
-
-    // Update the stock display
-    const stockElement = document.getElementById('stock');
-    if (stock == 0) {
-        stockElement.innerHTML = '<span style="color: red;">Out of Stock</span>';
-    } else {
-        stockElement.textContent = `${stock} items available`;
+    function selectSize(button) {
+        selectedSize = button.getAttribute('data-size');
+        document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
     }
-}
 
     // Function to handle quantity increase
     function increaseQuantity() {
-        const quantityElement = document.getElementById('quantity');
-        let quantity = parseInt(quantityElement.textContent);
-        quantityElement.textContent = quantity + 1;
+        const stock = parseInt(document.querySelector('.size-option.active').getAttribute('data-stock'));
+        if (quantity + 1 > stock) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Quantity exceeds available stock!',
+            });
+        } else {
+            quantity += 1;
+            document.getElementById('quantity').textContent = quantity;
+        }
     }
 
     // Function to handle quantity decrease
     function decreaseQuantity() {
-        const quantityElement = document.getElementById('quantity');
-        let quantity = parseInt(quantityElement.textContent);
         if (quantity > 1) {
-            quantityElement.textContent = quantity - 1;
+            quantity -= 1;
+            document.getElementById('quantity').textContent = quantity;
         }
     }
 
+    // Add to Cart Function
+    async function addToCart(productId, size, quantity) {
+        try {
+            const response = await fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId, size, quantity }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Added to Cart!',
+                    text: 'The product has been added to your cart.',
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to add to cart.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
     // Function to change the main image when a thumbnail is clicked
     function changeMainImage(imageSrc) {
         const mainImage = document.getElementById('main-image');
@@ -190,6 +223,54 @@ function selectSize(button) {
     zoomContainer.addEventListener('mouseleave', () => {
         zoomOverlay.style.backgroundPosition = 'center center';
     });
+
+
+
+ // Toggle Wishlist Function
+ async function toggleWishlist(productId) {
+        try {
+            const response = await fetch('/wishlist/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
+                heartIcon.classList.toggle('far'); // Outline heart
+                heartIcon.classList.toggle('fas'); // Filled heart
+
+                Swal.fire({
+                    icon: 'success',
+                    title: result.message,
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to update the wishlist.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+
+
+
+
+
+
+
 </script>
 
 <!-- Add CSS for the zoom effect -->

@@ -133,34 +133,35 @@ const otpPost = async (req, res) => {
 
 const signinPost = async (req, res) => {
     try {
-        const userData = await usercollection.findOne({ email: req.body.email });
-        if (userData) {
-            // Check if the user is blocked
-            if (userData.isActive === false) {
-                return res.status(403).send({ success: false, message: "Your account has been blocked. Please contact support." });
-            }
+        const { email, password } = req.body;
 
-            if (userData.password) {
-                const isPasswordValid = await comparePassword(req.body.password, userData.password);
-                if (isPasswordValid) {
-                    req.session.loginSession = true;
-                    req.session.user = {
-                        name: userData.name,
-                        email: userData.email,
-                    };
-                    return res.status(200).send({ success: true });
-                } else {
-                    return res.status(401).send({ success: false, message: "Invalid password." });
-                }
-            } else {
-                return res.status(401).send({ success: false, message: "Invalid user." });
-            }
-        } else {
-            return res.status(401).send({ success: false, message: "User not found." });
+        // Find the user by email
+        const user = await usercollection.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
         }
+
+        // Check if the password matches
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ success: false, message: "Invalid password." });
+        }
+
+        // Set the user session
+        req.session.user = {
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+        };
+
+        console.log("Session after login:", req.session.user); // Debug log
+
+        res.status(200).json({ success: true, message: "Login successful!" });
     } catch (error) {
-        console.error("Error in signinPost:", error);
-        res.status(500).send({ success: false, message: "An error occurred. Please try again." });
+        console.error("Error during login:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
 

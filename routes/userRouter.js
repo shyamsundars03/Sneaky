@@ -11,6 +11,24 @@ const checkoutController = require("../controllers/user/checkoutController");
 const wishlistController = require("../controllers/user/wishlistController");
 const orderController = require("../controllers/user/orderController");
 const userAuth = require('../middlewares/userAuth');
+const multer = require('multer');
+const path = require('path');
+
+
+// Set up multer for image uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/uploads/'); // Ensure this directory exists
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname)); // Append timestamp to filename
+    }
+});
+
+const upload = multer({ storage: storage });
+
+
+
 
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
@@ -37,15 +55,26 @@ router.post("/otp", userController.otpPost);
 router.get("/otp-time", userController.otpTime);
 router.post("/otp-send", userController.resendOtp);
 
-// Cart
-router.get("/cart", cartController.loadCart);
-
 // Profile
-router.get("/profile", profileController.loadProfile);
+router.get("/profile", userAuth, profileController.loadProfile);
+router.post("/profile/update", userAuth, profileController.updateProfile);
+router.post("/profile/image", upload.single('profileImage'), profileController.updateProfileImage);
 router.get("/address", profileController.loadAddress);
+router.post("/address/add",  profileController.addAddress);
+router.post("/address/update", profileController.updateAddress);
+router.get("/address/delete/:id",  profileController.deleteAddress);
+router.post("/logout", profileController.signOut);
 
-// Wishlist
-router.get("/wishlist", wishlistController.loadWishlist);
+// Cart
+router.get("/cart", userAuth, cartController.loadCart);
+router.post("/cart/add", userAuth, cartController.addToCart);
+router.post("/cart/update-quantity", userAuth, cartController.updateQuantity);
+router.post("/cart/remove", userAuth, cartController.removeFromCart);
+
+router.get("/wishlist", userAuth, wishlistController.loadWishlist);
+router.post("/wishlist/toggle", userAuth, wishlistController.toggleWishlist);
+router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
+
 
 // Order
 router.get("/orders", orderController.loadOrder);
@@ -66,5 +95,14 @@ router.get("/checkout3", checkoutController.loadCheckout3);
 // Google authentication
 router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'] }));
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/signin' }), userController.googleCallback);
+
+
+
+
+
+
+
+
+
 
 module.exports = router;

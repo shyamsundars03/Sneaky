@@ -182,7 +182,7 @@
     </style>
 </head>
 <body>
-    <%-include("../../views/partials/user/header")%>
+    <%- include("../../views/partials/user/header") %>
 
     <div class="wishlist-header">
         <h1>WISHLIST</h1>
@@ -198,48 +198,107 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div class="product-cell">
-                            <div class="product-image">
-                                <img src="shoe-image.jpg" alt="Sneaker">
-                            </div>
-                            <div class="product-info">
-                                <h3>Mollis nunc sed id semper risus in hendrerit</h3>
-                                <div class="product-price">₹1500</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="actions-cell">
-                        <button class="add-to-cart-btn">Add to cart</button>
-                        <div class="delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <div class="product-cell">
-                            <div class="product-image">
-                                <img src="shoe-image.jpg" alt="Sneaker">
-                            </div>
-                            <div class="product-info">
-                                <h3>Mollis nunc sed id semper risus in hendrerit</h3>
-                                <div class="product-price">₹1500</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="actions-cell">
-                        <button class="add-to-cart-btn">Add to cart</button>
-                        <div class="delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </td>
-                    </td>
-                </tr>
+                <% if (wishlist.wishlistItems.length > 0) { %>
+                    <% wishlist.wishlistItems.forEach(item => { %>
+                        <tr>
+                            <td>
+                                <div class="product-cell">
+                                    <div class="product-image">
+                                        <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>">
+                                    </div>
+                                    <div class="product-info">
+                                        <h3><%= item.product.productName %></h3>
+                                        <div class="product-price">₹<%= item.product.price %></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-cell">
+                                <button class="add-to-cart-btn" onclick="addToCart('<%= item.product._id %>')">Add to cart</button>
+                                <div class="delete-btn" onclick="removeFromWishlist('<%= item.product._id %>')">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="2" style="text-align: center;">Your wishlist is empty.</td>
+                    </tr>
+                <% } %>
             </tbody>
         </table>
     </div>
-    <%-include("../../views/partials/user/footer")%>
+
+    <%- include("../../views/partials/user/footer") %>
+
+    <script>
+        // Function to add product to cart
+       async function addToCart(productId) {
+    try {
+        const response = await fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ productId }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added to Cart!',
+                text: 'The product has been added to your cart.',
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: result.message || 'Failed to add to cart.',
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong!',
+        });
+    }
+}
+
+            // Remove from Wishlist Function
+    async function removeFromWishlist(productId) {
+        try {
+            const response = await fetch('/wishlist/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productId }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.reload(); // Reload to reflect updated wishlist
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to remove from wishlist.',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!',
+            });
+        }
+    }
+    </script>
 </body>
 </html>
