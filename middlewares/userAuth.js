@@ -13,7 +13,7 @@ module.exports = async function (req, res, next) {
                     return res.redirect("/signin");
                 });
             } else {
-                req.user = user; 
+                req.user = user;
                 next();
             }
         } else {

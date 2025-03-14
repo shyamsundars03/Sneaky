@@ -1,25 +1,33 @@
-// controllers/user/orderController.js
+const Order = require('../../models/orderSchema');
+const User = require('../../models/userSchema');
 
-const loadOrder = (req, res) => {
+// Load orders page
+const loadOrder = async (req, res) => {
     try {
-        res.render("orders", {
-            user: req.session.user, 
-        });
+        if (!req.user) {
+            return res.redirect('/signin');
+        }
+
+        const userId = req.user._id;
+        const orders = await Order.find({ userId }).populate('items.product');
+        res.render("orders", { orders, user: req.user });
     } catch (error) {
-        console.error("Error loading orders page:", error);
+        console.error("Error loading orders:", error);
         res.status(500).render("page-404");
     }
 };
 
-
-
-const loadSingleOrder = (req, res) => {
+// Load single order page
+const loadSingleOrder = async (req, res) => {
     try {
-        res.render("singleOrder", {
-            user: req.session.user, 
-        });
+        if (!req.user) {
+            return res.redirect('/signin');
+        }
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId).populate('items.product');
+        res.render("singleOrder", { order, user: req.user });
     } catch (error) {
-        console.error("Error loading single order page:", error);
+        console.error("Error loading single order:", error);
         res.status(500).render("page-404");
     }
 };

@@ -433,9 +433,8 @@
     </style>
 </head>
 <body>
-    <%-include("../../views/partials/user/header")%>
-    
-    <!-- Orders Banner -->
+    <%- include("../../views/partials/user/header") %>
+
     <section class="orders-banner">
         <div class="container">
             <h1>ORDERS</h1>
@@ -448,80 +447,57 @@
                 <!-- Sidebar -->
                 <div class="account-sidebar">
                     <div class="profile-image-container">
-                        <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;" >
-                            <!-- address.ejs -->
-                                 <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
-                         </div>
+                        <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;">
+                            <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
+                        </div>
                     </div>
-                    <h2 class="account-name"><%= user.username || '' %></h2>
+                    <h2 class="account-name"><%= user.name || '' %></h2>
                     <p class="account-email"><%= user.email || '' %></p>
                     <ul class="sidebar-menu">
-                        <!-- <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li> -->
                         <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
                         <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
-                        <li><a href="#"><i class="fas fa-wallet"></i> My Wallet</a></li>
                         <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                     </ul>
                 </div>
-                
+    
                 <!-- Orders Details -->
                 <div class="orders-details">
                     <h2>Orders</h2>
                     <table class="orders-table">
                         <thead>
                             <tr>
-                                <th>OrderID</th>
+                                <th>Order ID</th>
                                 <th>Date</th>
                                 <th>Items</th>
-                                <th>Price</th>
+                                <th>Total</th>
                                 <th>Status</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>PN001</td>
-                                <td>January 20, 2025</td>
-                                <td>4</td>
-                                <td>₹ 2300</td>
-                                <td><span class="status-badge status-pending">Pending</span></td>
-                                <td><a href="/orders/:id" class="view-btn">View</a></td>
-                            </tr>
-                            <tr>
-                                <td>PN002</td>
-                                <td>January 20, 2025</td>
-                                <td>3</td>
-                                <td>₹ 2300</td>
-                                <td><span class="status-badge status-shipped">Shipped</span></td>
-                                <td><a href="/orders/:id" class="view-btn">View</a></td>
-                            </tr>
-                            <tr>
-                                <td>PN003</td>
-                                <td>January 20, 2025</td>
-                                <td>5</td>
-                                <td>₹ 2000</td>
-                                <td><span class="status-badge status-returned">Returned</span></td>
-                                <td><a href="/orders/:id" class="view-btn">View</a></td>
-                            </tr>
-                            <tr>
-                                <td>PN004</td>
-                                <td>January 20, 2025</td>
-                                <td>3</td>
-                                <td>₹ 2000</td>
-                                <td><span class="status-badge status-completed">Completed</span></td>
-                                <td><a href="/orders/:id" class="view-btn">View</a></td>
-                            </tr>
+                            <% if (orders.length > 0) { %>
+                                <% orders.forEach(order => { %>
+                                    <tr>
+                                        <td><%= order._id %></td>
+                                        <td><%= order.createdAt.toLocaleDateString() %></td>
+                                        <td><%= order.items.length %></td>
+                                        <td>₹<%= order.totalAmount %></td>
+                                        <td><span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></td>
+                                        <td><a href="/orders/<%= order._id %>" class="view-btn">View</a></td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="6" style="text-align: center;">No orders found.</td>
+                                </tr>
+                            <% } %>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </section>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
-    <script>
-        // Add any necessary JavaScript for orders page
-    </script>
-        <%-include("../../views/partials/user/footer")%>
+    
+    <%- include("../../views/partials/user/footer") %>
 </body>
 </html>

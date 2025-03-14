@@ -15,21 +15,6 @@ const multer = require('multer');
 const path = require('path');
 
 
-// Set up multer for image uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/'); // Ensure this directory exists
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname)); // Append timestamp to filename
-    }
-});
-
-const upload = multer({ storage: storage });
-
-
-
-
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
@@ -55,16 +40,14 @@ router.post("/otp", userController.otpPost);
 router.get("/otp-time", userController.otpTime);
 router.post("/otp-send", userController.resendOtp);
 
-// Profile
+// Profile Routes
 router.get("/profile", userAuth, profileController.loadProfile);
 router.post("/profile/update", userAuth, profileController.updateProfile);
-router.post("/profile/image", upload.single('profileImage'), profileController.updateProfileImage);
-router.get("/address", profileController.loadAddress);
-router.post("/address/add",  profileController.addAddress);
-router.post("/address/update", profileController.updateAddress);
-router.get("/address/delete/:id",  profileController.deleteAddress);
-router.post("/logout", profileController.signOut);
-
+router.post("/profile/image", userAuth, profileController.upload, profileController.updateProfileImage);
+// Address Routes
+router.get("/address", userAuth, profileController.loadAddress);
+router.post("/address/save", userAuth, profileController.saveAddress);
+router.post("/address/delete/:id", userAuth, profileController.deleteAddress);
 // Cart
 router.get("/cart", userAuth, cartController.loadCart);
 router.post("/cart/add", userAuth, cartController.addToCart);
@@ -77,7 +60,7 @@ router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
 
 
 // Order
-router.get("/orders", orderController.loadOrder);
+router.get("/orders", userAuth, orderController.loadOrder);
 router.get("/orders/:id", orderController.loadSingleOrder);
 
 

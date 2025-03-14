@@ -10,7 +10,7 @@ const userSchema = new Schema({
     email: {
         type: String,
         required: true,
-        unique: true, // Ensure email is unique
+        unique: true, 
     },
     phone: {
         type: String,
@@ -18,7 +18,11 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        default: null, // Optional for Google-authenticated users
+        default: null, 
+    },
+    profileImage: {
+        type: String,
+        default: null,
     },
     googleId: {
         type: String,

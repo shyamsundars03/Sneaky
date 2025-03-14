@@ -3,24 +3,33 @@ const Address = require('../../models/addressSchema');
 const multer = require('multer');
 const path = require('path');
 
-// Set up multer for image uploads
+// Multer configuration for image upload
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'public/uploads/');
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + path.extname(file.originalname));
-    }
+    },
 });
 
 const upload = multer({ storage: storage }).single('profileImage');
 
+// Update profile image
 const updateProfileImage = async (req, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: "User not authenticated." });
+        }
+
         if (req.file) {
             const imageUrl = `/uploads/${req.file.filename}`;
             await User.findByIdAndUpdate(req.user._id, { profileImage: imageUrl });
+
+            // Update the session with the new profile image
             req.user.profileImage = imageUrl;
+            req.session.user.profileImage = imageUrl;
+
             return res.json({ success: true, message: "Profile image uploaded successfully!" });
         }
         return res.status(400).json({ success: false, message: "No file uploaded." });
@@ -30,6 +39,7 @@ const updateProfileImage = async (req, res) => {
     }
 };
 
+// Load profile page
 const loadProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -40,11 +50,12 @@ const loadProfile = async (req, res) => {
     }
 };
 
+// Update profile details
 const updateProfile = async (req, res) => {
     try {
         const { username, email, phone } = req.body;
-        await User.findByIdAndUpdate(req.user._id, { username, email, phone });
-        req.user.username = username;
+        await User.findByIdAndUpdate(req.user._id, { name: username, email, phone });
+        req.user.name = username; // Update session
         res.redirect('/profile');
     } catch (error) {
         console.error("Error updating profile:", error);
@@ -52,9 +63,12 @@ const updateProfile = async (req, res) => {
     }
 };
 
+
+// Load address page
 const loadAddress = async (req, res) => {
     try {
-        const addresses = await Address.find({ userId: req.user._id });
+        const userId = req.user._id;
+        const addresses = await Address.find({ userId });
         res.render("address", { addresses, user: req.user });
     } catch (error) {
         console.error("Error loading addresses:", error);
@@ -62,58 +76,58 @@ const loadAddress = async (req, res) => {
     }
 };
 
-const addAddress = async (req, res) => {
-    try {
-        const { name, street, city, state, zip, country } = req.body;
-        const newAddress = new Address({ userId: req.user._id, name, street, city, state, zip, country });
-        await newAddress.save();
-        res.redirect('/address');
-    } catch (error) {
-        console.error("Error adding address:", error);
-        res.status(500).render("page-404");
-    }
-};
-
-const updateAddress = async (req, res) => {
+// Add or update address
+const saveAddress = async (req, res) => {
     try {
         const { id, name, street, city, state, zip, country } = req.body;
-        await Address.findByIdAndUpdate(id, { name, street, city, state, zip, country });
+        const userId = req.user._id;
+
+        if (id) {
+            // Update existing address
+            await Address.findByIdAndUpdate(id, { name, street, city, state, zip, country });
+        } else {
+            // Add new address
+            const newAddress = new Address({
+                userId,
+                name,
+                street,
+                city,
+                state,
+                zip,
+                country,
+            });
+            await newAddress.save();
+        }
+
         res.redirect('/address');
     } catch (error) {
-        console.error("Error updating address:", error);
+        console.error("Error saving address:", error);
         res.status(500).render("page-404");
     }
 };
 
+// Delete address
 const deleteAddress = async (req, res) => {
     try {
-        await Address.findByIdAndDelete(req.params.id);
-        res.redirect('/address');
+        const addressId = req.params.id;
+        await Address.findByIdAndDelete(addressId);
+        res.json({ success: true, message: "Address deleted successfully!" });
     } catch (error) {
         console.error("Error deleting address:", error);
-        res.status(500).render("page-404");
+        res.status(500).json({ success: false, message: "Failed to delete address." });
     }
 };
 
-const signOut = (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            console.error("Error signing out:", err);
-            return res.status(500).render("page-404");
-        }
-        req.session.destroy();
-        res.redirect('/signin');
-    });
-};
+
+
+
 
 module.exports = {
     loadProfile,
     updateProfile,
-    loadAddress,
-    addAddress,
-    updateAddress,
-    deleteAddress,
-    signOut,
     updateProfileImage,
     upload,
+    loadAddress,
+    saveAddress,
+    deleteAddress,
 };

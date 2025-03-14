@@ -122,9 +122,9 @@ const addProduct = async (req, res) => {
             category,
             isListed: isListed === 'list',
             productImage: req.files.map(file => file.path),
-            price: parseFloat(price), // Common price
-            discount: parseFloat(discount) || 0, // Common discount
-            offerPrice: parseFloat(offerPrice), // Common offer price
+            price: parseFloat(price), 
+            discount: parseFloat(discount) || 0, 
+            offerPrice: Math.round(parseFloat(offerPrice)),
             sizes: sizeDetails
         };
 
@@ -168,7 +168,7 @@ const updateProduct = async (req, res) => {
             isListed: req.body.isListed === 'list',
             price: parseFloat(req.body.price), // Common price
             discount: parseFloat(req.body.discount) || 0, // Common discount
-            offerPrice: parseFloat(req.body.offerPrice), // Common offer price
+            offerPrice: Math.round(parseFloat(req.body.offerPrice)), // Common offer price
             sizes: sizeDetails
         };
 

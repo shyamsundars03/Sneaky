@@ -107,66 +107,60 @@
     border-color: var(--danger-color);
 }
 </style>
- <%-include("../../views/partials/user/header")%>
-    
-    <!-- Address Banner -->
-    <section class="address-banner">
-        <div class="container">
-            <h1>ADDRESS</h1>
-        </div>
-    </section>
-    
-    <section class="address-section">
-        <div class="container">
-            <div class="address-content">
-                <!-- Sidebar -->
-                <div class="account-sidebar">
-                    <div class="profile-image-container">
-                        <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;" >
-                           <!-- address.ejs -->
-                                <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
-                        </div>
+<%- include("../../views/partials/user/header") %>
+
+<section class="address-banner">
+    <div class="container">
+        <h1>ADDRESS</h1>
+    </div>
+</section>
+
+<section class="address-section">
+    <div class="container">
+        <div class="address-content">
+            <!-- Sidebar -->
+            <div class="account-sidebar">
+                <div class="profile-image-container">
+                    <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;">
+                        <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
                     </div>
-                    <h2 class="account-name"><%= user.username || '' %></h2>
-                    <p class="account-email"><%= user.email || '' %></p>
-                    <ul class="sidebar-menu">
-                        <!-- <li><a href="/wishlist"><i class="far fa-heart"></i> WishList</a></li> -->
-                        <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
-                        <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
-                        <li><a href="#"><i class="fas fa-wallet"></i> My Wallet</a></li>
-                        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
-                    </ul>
                 </div>
-                
-                <!-- Address Details -->
-                <div class="address-details">
-                    <h2>Addresses</h2>
-                    <button class="add-address-btn" id="openAddressModal">
-                        <i class="fas fa-plus"></i> ADD A NEW ADDRESS
-                    </button>
-                    
-                    <div class="address-list">
-                        <% addresses.forEach(address => { %>
-                            <div class="address-card">
-                                <p class="address-id"><%= address.name %></p>
-                                <p class="address-text"><%= address.street %>, <%= address.city %>, <%= address.state %>, <%= address.zip %>, <%= address.country %></p>
-                                <div class="address-actions">
-                                    <button class="address-action-btn edit" onclick="openAddressModal('edit', <%= JSON.stringify(address) %>)">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </button>
-                                    <form action="/address/delete/<%= address._id %>" method="POST" class="delete-address-form">
-                                        <button type="submit" class="address-action-btn delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                <h2 class="account-name"><%= user.name || '' %></h2>
+                <p class="account-email"><%= user.email || '' %></p>
+                <ul class="sidebar-menu">
+                    <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
+                    <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
+                    <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+                </ul>
+            </div>
+
+            <!-- Address Details -->
+            <div class="address-details">
+                <h2>Addresses</h2>
+                <button class="add-address-btn" id="openAddressModal">
+                    <i class="fas fa-plus"></i> ADD A NEW ADDRESS
+                </button>
+
+                <div class="address-list">
+                    <% addresses.forEach(address => { %>
+                        <div class="address-card">
+                            <p class="address-id"><%= address.name %></p>
+                            <p class="address-text"><%= address.street %>, <%= address.city %>, <%= address.state %>, <%= address.zip %>, <%= address.country %></p>
+                            <div class="address-actions">
+                                <button class="address-action-btn edit" onclick="openAddressModal('edit', <%= JSON.stringify(address) %>)">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="address-action-btn delete" onclick="confirmDeleteAddress('<%= address._id %>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
-                        <% }) %>
-                    </div>
+                        </div>
+                    <% }) %>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
 <!-- Modal for Adding/Editing Address -->
 <div id="addressModal" class="modal-overlay" style="display:none;">
@@ -176,7 +170,7 @@
             <button class="close-btn" id="closeAddressModal">&times;</button>
         </div>
         <div class="modal-body">
-            <form id="addressForm" action="/address/add" method="POST">
+            <form id="addressForm" action="/address/save" method="POST">
                 <input type="hidden" name="id" id="addressId" />
                 <div class="form-group">
                     <label class="form-label">Name</label>
@@ -211,7 +205,6 @@
     </div>
 </div>
 
-
 <!-- Confirmation Modal -->
 <div class="modal-overlay" id="confirmDialog" style="display:none;">
     <div class="modal">
@@ -230,90 +223,106 @@
     </div>
 </div>
 
-<!-- Address Card -->
-<div class="address-card">
-    <p class="address-id"><%= address.name %></p>
-    <p class="address-text"><%= address.street %>, <%= address.city %>, <%= address.state %>, <%= address.zip %>, <%= address.country %></p>
-    <div class="address-actions">
-        <button class="address-action-btn edit" onclick="openAddressModal('edit', <%= JSON.stringify(address) %>)">
-            <i class="fas fa-pencil-alt"></i>
-        </button>
-        <button class="address-action-btn delete" onclick="confirmDeleteAddress('<%= address._id %>')">
-            <i class="fas fa-trash"></i>
-        </button>
-    </div>
-</div>
-
-
-
-
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
-    <script>
-        document.getElementById('openAddressModal').onclick = function() {
-            document.getElementById('addressModal').style.display = 'block';
-            document.getElementById('addressForm').reset();
-            document.getElementById('modalTitle').textContent = 'Add New Address';
-            document.getElementById('addressId').value = '';
-        };
-
-        document.getElementById('closeAddressModal').onclick = function() {
-            document.getElementById('addressModal').style.display = 'none';
-        };
-
-        function openAddressModal(mode, address) {
-    document.getElementById('addressModal').style.display = 'block';
-    if (mode === 'edit') {
-        document.getElementById('modalTitle').textContent = 'Edit Address';
-        document.getElementById('addressId').value = address._id;
-        document.getElementById('addressName').value = address.name;
-        document.getElementById('addressStreet').value = address.street;
-        document.getElementById('addressCity').value = address.city;
-        document.getElementById('addressState').value = address.state;
-        document.getElementById('addressZip').value = address.zip;
-        document.getElementById('addressCountry').value = address.country;
-        document.getElementById('addressForm').action = '/address/update';
-    } else {
-        document.getElementById('modalTitle').textContent = 'Add New Address';
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Open address modal
+    document.getElementById('openAddressModal').onclick = function () {
+        document.getElementById('addressModal').style.display = 'block';
         document.getElementById('addressForm').reset();
-        document.getElementById('addressForm').action = '/address/add';
-    }
-}
-
-
-function deleteAddress(addressId) {
-    // Show confirmation modal
-    document.getElementById('confirmDialog').style.display = 'block';
-    
-    // Add event listener for delete button
-    document.querySelector('.btn-danger').onclick = async function() {
-        try {
-            const response = await fetch(`/address/delete/${addressId}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            if (data.success) {
-                swal("Success!", "Address deleted successfully!", "success");
-                location.reload(); // Reload the page to reflect changes
-            } else {
-                swal("Error!", data.message, "error");
-            }
-        } catch (error) {
-            console.error("Error deleting address:", error);
-            swal("Error!", "Failed to delete address.", "error");
-        }
+        document.getElementById('modalTitle').textContent = 'Add New Address';
+        document.getElementById('addressId').value = '';
     };
-}
 
+    // Close address modal
+    document.getElementById('closeAddressModal').onclick = function () {
+        document.getElementById('addressModal').style.display = 'none';
+    };
 
+    // Open address modal in edit mode
+    function openAddressModal(mode, address) {
+        document.getElementById('addressModal').style.display = 'block';
+        if (mode === 'edit') {
+            document.getElementById('modalTitle').textContent = 'Edit Address';
+            document.getElementById('addressId').value = address._id;
+            document.getElementById('addressName').value = address.name;
+            document.getElementById('addressStreet').value = address.street;
+            document.getElementById('addressCity').value = address.city;
+            document.getElementById('addressState').value = address.state;
+            document.getElementById('addressZip').value = address.zip;
+            document.getElementById('addressCountry').value = address.country;
+        } else {
+            document.getElementById('modalTitle').textContent = 'Add New Address';
+            document.getElementById('addressForm').reset();
+        }
+    }
 
+    // Delete address
+    let addressToDelete = null;
 
+    // Confirm delete address
+    function confirmDeleteAddress(addressId) {
+        addressToDelete = addressId;
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteAddress();
+            }
+        });
+    }
 
+    // Delete address
+    function deleteAddress() {
+        if (addressToDelete) {
+            fetch(`/address/delete/${addressToDelete}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: data.message,
+                        }).then(() => {
+                            // Reload the page to reflect the changes
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: data.message,
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error deleting address:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Failed to delete address.',
+                    });
+                });
+        }
+    }
 
-    </script>
-        <%-include("../../views/partials/user/footer")%>
+    // Close modal
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+</script>
 
-
+<%- include("../../views/partials/user/footer") %>
         
 </body>
 </html>
