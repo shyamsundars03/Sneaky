@@ -444,239 +444,80 @@
     </style>
 </head>
 <body>
-    <!-- Header Section -->
-    <header class="header">
-        <div class="logo">
-            <div class="logo-icon">
-                <i class="fas fa-bolt"></i>
-            </div>
-            SNEAKY
-        </div>
-        
-        <nav class="nav">
-            <a href="#" class="home">HOME</a>
-            <a href="#">ABOUT</a>
-            <a href="#">SHOP</a>
-            <a href="#">CONTACT</a>
-        </nav>
-        
-        <div class="icons">
-            <i class="fas fa-search"></i>
-            <i class="fas fa-user"></i>
-            <i class="fas fa-shopping-bag"></i>
-            <i class="far fa-heart"></i>
-        </div>
-    </header>
-    
-    <!-- Hero Section -->
-    <section class="hero">
-        <h1>ORDERS</h1>
-        <div class="wave-divider"></div>
-    </section>
-    
-    <!-- Order Content -->
-    <section class="order-content">
-        <!-- Order Header -->
-        <div class="order-header">
-            <div class="order-id">
-                Order ID: #PN001
-                <span class="status-badge">Pending</span>
-                <button class="btn btn-primary">Buy Again</button>
-            </div>
-            
-            <div class="status-actions">
-                <select class="status-select">
-                    <option>Status</option>
-                </select>
-                <button class="btn btn-secondary">Save</button>
-                <button class="btn btn-secondary">Download Invoice</button>
-            </div>
-        </div>
-        
-        <!-- Order Details -->
-        <div class="order-details-grid">
-            <div class="details-box">
-                <h3>Customer Details</h3>
-                <p>John Doe</p>
-                <p>johndoe@example.com</p>
-                <p>+999 99 22123456</p>
-                <a href="#" class="view-profile">View Profile</a>
-            </div>
-            
-            <div class="details-box">
-                <h3>Shipping Address</h3>
-                <p>Georg Harvell</p>
-                <p>56th Suite Ave.</p>
-                <p>Austria, 235153</p>
-            </div>
-            
-            <div class="details-box">
-                <h3>Order Details</h3>
-                <p>Order ID: PN001</p>
-                <p>Order Date: October 22, 2023</p>
-                <p>Order Total: ₹9000.38</p>
-            </div>
-        </div>
-        
-        <!-- Products Table -->
-        <table class="products-table">
-            <thead>
-                <tr>
-                    <th>Products</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td data-label="Products">
-                        <div class="product-cell">
-                            <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                            <span>Nike Daily-wears</span>
-                        </div>
-                    </td>
-                    <td data-label="Price">₹1800.0</td>
-                    <td data-label="Quantity">1</td>
-                    <td data-label="Total">₹1800.0</td>
-                </tr>
-                <tr>
-                    <td data-label="Products">
-                        <div class="product-cell">
-                            <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                            <span>Nike Daily-wears</span>
-                        </div>
-                    </td>
-                    <td data-label="Price">₹2400.0</td>
-                    <td data-label="Quantity">1</td>
-                    <td data-label="Total">₹1800.0</td>
-                </tr>
-                <tr>
-                    <td data-label="Products">
-                        <div class="product-cell">
-                            <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                            <span>Nike Daily-wears</span>
-                        </div>
-                    </td>
-                    <td data-label="Price">₹3002.0</td>
-                    <td data-label="Quantity">1</td>
-                    <td data-label="Total">₹3002.0</td>
-                </tr>
-                <tr>
-                    <td data-label="Products">
-                        <div class="product-cell">
-                            <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                            <span>Nike Daily-wears</span>
-                        </div>
-                    </td>
-                    <td data-label="Price">₹3000.0</td>
-                    <td data-label="Quantity">2</td>
-                    <td data-label="Total">₹3000.0</td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <!-- Order Totals -->
-        <table class="totals" align="right">
-            <tr>
-                <td>Sub Total :</td>
-                <td>₹8800.00</td>
-            </tr>
-            <tr>
-                <td>Shipping Cost :</td>
-                <td>₹100.00</td>
-            </tr>
-            <tr class="grand-total">
-                <td>Grand Total :</td>
-                <td>₹9000.00</td>
-            </tr>
-        </table>
-        
-        <div style="clear: both;"></div>
-        
-        <!-- Payment Info -->
-        <div class="payment-info">
-            <h3>Payment Info</h3>
-            <p class="payment-method">Cash on Delivery</p>
-            
-            <div class="action-buttons">
-                <button class="btn btn-secondary">Back</button>
-                <button class="btn btn-danger">Cancel Order</button>
-            </div>
+    <%- include("../../views/partials/user/header") %>
+
+    <section class="orders-banner">
+        <div class="container">
+            <h1>ORDER DETAILS</h1>
         </div>
     </section>
     
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-grid">
-            <div class="footer-col">
-                <div class="footer-logo">
-                    <div class="logo">
-                        <div class="logo-icon">
-                            <i class="fas fa-bolt"></i>
+    <section class="orders-section">
+        <div class="container">
+            <div class="orders-content">
+                <!-- Sidebar -->
+                <div class="account-sidebar">
+                    <div class="profile-image-container">
+                        <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;">
+                            <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
                         </div>
-                        SNEAKY
                     </div>
+                    <h2 class="account-name"><%= user.name || '' %></h2>
+                    <p class="account-email"><%= user.email || '' %></p>
+                    <ul class="sidebar-menu">
+                        <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
+                        <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
+                        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+                    </ul>
                 </div>
-                <p class="footer-text">
-                    Sint do accusam tempor incididunt ut labore et dolore magna aliqua ipsum aliquip minim pariatur. Ut officia leo integer.
-                </p>
-                <div class="social-icons">
-                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-pinterest"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-discord"></i></a>
-                </div>
-            </div>
-            
-            <div class="footer-col">
-                <h3 class="footer-heading">Useful Links</h3>
-                <ul class="footer-links">
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact Us</a></li>
-                    <li><a href="#">Shop</a></li>
-                    <li><a href="#">Sign In</a></li>
-                    <li><a href="#">Sign Up</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-col">
-                <h3 class="footer-heading">Account</h3>
-                <ul class="footer-links">
-                    <li><a href="#">Settings</a></li>
-                    <li><a href="#">Orders</a></li>
-                    <li><a href="#">Address</a></li>
-                    <li><a href="#">Wallet</a></li>
-                    <li><a href="#">Sign Out</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-col">
-                <h3 class="footer-heading">More Info.</h3>
-                <p class="footer-text">
-                    Aliquam faucibus, odio nec commodo pretium ut placerat orci, a porta ante malesuada tempor hendrerit ut labore.
-                </p>
-                <div class="payment-icons">
-                    <div class="payment-icon">VISA</div>
-                    <div class="payment-icon">MC</div>
-                    <div class="payment-icon">PP</div>
-                    <div class="payment-icon">AE</div>
+    
+                <!-- Order Details -->
+                <div class="orders-details">
+                    <h2>Order #<%= order.transactionId %></h2>
+                    <p>Placed on: <%= order.createdAt.toLocaleDateString() %></p>
+                    <p>Status: <span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></p>
+
+                    <h3>Items</h3>
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% order.items.forEach(item => { %>
+                                <tr>
+                                    <td>
+                                        <div class="item-details">
+                                            <img src="<%= item.product.images[0] %>" alt="<%= item.product.productName %>" width="50" height="50">
+                                            <span><%= item.product.productName %></span>
+                                        </div>
+                                    </td>
+                                    <td><%= item.quantity %></td>
+                                    <td>₹<%= item.price %></td>
+                                    <td>₹<%= item.price * item.quantity %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+
+                    <div class="order-summary">
+                        <p>Subtotal: ₹<%= order.totalAmount %></p>
+                        <p>Shipping: ₹<%= order.shippingCost || 0 %></p>
+                        <p>Total: ₹<%= order.totalAmount + (order.shippingCost || 0) %></p>
+                    </div>
+
+                    <h3>Shipping Address</h3>
+                    <p><%= order.shippingAddress.name %></p>
+                    <p><%= order.shippingAddress.street %>, <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %>, <%= order.shippingAddress.zip %>, <%= order.shippingAddress.country %></p>
                 </div>
             </div>
         </div>
-        
-        <div class="bottom-footer">
-            <div class="bottom-nav">
-                <a href="#">HOME</a>
-                <a href="#">ABOUT</a>
-                <a href="#">SHOP</a>
-                <a href="#">CONTACT</a>
-            </div>
-            <div class="copyright">
-                Copyright © SNEAKY 2025
-            </div>
-        </div>
-    </footer>
+    </section>
+    
+    <%- include("../../views/partials/user/footer") %>
 </body>
 </html>

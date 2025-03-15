@@ -369,6 +369,7 @@ ul {
 <body>
 
     <%-include("../../views/partials/user/header")%>
+
     <div class="checkout-banner">
         <h1>CHECKOUT 3</h1>
     </div>
@@ -376,126 +377,137 @@ ul {
     <main class="main-content">
         <div class="checkout-container">
             <div class="checkout-left">
-                <h2>Final review</h2>
+                <h2>Final Review</h2>
                 <div class="progress-bar">
                     <div class="progress-item">Shipping Method</div>
                     <div class="progress-item">Payment Method</div>
                     <div class="progress-item active">Review</div>
                 </div>
 
+                <!-- Order Review Section -->
                 <div class="order-review">
                     <h2>Order Review</h2>
-                    
                     <table class="products-table">
                         <thead>
                             <tr>
                                 <th>Products</th>
                                 <th>Quantity</th>
-                                <th>Subtotal</th>
-                                <th>Delete</th>
+                                <th>Price</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td class="product-info">
-                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
-                                    <span>Nike Air Plus Drift</span>
-                                </td>
-                                <td>1</td>
-                                <td>₹ 23.00</td>
-                                <td><div class="delete-btn">
-                                    <i class="fas fa-trash"></i>
-                                </div></td>
-                            </tr>
-                            <tr>
-                                <td class="product-info">
-                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
-                                    <span>Nike Air Plus Drift</span>
-                                </td>
-                                <td>1</td>
-                                <td>₹ 23.00</td>
-                                <td><div class="delete-btn">
-                                    <i class="fas fa-trash"></i>
-                                </div></td>
-                            </tr>
-                            <tr>
-                                <td class="product-info">
-                                    <img src="/api/placeholder/80/80" alt="Nike Air Plus Drift">
-                                    <span>Nike Air Plus Drift</span>
-                                </td>
-                                <td>1</td>
-                                <td>₹ 23.00</td>
-                                <td><div class="delete-btn">
-                                    <i class="fas fa-trash"></i>
-                                </div></td>
-                            </tr>
+                            <% cart.cartItems.forEach(item => { %>
+                                <tr>
+                                    <td><%= item.product.productName %></td>
+                                    <td><%= item.quantity %></td>
+                                    <td>₹<%= item.price * item.quantity %></td>
+                                </tr>
+                            <% }) %>
                         </tbody>
                     </table>
 
+                    <!-- Shipping Address, Shipping Method, and Payment Method -->
                     <div class="checkout-details">
                         <div class="detail-section">
                             <h3>Shipping Address</h3>
-                            <p>Sz Osim</p>
-                            <p>Shamoli, Dhaka 09, Bangladesh</p>
-                            <p>+86 555 2647</p>
-                            <p>example78@gmail.com</p>
+                            <p><%= shippingAddress.name %></p>
+                            <p><%= shippingAddress.street %>, <%= shippingAddress.city %>, <%= shippingAddress.state %>, <%= shippingAddress.zip %>, <%= shippingAddress.country %></p>
                         </div>
-                        
                         <div class="detail-section">
                             <h3>Shipping Method</h3>
-                            <p>Standard Ground (USPS) · $7.50</p>
-                            <p>Delivered in 8-12 business days</p>
+                            <p><%= shippingMethod %></p>
                         </div>
-                        
                         <div class="detail-section">
                             <h3>Payment Method</h3>
-                            <p>Credit Card</p>
-                            <p>**** **** **** 2641</p>
+                            <p><%= paymentMethod %></p>
                         </div>
                     </div>
-
-                    <!-- <div class="coupon-section">
-                        <input type="text" placeholder="Coupon Code">
-                        <button class="apply-btn">Apply</button>
-                        <button class="back-btn">Back</button>
-                    </div> -->
                 </div>
             </div>
 
+            <!-- Order Summary -->
             <div class="checkout-right">
                 <div class="order-summary">
                     <h2>Your order</h2>
-                    
-                    <div class="checkout-summary-item">
+                    <div class="summary-item">
                         <span>Subtotal</span>
-                        <span class="price">$4500</span>
+                        <span>₹<%= cartTotal %></span>
                     </div>
-                    
-                    <div class="checkout-summary-item">
+                    <div class="summary-item">
                         <span>Shipping & Handling</span>
-                        <span class="price">$500</span>
+                        <span>₹<%= shippingCost %></span>
                     </div>
-                    
-                    <!-- <div class="checkout-summary-item">
-                        <span>Coupon Amount</span>
-                        <span class="price discount">-$1500</span>
-                    </div>
-                    
-                    <div class="checkout-summary-item">
-                        <span>Tax</span>
-                        <span class="price">$500</span>
-                    </div> -->
-                    
-                    <div class="checkout-summary-item total">
+                    <div class="summary-item total-row">
                         <span>Total</span>
-                        <span class="price total">$4000</span>
+                        <span>₹<%= cartTotal + shippingCost %></span>
                     </div>
-                    
-                    <button class="place-order-btn">Place Order</button>
+                    <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
                 </div>
             </div>
         </div>
     </main>
+
     <%-include("../../views/partials/user/footer")%>
+
+    <script>
+ // Retrieve data from query parameters
+ const urlParams = new URLSearchParams(window.location.search);
+    const shippingCost = urlParams.get('shippingCost');
+    const shippingMethod = urlParams.get('shippingMethod');
+    const selectedAddress = JSON.parse(decodeURIComponent(urlParams.get('selectedAddress')));
+    const paymentMethod = urlParams.get('paymentMethod');
+
+    // Populate the shipping address
+    const shippingAddressDetails = document.getElementById('shippingAddressDetails');
+    if (selectedAddress) {
+        shippingAddressDetails.innerHTML = `
+            ${selectedAddress.name}<br>
+            ${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.zip}, ${selectedAddress.country}
+        `;
+    }
+
+    // Populate the shipping method
+    const shippingMethodDetails = document.getElementById('shippingMethodDetails');
+    if (shippingMethod) {
+        shippingMethodDetails.textContent = `${shippingMethod} - ₹${shippingCost}`;
+    }
+
+    // Populate the payment method
+    const paymentMethodDetails = document.getElementById('paymentMethodDetails');
+    if (paymentMethod) {
+        paymentMethodDetails.textContent = paymentMethod;
+    }
+
+    // Function to place the order
+    async function placeOrder() {
+    try {
+        const response = await fetch("/place-order", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                shippingAddress: selectedAddress,
+                shippingMethod,
+                paymentMethod,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Redirect to the order success page with the correct orderId
+            window.location.href = `/order-success/${result.orderId}`;
+        } else {
+            alert("Failed to place order. Please try again.");
+        }
+    } catch (error) {
+        console.error("Error placing order:", error);
+        alert("An error occurred. Please try again.");
+    }
+}
+
+    </script>
+
 </body>
 </html>

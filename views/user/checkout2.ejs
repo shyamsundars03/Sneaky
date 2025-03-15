@@ -241,79 +241,103 @@
                     <div class="progress-item">Review</div>
                 </div>
 
+                <!-- Shipping Address Section -->
                 <div class="shipping-address">
                     <h3>Shipping Address</h3>
                     <div class="address-cards">
-                        <div class="address-card selected">
-                            <h4>Default</h4>
-                            <p>$n.0xlm</p>
-                            <p>Shared, Drake 120, Bangladesh</p>
-                            <p>45-555-267</p>
-                            <p>comepr@physical.com</p>
+                        <div class="address-card selected" id="selectedAddress">
+                            <!-- Address will be dynamically populated here -->
                         </div>
                     </div>
-                    <!-- <button class="checkout-btn">Add</button> -->
                 </div>
 
+                <!-- Shipping Method Section -->
                 <div class="shipping-methods">
                     <h3>Shipping Method</h3>
-                    <div class="shipping-option">
-        
-                            <h4>Standard Ground (USPS) - $7.50</h4>
-                            <p>Delivered in S.P. business days</p>
-
+                    <div class="shipping-option" id="selectedShippingMethod">
+                        <!-- Shipping method will be dynamically populated here -->
                     </div>
                 </div>
 
+                <!-- Payment Method Section -->
                 <div class="payment-methods">
                     <h3>Payment Method</h3>
                     <div class="payment-option">
-                        <input type="radio" name="payment" checked>
-                        <div>
-                            <h4>Pay with Paypal</h4>
-                        </div>
-                    </div>
-                    <div class="payment-option">
-                        <input type="radio" name="payment">
-                        <div>
-                            <h4>Wallet</h4>
-                        </div>
-                    </div>
-                    <div class="payment-option">
-                        <input type="radio" name="payment">
+                        <input type="radio" name="payment" value="CashOnDelivery" checked>
                         <div>
                             <h4>Cash on Delivery</h4>
                         </div>
                     </div>
                 </div>
 
-                <button class="checkout-btn">Back</button>
-                <button class="checkout-btn">Continue</button>
+                <button class="checkout-btn" onclick="window.location.href='/checkout1'">Back</button>
+                <button class="checkout-btn" onclick="proceedToCheckout3()">Continue</button>
             </div>
 
+            <!-- Order Summary -->
             <div class="order-summary">
                 <h2>Your order</h2>
                 <div class="summary-item">
                     <span>Subtotal</span>
-                    <span>$4500</span>
+                    <span>₹<%= cartTotal %></span>
                 </div>
                 <div class="summary-item">
                     <span>Shipping & Handling</span>
-                    <span>$500</span>
+                    <span id="shippingCost">₹<%= shippingCost %></span>
                 </div>
-                <!-- <div class="summary-item">
-                    <span>Tax</span>
-                    <span>$500</span>
-                </div> -->
-                <div class="summary-item total">
+                <div class="summary-item total-row">
                     <span>Total</span>
-                    <span>$5500</span>
+                    <span id="totalAmount">₹<%= cartTotal + shippingCost %></span>
                 </div>
             </div>
         </div>
     </main>
 
     <%-include("../../views/partials/user/footer")%>
+<script>
+
+    // Retrieve data from query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const shippingCost = urlParams.get('shippingCost');
+    const shippingMethod = urlParams.get('shippingMethod');
+    const selectedAddress = JSON.parse(decodeURIComponent(urlParams.get('selectedAddress')));
+
+    // Store data in sessionStorage for use in checkout3
+    sessionStorage.setItem('shippingCost', shippingCost);
+    sessionStorage.setItem('shippingMethod', shippingMethod);
+    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+
+    // Populate the selected address
+    const selectedAddressElement = document.getElementById('selectedAddress');
+    if (selectedAddress) {
+        selectedAddressElement.innerHTML = `
+            <h4>${selectedAddress.name}</h4>
+            <p>${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.zip}, ${selectedAddress.country}</p>
+        `;
+    }
+
+    // Populate the selected shipping method
+    const selectedShippingMethodElement = document.getElementById('selectedShippingMethod');
+    if (shippingMethod) {
+        selectedShippingMethodElement.innerHTML = `
+            <h4>${shippingMethod} - ₹${shippingCost}</h4>
+        `;
+    }
+
+    function proceedToCheckout3() {
+    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+
+    // Retrieve data from sessionStorage
+    const shippingCost = sessionStorage.getItem('shippingCost');
+    const shippingMethod = sessionStorage.getItem('shippingMethod');
+    const selectedAddress = sessionStorage.getItem('selectedAddress');
+
+    // Redirect to checkout3 with query parameters
+    window.location.href = `/checkout3?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(selectedAddress)}&paymentMethod=${paymentMethod}`;
+}
+
+</script>
+    
 
 </body>
 </html>

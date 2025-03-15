@@ -62,15 +62,16 @@ router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
 // Order
 router.get("/orders", userAuth, orderController.loadOrder);
 router.get("/orders/:id", orderController.loadSingleOrder);
-
+router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
 
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);
 
 //Checkout
-router.get("/checkout1", checkoutController.loadCheckout1);
-router.get("/checkout2", checkoutController.loadCheckout2);
-router.get("/checkout3", checkoutController.loadCheckout3);
+router.get("/checkout1", userAuth, checkoutController.loadCheckout1);
+router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
+router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
+router.post("/place-order", userAuth, checkoutController.placeOrder);
 
 
 

@@ -61,11 +61,15 @@
                 <span class="cart-summary-label">Subtotal</span>
                 <span class="cart-summary-value">₹<%= cartTotal %></span>
             </div>
+            <div class="cart-summary-row">
+                <span class="cart-summary-label">Shipping & Handling</span>
+                <span class="cart-summary-value">₹50</span>
+            </div>
             <div class="cart-summary-row total-row">
                 <span class="cart-summary-label">Total</span>
                 <span class="cart-summary-value">₹<%= cartTotal %></span>
             </div>
-            <button class="cart-checkout-btn">Proceed to Checkout</button>
+            <button class="cart-checkout-btn" onclick="proceedToCheckout()">Proceed to Checkout</button>
         </div>
     </div>
 </div>
@@ -74,6 +78,12 @@
 
 <script>
  
+    // Function to proceed to checkout
+    function proceedToCheckout() {
+        window.location.href = "/checkout1";
+    }
+
+
  // Update Quantity Function
  async function updateQuantity(productId, action) {
         try {

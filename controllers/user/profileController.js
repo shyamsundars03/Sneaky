@@ -99,10 +99,10 @@ const saveAddress = async (req, res) => {
             await newAddress.save();
         }
 
-        res.redirect('/address');
+        res.json({ success: true, message: "Address saved successfully!" });
     } catch (error) {
         console.error("Error saving address:", error);
-        res.status(500).render("page-404");
+        res.status(500).json({ success: false, message: "Failed to save address." });
     }
 };
 
