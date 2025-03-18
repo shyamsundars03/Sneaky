@@ -6,12 +6,10 @@ module.exports = async function (req, res, next) {
             const user = await usercollection.findOne({ _id: req.session.user._id });
 
             if (!user || user.isActive === false) {
-                req.session.destroy((err) => {
-                    if (err) {
-                        console.error("Error destroying session:", err);
-                    }
-                    return res.redirect("/signin");
-                });
+                req.session.loginSession = false;
+                req.session.user = null;
+                return res.redirect("/signin");
+                
             } else {
                 req.user = user;
                 next();

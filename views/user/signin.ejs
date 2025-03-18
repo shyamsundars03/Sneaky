@@ -121,113 +121,118 @@
             <div class="form-group">
                 <input type="password" id="password" name="password" placeholder="Password">
             </div>
+            <p>Forgot your password? <a href="/forgotPassword">Reset it here</a></p>
             <button type="submit">Sign In</button>
         </form>
         <p>Don't have an account? <a href="/signup">Sign Up</a></p>
     </div>
 
     <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const validateField = (field, value) => {
-        const errorDiv = field.nextElementSibling;
-        let error = '';
+        document.addEventListener('DOMContentLoaded', () => {
+            const validateField = (field, value) => {
+                const errorDiv = field.nextElementSibling;
+                let error = '';
 
-        if (!value.trim()) {
-            error = `${field.placeholder} is required`;
-        } else {
-            switch (field.id) {
-                case 'email':
-                    if (!/\S+@\S+\.\S+/.test(value)) {
-                        error = 'Please enter a valid email address';
-                    }
-                    break;
-                case 'password':
-                    if (value.length < 6) {
-                        error = 'Password must be at least 6 characters';
-                    }
-                    break;
-            }
-        }
-
-        if (error) {
-            if (errorDiv && errorDiv.classList.contains('field-error')) {
-                errorDiv.textContent = error;
-            } else {
-                const div = document.createElement('div');
-                div.className = 'field-error';
-                div.textContent = error;
-                field.parentNode.insertBefore(div, field.nextSibling);
-            }
-            return false;
-        }
-
-        if (errorDiv && errorDiv.classList.contains('field-error')) {
-            errorDiv.remove();
-        }
-        return true;
-    };
-
-    const signinForm = document.getElementById('signinForm');
-    if (signinForm) {
-        const emailField = document.getElementById('email');
-        const passwordField = document.getElementById('password');
-
-        [emailField, passwordField].forEach(field => {
-            if (field) {
-                field.addEventListener('blur', () => validateField(field, field.value));
-            }
-        });
-
-        signinForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            let isValid = true;
-            if (!validateField(emailField, emailField.value)) isValid = false;
-            if (!validateField(passwordField, passwordField.value)) isValid = false;
-
-            if (!isValid) return;
-
-            try {
-                const response = await fetch('/signin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: emailField.value,
-                        password: passwordField.value
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-             
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Welcome!',
-                        text: 'Signed in successfully',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        window.location.href = '/';
-                    });
+                if (!value.trim()) {
+                    error = `${field.placeholder} is required`;
                 } else {
-            
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: data.message || 'Invalid email or password'
-                    });
+                    switch (field.id) {
+                        case 'email':
+                            if (!/\S+@\S+\.\S+/.test(value)) {
+                                error = 'Please enter a valid email address';
+                            }
+                            break;
+                        case 'password':
+                            if (value.length < 6) {
+                                error = 'Password must be at least 6 characters';
+                            }
+                            break;
+                    }
                 }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Server error, please try again'
+
+                if (error) {
+                    if (errorDiv && errorDiv.classList.contains('field-error')) {
+                        errorDiv.textContent = error;
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'field-error';
+                        div.textContent = error;
+                        field.parentNode.insertBefore(div, field.nextSibling);
+                    }
+                    return false;
+                }
+
+                if (errorDiv && errorDiv.classList.contains('field-error')) {
+                    errorDiv.remove();
+                }
+                return true;
+            };
+
+            const signinForm = document.getElementById('signinForm');
+            if (signinForm) {
+                const emailField = document.getElementById('email');
+                const passwordField = document.getElementById('password');
+
+                [emailField, passwordField].forEach(field => {
+                    if (field) {
+                        field.addEventListener('blur', () => validateField(field, field.value));
+                    }
+                });
+
+                signinForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    let isValid = true;
+                    if (!validateField(emailField, emailField.value)) isValid = false;
+                    if (!validateField(passwordField, passwordField.value)) isValid = false;
+
+                    if (!isValid) return;
+
+                    try {
+                        const response = await fetch('/signin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: emailField.value,
+                                password: passwordField.value
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Welcome!',
+                                text: 'Signed in successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.href = '/';
+                            });
+                        } else if (data.message === "You have been blocked.") {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Blocked User',
+                                text: 'You have been blocked.'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.message || 'Invalid email or password'
+                            });
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Server error, please try again'
+                        });
+                    }
                 });
             }
         });
-    }
-});
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>

@@ -157,6 +157,11 @@ const signinPost = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found." });
         }
 
+
+        if (!user.isActive) {
+            return res.status(403).json({ success: false, message: "You have been blocked." });
+        }
+
         // Check if the password matches
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -495,10 +500,151 @@ const logout = async (req, res) => {
 };
 
 
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await usercollection.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User  not found." });
+        }
+
+        req.session.user = { email: user.email };
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpSession = true;
+        req.session.otpError = null;
+        req.session.otpTime = 75;
+        req.session.otpStartTime = Date.now();
+
+        sendotp(generatedOtp, user.email);
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: user.email },
+            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
+            { upsert: true }
+        );
+
+        res.status(200).json({ success: true, message: "OTP sent successfully." });
+    } catch (error) {
+        console.error("Error in forgotPassword:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
+
+const verifyOtp2 = async (req, res) => {
+    try {
+        const { otp } = req.body;
+        const findOtp = await otpCollection.findOne({ email: req.session.user.email });
+
+        if (!findOtp || findOtp.expiresAt < new Date()) {
+            return res.status(400).json({ success: false, message: "OTP has expired." });
+        }
+
+        const isOtpValid = await comparePassword(otp, findOtp.otp);
+
+        if (!isOtpValid) {
+            return res.status(400).json({ success: false, message: "Invalid OTP." });
+        }
+
+        res.status(200).json({ success: true, message: "OTP verified successfully." });
+    } catch (error) {
+        console.error("Error in verifyOtp:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { newPassword, confirmPassword } = req.body;
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Passwords do not match." });
+        }
+
+        const hashedPassword = await encryptPassword(newPassword);
+        await usercollection.updateOne(
+            { email: req.session.user.email },
+            { $set: { password: hashedPassword } }
+        );
+
+        req.session.destroy();
+        res.status(200).json({ success: true, message: "Password reset successfully." });
+    } catch (error) {
+        console.error("Error in resetPassword:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
 
 
+const loadForgotPassword = async (req, res) => {
+    try {
 
+        res.render("forgot-password"); 
 
+    } catch (error){
+        console.log(error)
+        next(new AppError('Sorry...Something went wrong', 500));
+    }
+};
+const loadVerifyotp2 = async (req, res) => {
+    try {
+
+            res.render("otp2"); 
+
+    } catch (error){
+        console.log(error)
+        next(new AppError('Sorry...Something went wrong', 500));
+    }
+};
+const loadResetPassword = async (req, res) => {
+    try {
+
+        res.render("reset-password"); 
+
+    } catch (error){
+        console.log(error)
+        next(new AppError('Sorry...Something went wrong', 500));
+    }
+};
+
+const otp2Time = (req, res) => {
+    try {
+        if (req.session.otpStartTime) {
+            const elapsedTime = Math.floor((Date.now() - req.session.otpStartTime) / 1000);
+            const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
+            res.status(200).json({ success: true, remainingTime });
+        } else {
+            res.status(200).json({ success: true, remainingTime: 0 });
+        }
+        console.log("otp2Time used");
+    } catch (error) {
+        console.error("Error in otp2Time:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const resendOtp2 = async (req, res) => {
+    try {
+        if (!req.session.user || !req.session.user.email) {
+            return res.status(400).json({ success: false, message: "User data not found in session." });
+        }
+
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpStartTime = Date.now();
+        sendotp(generatedOtp, req.session.user.email);
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: req.session.user.email },
+            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
+            { upsert: true }
+        );
+        console.log("resendOtp2 used");
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error in resendOtp2:", error);
+        res.status(500).json({ success: false });
+    }
+};
 
 module.exports = {
     loadHomepage,
@@ -518,6 +664,15 @@ module.exports = {
     otpPost,
     otpPage,
     resendOtp,
-    otpTime
+    resendOtp2,
+    otpTime,
+    otp2Time,
+    forgotPassword,
+    resetPassword,
+    verifyOtp2,
+    loadForgotPassword,
+    loadResetPassword,
+    loadVerifyotp2,
+   
 
 };

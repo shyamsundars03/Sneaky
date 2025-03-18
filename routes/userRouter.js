@@ -33,12 +33,22 @@ router.post("/signin", userController.signinPost);
 router.post("/logout", userController.logout);
 router.get("/blocked", userController.blockedUser);
 
+//forgot && reset
+router.get("/forgotPassword", userController.loadForgotPassword);
+router.get("/reset-password", userController.loadResetPassword);
+router.post("/forgot-password", userController.forgotPassword);
+router.post("/reset-password", userController.resetPassword);
+
 // OTP
 router.get("/otpsend", userController.otpSend);
 router.get("/otp", userController.otpPage);
 router.post("/otp", userController.otpPost);
 router.get("/otp-time", userController.otpTime);
 router.post("/otp-send", userController.resendOtp);
+router.get("/verify-otp", userController.loadVerifyotp2);
+router.post("/verify-otp", userController.verifyOtp2);
+router.get("/otp2-time", userController.otp2Time); 
+router.post("/otp2-send", userController.resendOtp2);
 
 // Profile Routes
 router.get("/profile", userAuth, profileController.loadProfile);
