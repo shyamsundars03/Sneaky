@@ -7,21 +7,46 @@ const loadCart = async (req, res) => {
     try {
         const userId = req.user._id;
 
+        // Fetch the cart and populate product details
         const cart = await Cart.findOne({ user: userId }).populate({
             path: "cartItems.product",
             model: "Product",
+            select: "productName productImage price isListed", // Include isListed in the select
         });
 
         let cartTotal = 0;
+        let filteredCartItems = [];
+
         if (cart) {
-            cartTotal = cart.cartItems.reduce((total, item) => {
+            // Filter out unlisted products (only for rendering, not saving)
+            filteredCartItems = cart.cartItems.filter(item => item.product.isListed);
+
+            // Recalculate the cart total based on filtered items
+            cartTotal = filteredCartItems.reduce((total, item) => {
                 return total + item.price * item.quantity;
             }, 0);
+
+            // Transform image paths for the frontend
+            filteredCartItems = filteredCartItems.map(item => {
+                if (item.product.productImage && item.product.productImage[0]) {
+                    item.product.productImage[0] = item.product.productImage[0].replace(/\\/g, '/').replace('public/', '/');
+                }
+                return item;
+            });
         }
 
+        // Debug: Log product image paths
+        filteredCartItems.forEach(item => {
+            console.log("Transformed Product Image Path:", item.product.productImage[0]);
+        });
+
+        // Render the cart page with filtered items and updated total
         res.render("cart", {
             user: req.user,
-            cart: cart || { cartItems: [], cartTotal: 0 },
+            cart: {
+                cartItems: filteredCartItems,
+                cartTotal: cartTotal,
+            },
             cartTotal,
         });
     } catch (error) {

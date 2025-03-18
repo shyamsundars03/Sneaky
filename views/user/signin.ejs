@@ -96,6 +96,7 @@
         p {
             text-align: center;
             margin-top: 15px;
+            margin-bottom: 10px;
         }
 
         #adminSigninForm h2 {
@@ -108,6 +109,41 @@
 
         #adminSigninForm button:hover {
             background: #34495e;
+        }
+
+
+        .divider {
+    text-align: center;
+    margin: 10px 0;
+    position: relative;
+}
+
+
+
+        .google-btn {
+            width: 100%;
+            color: #000000;
+            padding: 10px;
+            background: white;
+            border: 1px solid #000000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .google-btn:hover {
+            background-color: red;
+            color: #ffffff;
+            border: none;
+        }
+
+        .google-btn img {
+            width: 20px;
+            height: 20px;
         }
     </style>
 </head>
@@ -123,6 +159,10 @@
             </div>
             <p>Forgot your password? <a href="/forgotPassword">Reset it here</a></p>
             <button type="submit">Sign In</button>
+            <div class="divider">or</div>
+            <button type="button" id="googleSignUp" class="google-btn">
+                GOOGLE
+            </button>
         </form>
         <p>Don't have an account? <a href="/signup">Sign Up</a></p>
     </div>
@@ -167,6 +207,17 @@
                 }
                 return true;
             };
+
+
+
+            const googleSignUp = document.getElementById('googleSignUp');
+            if (googleSignUp) {
+                googleSignUp.addEventListener('click', () => {
+                    window.location.href = '/auth/google';
+                });
+            }
+
+
 
             const signinForm = document.getElementById('signinForm');
             if (signinForm) {

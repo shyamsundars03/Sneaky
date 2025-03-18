@@ -7,11 +7,34 @@ const loadWishlist = async (req, res) => {
     try {
         const userId = req.user._id;
 
+        // Fetch the wishlist and populate product details
         const wishlist = await Wishlist.findOne({ user: userId }).populate({
             path: "wishlistItems.product",
             model: "Product",
+            select: "productName productImage price", // Include required fields
         });
 
+        // Transform image paths for the frontend
+        if (wishlist) {
+            wishlist.wishlistItems = wishlist.wishlistItems.map(item => {
+                if (item.product.productImage && item.product.productImage[0]) {
+                    // Replace backslashes with forward slashes and remove the "public/" prefix
+                    item.product.productImage[0] = item.product.productImage[0]
+                        .replace(/\\/g, '/') // Replace backslashes with forward slashes
+                        .replace('public/', '/'); // Remove the "public/" prefix
+                }
+                return item;
+            });
+        }
+
+        // Debug: Log transformed image paths
+        if (wishlist) {
+            wishlist.wishlistItems.forEach(item => {
+                console.log("Transformed Product Image Path:", item.product.productImage[0]);
+            });
+        }
+
+        // Render the wishlist page with transformed image paths
         res.render("wishlist", {
             user: req.user,
             wishlist: wishlist || { wishlistItems: [] },
