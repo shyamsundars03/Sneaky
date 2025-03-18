@@ -42,7 +42,7 @@ router.post('/userManagement/:id/toggle-status', adminAuth, userController.toggl
 // Order management
 router.get("/orderManagement", adminAuth, orderController.loadOrderManagement);
 router.get("/orderManagement/:id", adminAuth, orderController.loadSingleAdminOrder);
-
+router.get('/order/:id', orderController.loadSingleAdminOrder);
 // Coupon management
 router.get("/couponManagement", adminAuth, couponController.loadCouponManagement);
 

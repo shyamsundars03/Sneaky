@@ -40,40 +40,41 @@
                 </div>
                 <p><%= product.description %></p>
                 <div>
-                    <div class="filter-section">
-                        <div class="single-filter-header">
-                            <h4>Size</h4>
-                        </div>
-                        <div class="filter-options">
-                            <div class="size-options">
-                                <% if (Array.isArray(product.sizes) && product.sizes.length > 0) { %>
-                                    <% product.sizes.forEach((size, index) => { %>
-                                        <button 
-                                        class="size-option <%= index === 0 ? 'active' : '' %>" 
-                                        data-size="<%= size.size %>"
-                                        data-stock="<%= size.stock %>" 
-                                        onclick="selectSize(this)"
-                                    >
-                                        <%= size.size %>
-                                    </button>
-                                    <% }) %>
-                                <% } else { %>
-                                    <p>No sizes available</p>
-                                <% } %>
+
+                        <div class="filter-section">
+                            <div class="single-filter-header">
+                                <h4>Size</h4>
+                            </div>
+                            <div class="filter-options">
+                                <div class="size-options">
+                                    <% if (Array.isArray(product.sizes) && product.sizes.length > 0) { %>
+                                        <% product.sizes.forEach((size, index) => { %>
+                                            <button 
+                                                class="size-option <%= index === 0 ? 'active' : '' %>" 
+                                                data-size="<%= size.size %>"
+                                                data-stock="<%= size.stock %>" 
+                                                onclick="selectSize(this)"
+                                            >
+                                                <%= size.size %>
+                                            </button>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <p>No sizes available</p>
+                                    <% } %>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div>
-                    <h3>Stock</h3>
-                    <p id="stock">
-                        <% if (product.sizes[0].stock === 0) { %>
-                            <span style="color: red;">Out of Stock</span>
-                        <% } else { %>
-                            <%= product.sizes[0].stock %> items available
-                        <% } %>
-                    </p>
-                </div>
+                        
+                        <div>
+                            <h3>Stock</h3>
+                            <p id="stock">
+                                <% if (product.sizes[0].stock === 0) { %>
+                                    <span style="color: red;">Out of Stock</span>
+                                <% } else { %>
+                                    <%= product.sizes[0].stock %> items available
+                                <% } %>
+                            </p>
+                        </div>
                 <div>
                     <h3>Quantity</h3>
                     <div class="quantity-selector">
@@ -133,10 +134,30 @@
 
     // Function to handle size selection
     function selectSize(button) {
-        selectedSize = button.getAttribute('data-size');
-        document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
+    // Update the selected size
+    selectedSize = button.getAttribute('data-size');
+    
+    // Remove the 'active' class from all size buttons
+    document.querySelectorAll('.size-option').forEach(btn => btn.classList.remove('active'));
+    
+    // Add the 'active' class to the clicked size button
+    button.classList.add('active');
+    
+    // Update the stock display
+    const stock = button.getAttribute('data-stock');
+    updateStockDisplay(stock);
+}
+
+// Function to update the stock display
+function updateStockDisplay(stock) {
+    const stockElement = document.getElementById('stock');
+    
+    if (stock === '0') {
+        stockElement.innerHTML = '<span style="color: red;">Out of Stock</span>';
+    } else {
+        stockElement.textContent = `${stock} items available`;
     }
+}
 
     // Function to handle quantity increase
     function increaseQuantity() {

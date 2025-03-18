@@ -2,7 +2,7 @@ const Order = require("../../models/orderSchema");
 const Cart = require("../../models/cartSchema");
 const User = require("../../models/userSchema");
 const Address = require("../../models/addressSchema");
-
+const Product = require("../../models/productSchema");
 // Load Checkout Step 1
 const loadCheckout1 = async (req, res) => {
     try {

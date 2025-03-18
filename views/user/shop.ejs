@@ -113,7 +113,9 @@
                             <h4 class="product-name"><%= product.productName %></h4>
                             <div class="product-actions">
                             <!-- Add to Cart Button -->
-                            <button class="add-to-cart-btn" onclick="addToCart('<%= product._id %>', '<%= product.sizes[0].size %>')">Add to cart</button>
+                            <button class="add-to-cart-btn" onclick="addToCart('<%= product._id %>', '<%= product.sizes && product.sizes[0] ? product.sizes[0].size : "7" %>')">
+                                Add to cart
+                            </button>
                             <!-- Add to Wishlist Button -->
                             <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
                                 <i class="far fa-heart"></i>

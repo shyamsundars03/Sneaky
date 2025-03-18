@@ -26,6 +26,10 @@
                             <td data-label="cart-Products">
                                 <div class="cart-product-info">
                                     <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img">
+
+                        
+
+
                                     <div class="product-details">
                                         <div class="cart-product-name"><%= item.product.productName %></div>
                                         <div class="cart-product-price">₹<%= item.price %></div>
@@ -61,10 +65,10 @@
                 <span class="cart-summary-label">Subtotal</span>
                 <span class="cart-summary-value">₹<%= cartTotal %></span>
             </div>
-            <div class="cart-summary-row">
+            <!-- <div class="cart-summary-row">
                 <span class="cart-summary-label">Shipping & Handling</span>
                 <span class="cart-summary-value">₹50</span>
-            </div>
+            </div> -->
             <div class="cart-summary-row total-row">
                 <span class="cart-summary-label">Total</span>
                 <span class="cart-summary-value">₹<%= cartTotal %></span>

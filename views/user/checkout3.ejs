@@ -439,7 +439,7 @@ ul {
                     </div>
                     <div class="summary-item total-row">
                         <span>Total</span>
-                        <span>₹<%= cartTotal + shippingCost %></span>
+                        <span>₹<%= cartTotal + Number(shippingCost) %></span>
                     </div>
                     <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
                 </div>
@@ -469,7 +469,7 @@ ul {
     // Populate the shipping method
     const shippingMethodDetails = document.getElementById('shippingMethodDetails');
     if (shippingMethod) {
-        shippingMethodDetails.textContent = `${shippingMethod} - ₹${shippingCost}`;
+        shippingMethodDetails.textContent = `${shippingMethod} - ₹${Number(shippingCost)}`;
     }
 
     // Populate the payment method

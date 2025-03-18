@@ -164,6 +164,7 @@
                     if (remainingTime <= 0) {
                         clearInterval(interval);
                         resendButton.removeAttribute("disabled");
+                        countdownElement.textContent = "Timer ended!";
                     }
                 }, 1000);
             };
@@ -175,6 +176,21 @@
         e.preventDefault();
 
         if (!validateField(otpField, otpField.value)) return;
+
+        // Fetch the remaining time again to ensure it's up-to-date
+        const timeResponse = await fetch('/otp-time');
+        const timeData = await timeResponse.json();
+        const remainingTime = timeData.remainingTime;
+
+        // Check if the timer has ended
+        if (remainingTime <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Timer Ended!',
+                text: 'Please click the resend button to generate a new OTP.',
+            });
+            return;
+        }
 
         try {
             const response = await fetch('/otp', {

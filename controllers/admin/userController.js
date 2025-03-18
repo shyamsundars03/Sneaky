@@ -118,7 +118,7 @@ const getUserById = async (req, res) => {
 const listUsers = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 10; 
+        const limit = 3; 
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
 

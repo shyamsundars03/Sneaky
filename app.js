@@ -43,11 +43,10 @@ app.use(passport.session());
 app.use("/", userRouter);
 app.use("/admin",adminRouter);
 
-
-
-
-
-
+app.use((req, res, next) => {
+    res.locals.user = req.session.user || null; 
+    next();
+});
 
 
 app.listen(process.env.PORT,()=>{

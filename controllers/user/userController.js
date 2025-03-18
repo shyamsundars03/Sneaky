@@ -26,7 +26,7 @@ async function comparePassword(enteredPassword, storedPassword) {
 
 const loadSignup = async (req, res) => {
     try {
-        if(req.session.loginSession || req.session.signupSession){
+        if(req.session.loginSession ){
             return res.redirect("/")
         } else {
             const signErr =  req.session.signError
@@ -40,7 +40,8 @@ const loadSignup = async (req, res) => {
 
 const loadSignin = async (req, res) => {
     try {
-        if(req.session.loginSession || req.session.signupSession){
+        // || req.session.signupSession
+        if(req.session.loginSession ){
             return res.redirect("/")
         } else {
             const logErr = req.session.logError
@@ -54,6 +55,11 @@ const loadSignin = async (req, res) => {
 
 
 const otpSend = async (req, res) => {
+
+    if (!req.session.tempUser || !req.session.tempUser.email) {
+        return res.status(400).json({ error: "User data not found in session." });
+    }
+
     req.session.otpSession = true;
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     req.session.otpError = null;
@@ -62,10 +68,10 @@ const otpSend = async (req, res) => {
     // console.log(generatedOtp);
     console.log("otpSend used");
     // console.log(req.session.user);
-    sendotp(generatedOtp, req.session.user.email);
+    sendotp(generatedOtp, req.session.tempUser.email);
     const hashedOtp = await encryptPassword(generatedOtp);
     await otpCollection.updateOne(
-        { email: req.session.user.email },
+        { email: req.session.tempUser.email },
         { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } }, 
         { upsert: true }
     );
@@ -77,11 +83,11 @@ const otpPost = async (req, res) => {
     try {
         console.log("Session User:", req.session.user);
 
-        if (!req.session.user || !req.session.user.email) {
+        if (!req.session.tempUser || !req.session.tempUser.email) {
             return res.status(400).json({ error: "Session expired or user not logged in" });
         }
 
-        const findOtp = await otpCollection.findOne({ email: req.session.user.email });
+        const findOtp = await otpCollection.findOne({ email: req.session.tempUser.email });
         // console.log(findOtp);
 
         if (!findOtp) {
@@ -93,6 +99,12 @@ const otpPost = async (req, res) => {
             return res.status(400).json({ error: "OTP has expired" });
         }
 
+        // Check if OTP has expired
+        if (findOtp.expiresAt < new Date()) {
+            return res.status(400).json({ error: "OTP has expired. Please click the resend button." });
+        }
+        
+
         const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
         // console.log(isOtpValid);
 
@@ -101,10 +113,10 @@ const otpPost = async (req, res) => {
 
 
             const userData = new usercollection({
-                name: req.session.user.name,
-                email: req.session.user.email,
-                phone: req.session.user.phone,
-                password: req.session.user.password,
+                name: req.session.tempUser.name,
+                email: req.session.tempUser.email,
+                phone: req.session.tempUser.phone,
+                password: req.session.tempUser.password,
                 isActive: true,
             });
 
@@ -116,10 +128,13 @@ const otpPost = async (req, res) => {
 
 
             req.session.user = {
+                _id: user._id, 
                 name: user.name,
                 email: user.email,
             };
             req.session.signupSession = true;
+            delete req.session.tempUser;
+
             res.status(200).send({ ok: true });
         } else {
             res.status(200).send({ ok: false });
@@ -183,7 +198,7 @@ const signupPost = async (req, res) => {
             };
 
 
-            req.session.user=user
+            req.session.tempUser=user
             return res.status(200).send({ success: true });
         }
     } catch (error){
@@ -249,12 +264,17 @@ const blockedUser = async (req, res) => {
 
 const resendOtp = async (req, res) => {
     try {
+
+        if (!req.session.tempUser || !req.session.tempUser.email) {
+            return res.status(400).json({ success: false, message: "User data not found in session." });
+        }
+
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
         req.session.otpStartTime = Date.now(); 
-        sendotp(generatedOtp, req.session.user.email);
+        sendotp(generatedOtp, req.session.tempUser.email);
         const hashedOtp = await encryptPassword(generatedOtp);
         await otpCollection.updateOne(
-            { email: req.session.user.email },
+            { email: req.session.tempUser.email },
             { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
             { upsert: true }
         );

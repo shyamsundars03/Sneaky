@@ -586,155 +586,114 @@
         </nav>
     </header>
 
+    <section class="hero">
+        <h1>ORDER DETAILS</h1>
+        <div class="wave-divider"></div>
+    </section>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <h1>ORDERS</h1>
-    <div class="wave-divider"></div>
-</section>
-
-<!-- Order Content -->
-<section class="order-content">
-    <!-- Order Header -->
-    <div class="order-header">
-        <div class="order-id">
-            Order ID: #PN001
-            <span class="status-badge">Pending</span>
-            <button class="btn btn-primary">Buy Again</button>
+    <section class="order-content">
+        <!-- Order Header -->
+        <div class="order-header">
+            <div class="order-id">
+                Order ID: #<%= order._id.toString().slice(-6).toUpperCase() %>
+                <span class="status-badge <%= order.status.toLowerCase() %>">
+                    <%= order.status %>
+                </span>
+            </div>
+            <div class="status-actions">
+                <select class="status-select">
+                    <option value="Pending" <%= order.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="Shipped" <%= order.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                    <option value="Delivered" <%= order.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                    <option value="Cancelled" <%= order.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                </select>
+                <button class="btn btn-secondary">Save</button>
+                <button class="btn btn-secondary">Download Invoice</button>
+            </div>
         </div>
-        
-        <div class="status-actions">
-            <select class="status-select">
-                <option>Status</option>
-            </select>
-            <button class="btn btn-secondary">Save</button>
-            <button class="btn btn-secondary">Download Invoice</button>
+
+        <!-- Order Details -->
+        <div class="order-details-grid">
+            <div class="details-box">
+                <h3>Customer Details</h3>
+                <p><%= order.user.name %></p>
+                <p><%= order.user.email %></p>
+                <p><%= order.user.phone %></p>
+            </div>
+            <div class="details-box">
+                <h3>Shipping Address</h3>
+                <p><%= order.shippingAddress.address %></p>
+                <p><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %></p>
+                <p><%= order.shippingAddress.pincode %></p>
+            </div>
+            <div class="details-box">
+                <h3>Order Details</h3>
+                <p>Order ID: #<%= order._id.toString().slice(-6).toUpperCase() %></p>
+                <p>Order Date: <%= order.createdAt.toLocaleDateString() %></p>
+                <p>Order Total: ₹<%= order.totalAmount.toFixed(2) %></p>
+            </div>
         </div>
-    </div>
-    
-    <!-- Order Details -->
-    <div class="order-details-grid">
-        <div class="details-box">
-            <h3>Customer Details</h3>
-            <p>John Doe</p>
-            <p>johndoe@example.com</p>
-            <p>+999 99 22123456</p>
-            <a href="#" class="view-profile">View Profile</a>
+
+        <!-- Products Table -->
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Products</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% order.items.forEach(item => { %>
+                    <tr>
+                        <td data-label="Products">
+                            <div class="product-cell">
+                                <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-image">
+                                <span><%= item.product.productName %></span>
+                            </div>
+                        </td>
+                        <td data-label="Price">₹<%= item.product.price.toFixed(2) %></td>
+                        <td data-label="Quantity"><%= item.quantity %></td>
+                        <td data-label="Total">₹<%= (item.product.price * item.quantity).toFixed(2) %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <!-- Order Totals -->
+<!-- Order Totals -->
+<!-- Order Totals -->
+<table class="totals" align="right">
+    <tr>
+        <td>Sub Total :</td>
+        <td>₹<%= order.subTotal ? order.subTotal.toFixed(2) : '0.00' %></td>
+    </tr>
+    <tr>
+        <td>Shipping Cost :</td>
+        <td>₹<%= order.shippingCost ? order.shippingCost.toFixed(2) : '0.00' %></td>
+    </tr>
+    <tr class="grand-total">
+        <td>Grand Total :</td>
+        <td>₹<%= order.totalAmount ? order.totalAmount.toFixed(2) : '0.00' %></td>
+    </tr>
+</table>
+
+        <!-- Payment Info -->
+        <div class="payment-info">
+            <h3>Payment Info</h3>
+            <p class="payment-method"><%= order.paymentMethod %></p>
+            <div class="action-buttons">
+                <a href="/admin/orderManagement" class="btn btn-secondary">Back</a>
+                <button class="btn btn-danger">Cancel Order</button>
+            </div>
         </div>
-        
-        <div class="details-box">
-            <h3>Shipping Address</h3>
-            <p>Georg Harvell</p>
-            <p>56th Suite Ave.</p>
-            <p>Austria, 235153</p>
-        </div>
-        
-        <div class="details-box">
-            <h3>Order Details</h3>
-            <p>Order ID: PN001</p>
-            <p>Order Date: October 22, 2023</p>
-            <p>Order Total: ₹9000.38</p>
-        </div>
-    </div>
-    
-    <!-- Products Table -->
-    <table class="products-table">
-        <thead>
-            <tr>
-                <th>Products</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td data-label="Products">
-                    <div class="product-cell">
-                        <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                        <span>Nike Daily-wears</span>
-                    </div>
-                </td>
-                <td data-label="Price">₹1800.0</td>
-                <td data-label="Quantity">1</td>
-                <td data-label="Total">₹1800.0</td>
-            </tr>
-            <tr>
-                <td data-label="Products">
-                    <div class="product-cell">
-                        <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                        <span>Nike Daily-wears</span>
-                    </div>
-                </td>
-                <td data-label="Price">₹2400.0</td>
-                <td data-label="Quantity">1</td>
-                <td data-label="Total">₹1800.0</td>
-            </tr>
-            <tr>
-                <td data-label="Products">
-                    <div class="product-cell">
-                        <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                        <span>Nike Daily-wears</span>
-                    </div>
-                </td>
-                <td data-label="Price">₹3002.0</td>
-                <td data-label="Quantity">1</td>
-                <td data-label="Total">₹3002.0</td>
-            </tr>
-            <tr>
-                <td data-label="Products">
-                    <div class="product-cell">
-                        <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-image">
-                        <span>Nike Daily-wears</span>
-                    </div>
-                </td>
-                <td data-label="Price">₹3000.0</td>
-                <td data-label="Quantity">2</td>
-                <td data-label="Total">₹3000.0</td>
-            </tr>
-        </tbody>
-    </table>
-    
-    <!-- Order Totals -->
-    <table class="totals" align="right">
-        <tr>
-            <td>Sub Total :</td>
-            <td>₹8800.00</td>
-        </tr>
-        <tr>
-            <td>Shipping Cost :</td>
-            <td>₹100.00</td>
-        </tr>
-        <tr class="grand-total">
-            <td>Grand Total :</td>
-            <td>₹9000.00</td>
-        </tr>
-    </table>
-    
-    <div style="clear: both;"></div>
-    
-    <!-- Payment Info -->
-    <div class="payment-info">
-        <h3>Payment Info</h3>
-        <p class="payment-method">Cash on Delivery</p>
-        
-        <div class="action-buttons">
-            <button class="btn btn-secondary">Back</button>
-            <button class="btn btn-danger">Cancel Order</button>
-        </div>
-    </div>
-</section>
-
-
-
-
-
-
-
+    </section>
 
     <footer>
         Copyright © SNEAKY 2025
     </footer>
+</body>
 
     <script>
         // Search functionality
@@ -789,5 +748,5 @@
             });
         });
     </script>
-</body>
+
 </html>
