@@ -1,3 +1,31 @@
+<style>
+            .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+
+        }
+        .search-box {
+
+            /* background-color: red;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            margin-bottom: 10px; */
+            border: none;
+            width: 100%;
+            height: 30px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+</style>
+
 <%- include("../../views/partials/user/header") %>
 
 <!-- Hero Section -->
@@ -14,6 +42,11 @@
 <!-- Shop Content -->
 <div class="shop-container">
     <aside class="shop-sidebar">
+
+        <div class="header-actions">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search Products">
+        </div>
+
         <button  class="filter-button"  onclick="clearFilters()">Clear Filters</button>
         <!-- Categories Section -->
         <div class="filter-section">
@@ -52,8 +85,8 @@
             <div class="filter-options">
                 <div class="price-range">
                     <div class="range-inputs">
-                        <input type="text" placeholder="Min" value="₹0">
-                        <input type="text" placeholder="Max" value="₹5000">
+                        <input type="text" placeholder="Min" value="">
+                        <input type="text" placeholder="Max" value="">
                     </div>
                     <button class="apply-button" onclick="filterProducts()">Apply</button>
                 </div>
@@ -150,50 +183,69 @@
 <script>
     // Function to filter products based on selected categories and sizes
     function filterProducts() {
-        const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
-        const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
-        const productCards = document.querySelectorAll('.product-card');
+    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+    const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
+    const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
+    const searchTerm = document.getElementById('searchBox').value.trim().toLowerCase();
+    const productCards = document.querySelectorAll('.product-card');
 
-        let visibleProductsCount = 0;
+    let visibleProductsCount = 0;
 
-        // Build the new URL with the applied filters
-        const url = new URL(window.location.href);
-        url.searchParams.delete('category'); // Remove existing category filter
-        url.searchParams.delete('size'); // Remove existing size filter
+    // Build the new URL with the applied filters
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('size');
+    url.searchParams.delete('minPrice');
+    url.searchParams.delete('maxPrice');
+    url.searchParams.delete('search');
 
-        // Add selected filters to the URL
-        if (selectedCategories.length > 0) {
-            url.searchParams.set('category', selectedCategories.join(','));
-        }
-        if (selectedSizes.length > 0) {
-            url.searchParams.set('size', selectedSizes.join(','));
-        }
-
-        // Update the URL without reloading the page
-        window.history.pushState({}, '', url);
-
-        // Apply the filters to the products
-        productCards.forEach(card => {
-            const category = card.getAttribute('data-category');
-            const sizes = card.getAttribute('data-sizes').split(',');
-
-            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
-            const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
-
-            if (matchesCategory && matchesSize) {
-                card.style.display = 'block';
-                visibleProductsCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        // Update the total products count displayed above the grid
-        const totalProductsHeader = document.querySelector('.products-header h3');
-        if (totalProductsHeader) {
-            totalProductsHeader.textContent = `${visibleProductsCount} items found`;
-        }
+    // Add selected filters to the URL
+    if (selectedCategories.length > 0) {
+        url.searchParams.set('category', selectedCategories.join(','));
     }
+    if (selectedSizes.length > 0) {
+        url.searchParams.set('size', selectedSizes.join(','));
+    }
+    if (minPrice) {
+        url.searchParams.set('minPrice', minPrice);
+    }
+    if (maxPrice) {
+        url.searchParams.set('maxPrice', maxPrice);
+    }
+    if (searchTerm) {
+        url.searchParams.set('search', searchTerm);
+    }
+
+    // Update the URL without reloading the page
+    window.history.pushState({}, '', url);
+
+    // Apply the filters to the products
+    productCards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        const sizes = card.getAttribute('data-sizes').split(',');
+        const price = parseFloat(card.querySelector('.current-price, .offer-price').textContent.replace('₹', ''));
+        const productName = card.querySelector('.product-name').textContent.toLowerCase();
+
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
+        const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
+        const matchesPrice = (!minPrice || price >= parseFloat(minPrice)) && (!maxPrice || price <= parseFloat(maxPrice));
+        const matchesSearch = !searchTerm || productName.includes(searchTerm);
+
+        if (matchesCategory && matchesSize && matchesPrice && matchesSearch) {
+            card.style.display = 'block';
+            visibleProductsCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Update the total products count displayed above the grid
+    const totalProductsHeader = document.querySelector('.products-header h3');
+    if (totalProductsHeader) {
+        totalProductsHeader.textContent = `${visibleProductsCount} items found`;
+    }
+}
 
     // Function to toggle size filter
     function toggleSizeFilter(size) {
@@ -202,59 +254,230 @@
         filterProducts();
     }
 
-    // Function to read URL parameters and apply filters on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        const urlParams = new URLSearchParams(window.location.search);
+    function clearFilters() {
+    // Clear the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('size');
+    url.searchParams.delete('minPrice');
+    url.searchParams.delete('maxPrice');
+    url.searchParams.delete('search');
+    window.history.pushState({}, '', url);
 
-        // Apply category filter
-        const selectedCategory = urlParams.get('category');
-        if (selectedCategory) {
-            selectedCategory.split(',').forEach(categoryId => {
-                const categoryCheckbox = document.querySelector(`#category-filters input[value="${categoryId}"]`);
-                if (categoryCheckbox) {
-                    categoryCheckbox.checked = true;
-                }
-            });
-        }
-
-        // Apply size filter
-        const selectedSizes = urlParams.get('size');
-        if (selectedSizes) {
-            selectedSizes.split(',').forEach(size => {
-                const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
-                if (sizeButton) {
-                    sizeButton.classList.add('active');
-                }
-            });
-        }
-
-        // Apply the filters
-        filterProducts();
+    // Uncheck all category checkboxes
+    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
+        checkbox.checked = false;
     });
+
+    // Remove active class from all size buttons
+    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Reset price inputs
+    document.querySelector('.price-range input[placeholder="Min"]').value = '';
+    document.querySelector('.price-range input[placeholder="Max"]').value = '';
+
+    // Reset search box
+    document.getElementById('searchBox').value = '';
+
+    // Apply the filters (which will now show all products)
+    filterProducts();
+}
 
     // Function to clear all filters
     function clearFilters() {
-        // Clear the URL
-        const url = new URL(window.location.href);
-        url.searchParams.delete('category');
-        url.searchParams.delete('size');
-        window.history.pushState({}, '', url);
+    // Clear the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('size');
+    url.searchParams.delete('minPrice');
+    url.searchParams.delete('maxPrice');
+    url.searchParams.delete('search');
+    window.history.pushState({}, '', url);
 
-        // Uncheck all category checkboxes
-        document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
-            checkbox.checked = false;
-        });
+    // Uncheck all category checkboxes
+    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
+        checkbox.checked = false;
+    });
 
-        // Remove active class from all size buttons
-        document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
-            button.classList.remove('active');
-        });
+    // Remove active class from all size buttons
+    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
+        button.classList.remove('active');
+    });
 
-        // Apply the filters (which will now show all products)
-        filterProducts();
+    // Reset price inputs
+    document.querySelector('.price-range input[placeholder="Min"]').value = '';
+    document.querySelector('.price-range input[placeholder="Max"]').value = '';
+
+    // Reset search box
+    document.getElementById('searchBox').value = '';
+
+    // Apply the filters (which will now show all products)
+    filterProducts();
+}
+
+
+
+// Function to filter products based on search term, categories, sizes, and price range
+function filterProducts() {
+    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+    const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
+    const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
+    const searchTerm = document.getElementById('searchBox').value.trim().toLowerCase();
+    const productCards = document.querySelectorAll('.product-card');
+
+    let visibleProductsCount = 0;
+
+    // Build the new URL with the applied filters
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('size');
+    url.searchParams.delete('minPrice');
+    url.searchParams.delete('maxPrice');
+    url.searchParams.delete('search');
+
+    // Add selected filters to the URL
+    if (selectedCategories.length > 0) {
+        url.searchParams.set('category', selectedCategories.join(','));
+    }
+    if (selectedSizes.length > 0) {
+        url.searchParams.set('size', selectedSizes.join(','));
+    }
+    if (minPrice) {
+        url.searchParams.set('minPrice', minPrice);
+    }
+    if (maxPrice) {
+        url.searchParams.set('maxPrice', maxPrice);
+    }
+    if (searchTerm) {
+        url.searchParams.set('search', searchTerm);
     }
 
+    // Update the URL without reloading the page
+    window.history.pushState({}, '', url);
 
+    // Apply the filters to the products
+    productCards.forEach(card => {
+        const productName = card.querySelector('.product-name').textContent.toLowerCase();
+        const category = card.getAttribute('data-category');
+        const sizes = card.getAttribute('data-sizes').split(',');
+        const price = parseFloat(card.querySelector('.current-price, .offer-price').textContent.replace('₹', ''));
+
+        // If search term is present, prioritize filtering by product name
+        if (searchTerm) {
+            if (productName.includes(searchTerm)) {
+                card.style.display = 'block';
+                visibleProductsCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        } else {
+            // If no search term, apply other filters (category, size, price)
+            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
+            const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
+            const matchesPrice = (!minPrice || price >= parseFloat(minPrice)) && (!maxPrice || price <= parseFloat(maxPrice));
+
+            if (matchesCategory && matchesSize && matchesPrice) {
+                card.style.display = 'block';
+                visibleProductsCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+
+    // Update the total products count displayed above the grid
+    const totalProductsHeader = document.querySelector('.products-header h3');
+    if (totalProductsHeader) {
+        totalProductsHeader.textContent = `${visibleProductsCount} items found`;
+    }
+}
+
+// Function to clear all filters
+function clearFilters() {
+    // Clear the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('size');
+    url.searchParams.delete('minPrice');
+    url.searchParams.delete('maxPrice');
+    url.searchParams.delete('search');
+    window.history.pushState({}, '', url);
+
+    // Uncheck all category checkboxes
+    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    // Remove active class from all size buttons
+    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Reset price inputs
+    document.querySelector('.price-range input[placeholder="Min"]').value = '';
+    document.querySelector('.price-range input[placeholder="Max"]').value = '';
+
+    // Reset search box
+    document.getElementById('searchBox').value = '';
+
+    // Apply the filters (which will now show all products)
+    filterProducts();
+}
+
+// Event listeners for search box and price range inputs
+document.getElementById('searchBox').addEventListener('input', filterProducts);
+document.querySelector('.price-range input[placeholder="Min"]').addEventListener('input', filterProducts);
+document.querySelector('.price-range input[placeholder="Max"]').addEventListener('input', filterProducts);
+document.querySelector('.apply-button').addEventListener('click', filterProducts);
+
+// Function to read URL parameters and apply filters on page load
+document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Apply category filter
+    const selectedCategory = urlParams.get('category');
+    if (selectedCategory) {
+        selectedCategory.split(',').forEach(categoryId => {
+            const categoryCheckbox = document.querySelector(`#category-filters input[value="${categoryId}"]`);
+            if (categoryCheckbox) {
+                categoryCheckbox.checked = true;
+            }
+        });
+    }
+
+    // Apply size filter
+    const selectedSizes = urlParams.get('size');
+    if (selectedSizes) {
+        selectedSizes.split(',').forEach(size => {
+            const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
+            if (sizeButton) {
+                sizeButton.classList.add('active');
+            }
+        });
+    }
+
+    // Apply price filter
+    const minPrice = urlParams.get('minPrice');
+    const maxPrice = urlParams.get('maxPrice');
+    if (minPrice) {
+        document.querySelector('.price-range input[placeholder="Min"]').value = minPrice;
+    }
+    if (maxPrice) {
+        document.querySelector('.price-range input[placeholder="Max"]').value = maxPrice;
+    }
+
+    // Apply search term
+    const searchTerm = urlParams.get('search');
+    if (searchTerm) {
+        document.getElementById('searchBox').value = searchTerm;
+    }
+
+    // Apply the filters
+    filterProducts();
+});
 
     // Function to handle "Add to Cart" button click
     document.querySelectorAll('.add-to-cart').forEach(button => {
