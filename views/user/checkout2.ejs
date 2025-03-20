@@ -298,9 +298,17 @@
 
     // Retrieve data from query parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const shippingCost = urlParams.get('shippingCost');
+    const shippingCost = Number(urlParams.get('shippingCost'));
     const shippingMethod = urlParams.get('shippingMethod');
     const selectedAddress = JSON.parse(decodeURIComponent(urlParams.get('selectedAddress')));
+
+
+console.log("Shipping Cost:", shippingCost);
+console.log("Shipping Method:", shippingMethod);
+console.log("Selected Address:", selectedAddress);
+
+
+
 
     // Store data in sessionStorage for use in checkout3
     sessionStorage.setItem('shippingCost', shippingCost);

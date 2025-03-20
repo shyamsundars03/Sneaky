@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Email - Sneaky</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url("/images/wall2.jpg");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            line-height: 1.6;
+        }
+        .container-form {
+            max-width: 400px;
+            margin: auto;
+            padding: 60px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .btn-theme {
+            background-color: red;
+            color: white;
+        }
+        .btn-theme:hover {
+            background-color: darkred;
+            color: white;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.875rem;
+            min-height: 1.25rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="container-form">
+            <h2 class="text-center fw-bold">Change Email</h2>
+            <p class="text-muted text-center">Enter your new email address.</p>
+            <form id="changeEmailForm">
+                <div class="mb-3">
+                    <label class="form-label">New Email</label>
+                    <input type="email" class="form-control" id="newEmail" placeholder="Enter new email" required>
+                    <div id="newEmailError" class="error-message"></div>
+                </div>
+                <button type="submit" class="btn btn-theme w-100">Send OTP</button>
+            </form>
+            <p class="text-center mt-3"><a href="/profile" class="text-decoration-none">Back to Profile</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("changeEmailForm");
+            const newEmailField = document.getElementById("newEmail");
+            const newEmailError = document.getElementById("newEmailError");
+
+            form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                newEmailError.textContent = "";
+
+                const newEmail = newEmailField.value.trim();
+
+                if (!newEmail) {
+                    newEmailError.textContent = "New email is required";
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/change-email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ newEmail }),
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'OTP Sent!',
+                            text: 'An OTP has been sent to your new email.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.href = '/verify-otp?scenario=change-email';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: data.message || 'Failed to send OTP.',
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'An error occurred. Please try again.',
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

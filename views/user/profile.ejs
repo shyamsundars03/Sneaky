@@ -455,60 +455,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         /* Responsive styles */
         @media (max-width: 768px) {
             .mobile-menu-btn {
@@ -653,7 +599,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="email">Email</label>
-                            <input type="email" id="email" name="email" value="<%= user.email || '' %>" required />
+                            <input type="email" id="email" name="email" value="<%= user.email || '' %>" required disabled />
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone</label>
@@ -662,6 +608,9 @@
                     </div>
                     <div class="action-buttons">
                         <button type="submit" class="profile-btn">Save Details</button>
+                        <button type="button" id="changeEmailBtn" class="profile-btn">Change Email</button>
+                        <button type="button" id="resetPasswordBtn" class="profile-btn">Reset Password</button>
+
                     </div>
                 </form>
             </div>
@@ -672,6 +621,21 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     
+    document.getElementById('changeEmailBtn').addEventListener('click', () => {
+        window.location.href = '/change-email';
+    });
+
+    document.getElementById('resetPasswordBtn').addEventListener('click', () => {
+        window.location.href = '/change-password';
+    });
+
+    document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
+        window.location.href = '/forgot-password';
+    });
+
+
+
+
     document.getElementById('changeProfileBtn').addEventListener('click', function () {
         document.getElementById('profileImageInput').click();
     });

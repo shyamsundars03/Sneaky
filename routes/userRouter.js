@@ -54,20 +54,22 @@ router.post("/otp2-send", userController.resendOtp2);
 router.get("/profile", userAuth, profileController.loadProfile);
 router.post("/profile/update", userAuth, profileController.updateProfile);
 router.post("/profile/image", userAuth, profileController.upload, profileController.updateProfileImage);
+
 // Address Routes
 router.get("/address", userAuth, profileController.loadAddress);
 router.post("/address/save", userAuth, profileController.saveAddress);
 router.post("/address/delete/:id", userAuth, profileController.deleteAddress);
+
 // Cart
 router.get("/cart", userAuth, cartController.loadCart);
 router.post("/cart/add", userAuth, cartController.addToCart);
 router.post("/cart/update-quantity", userAuth, cartController.updateQuantity);
 router.post("/cart/remove", userAuth, cartController.removeFromCart);
 
+//wishlist
 router.get("/wishlist", userAuth, wishlistController.loadWishlist);
 router.post("/wishlist/toggle", userAuth, wishlistController.toggleWishlist);
 router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
-
 
 // Order
 router.get("/orders", userAuth, orderController.loadOrder);

@@ -364,6 +364,38 @@ ul {
         width: 100%;
     }
 }
+
+
+.products-table {
+        width: 100%; /* Ensure the table takes full width */
+        border-collapse: collapse; /* Collapse borders for a cleaner look */
+    }
+
+    .products-table th, .products-table td {
+        padding: 10px; /* Add some padding for better spacing */
+        text-align: left; /* Align text to the left */
+    }
+
+    .product-img {
+        width: 50px; /* Set a fixed width for the image */
+        height: 50px; /* Set a fixed height for the image */
+        object-fit: cover; /* Ensure the image covers the area without distortion */
+        border-radius: 4px; /* Optional: Add some border radius for rounded corners */
+    }
+
+    .product-details {
+        display: flex;
+        flex-direction: column; /* Stack name and price vertically */
+    }
+
+    .cart-product-name {
+        font-weight: bold; /* Make the product name bold */
+    }
+
+    .cart-product-price {
+        color: #333; /* Set a color for the price */
+    }
+
     </style>
 </head>
 <body>
@@ -390,6 +422,7 @@ ul {
                     <table class="products-table">
                         <thead>
                             <tr>
+                                <th>Image</th>
                                 <th>Products</th>
                                 <th>Quantity</th>
                                 <th>Price</th>
@@ -398,6 +431,13 @@ ul {
                         <tbody>
                             <% cart.cartItems.forEach(item => { %>
                                 <tr>
+                                    <td>
+                                        <% if (item.product.productImage && item.product.productImage.length > 0) { %>
+                                            <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img"> <!-- Display the first image -->
+                                        <% } else { %>
+                                            <img src="/path/to/placeholder-image.jpg" alt="No image available" class="product-img"> <!-- Placeholder image -->
+                                        <% } %>
+                                    </td>
                                     <td><%= item.product.productName %></td>
                                     <td><%= item.quantity %></td>
                                     <td>₹<%= item.price * item.quantity %></td>
@@ -423,6 +463,8 @@ ul {
                         </div>
                     </div>
                 </div>
+                <button class="back-btn" onclick="goBack()">Back</button>
+
             </div>
 
             <!-- Order Summary -->
@@ -505,6 +547,11 @@ ul {
         console.error("Error placing order:", error);
         alert("An error occurred. Please try again.");
     }
+}
+
+function goBack() {
+    const backUrl = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}&paymentMethod=${paymentMethod}`;
+    window.location.href = backUrl;
 }
 
     </script>

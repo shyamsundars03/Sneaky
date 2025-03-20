@@ -325,6 +325,36 @@
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
     }
+
+ // Check for success query parameter and show SweetAlert
+ const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+
+    if (success === 'true') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: 'Address saved successfully!',
+        }).then(() => {
+            // Remove the query parameter from the URL
+            window.history.replaceState({}, document.title, "/address");
+        });
+    } else if (success === 'false') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Failed to save address.',
+        }).then(() => {
+            // Remove the query parameter from the URL
+            window.history.replaceState({}, document.title, "/address");
+        });
+    }
+
+
+
+
+
+
 </script>
 
 <%- include("../../views/partials/user/footer") %>

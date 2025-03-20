@@ -14,10 +14,13 @@ const loadCheckout1 = async (req, res) => {
         }
         // Fetch the user's addresses
         const addresses = await Address.find({ userId });
-
+        
+        const shippingCost = 100; 
+        
         res.render("checkout1", { 
             cart, 
             addresses, 
+            shippingCost ,
             user: req.user, 
             cartTotal: cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0) 
         });
@@ -40,10 +43,10 @@ const loadCheckout2 = async (req, res) => {
         const cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
         // Retrieve shipping cost from sessionStorage or default to 100
-        const shippingCost = req.session.shippingCost || 100;
+        const shippingCost = req.query.shippingCost ? Number(req.query.shippingCost) : 100; 
 
-
-
+        console.log("Shipping Cost (Server):", shippingCost);
+        console.log("Cart Total (Server):", cartTotal);
 
         res.render("checkout2", { 
             cart, 
@@ -66,6 +69,15 @@ const loadCheckout3 = async (req, res) => {
             return res.redirect("/cart");
         }
 
+        // Transform image paths for the frontend
+        const filteredCartItems = cart.cartItems.map(item => {
+            if (item.product.productImage && item.product.productImage[0]) {
+                item.product.productImage[0] = item.product.productImage[0].replace(/\\/g, '/').replace('public/', '/');
+            }
+            return item;
+        });
+
+
         // Retrieve data from query parameters
         const shippingCost = req.query.shippingCost || 100; // Default to 100 if not provided
         const shippingMethod = req.query.shippingMethod;
@@ -76,7 +88,10 @@ const loadCheckout3 = async (req, res) => {
         const cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
         res.render("checkout3", {
-            cart,
+            cart: {
+                cartItems: filteredCartItems,
+                cartTotal: cartTotal,
+            },
             user: req.user,
             cartTotal,
             shippingCost, // Pass shippingCost to the template

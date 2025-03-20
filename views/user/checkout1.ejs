@@ -202,7 +202,7 @@
                 </div>
                 <div class="summary-item total-row">
                     <span>Total</span>
-                    <span id="totalAmount">₹<%= cartTotal + 500 %></span>
+                    <span id="totalAmount">₹<%= cartTotal + shippingCost %></span>
                 </div>
             </div>
         </div>
@@ -285,7 +285,7 @@
     function updateShippingCost(cost) {
         shippingCost = cost;
         document.getElementById('shippingCost').textContent = `₹${cost}`;
-        document.getElementById('totalAmount').textContent = `₹${<%= cartTotal %> + cost}`;
+        document.getElementById('totalAmount').textContent = `₹${ cartTotal  + cost}`;
 
         // Store shipping cost in sessionStorage
         sessionStorage.setItem('shippingCost', cost);
@@ -338,17 +338,17 @@
 
        // Function to proceed to checkout step 2
        function proceedToCheckout2() {
-        if (!selectedAddressId) {
-            alert('Please select a shipping address.');
-            return;
-        }
-
-        // Get the selected address and shipping method
-        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
-        const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-
-        // Redirect to checkout2 with query parameters
-        window.location.href = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}`;
+    if (!selectedAddressId) {
+        alert('Please select a shipping address.');
+        return;
     }
+
+    // Get the selected address and shipping method
+    const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+    const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+
+    // Redirect to checkout2 with query parameters
+    window.location.href = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}`;
+}
 
     </script>
