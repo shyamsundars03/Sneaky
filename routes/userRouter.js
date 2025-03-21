@@ -51,10 +51,11 @@ router.get("/otp", userController.otpPage);
 router.post("/otp", userController.otpPost);
 router.get("/otp-time", userController.otpTime);
 router.post("/otp-send", userController.resendOtp);
-// router.get("/verify-otp", userController.loadVerifyotp2);
-// router.post("/verify-otp", userController.verifyOtp2);
-// router.get("/otp2-time", userController.otp2Time); 
-// router.post("/otp2-send", userController.resendOtp2);
+
+// Chnage-Password
+
+router.get("/change-password", userController.loadChangePassword);
+router.post("/change-password", userController.changePassword); 
 
 
 // Profile Routes

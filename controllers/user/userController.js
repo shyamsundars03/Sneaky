@@ -532,7 +532,6 @@ const forgotPassword = async (req, res) => {
 };
 
 
-// New methods for change email flow
 const loadChangeEmail = async (req, res) => {
     try {
         res.render("change-email", { user: req.session.user });
@@ -583,13 +582,43 @@ const changeEmail = async (req, res) => {
     }
 };
 
+const loadChangePassword = async (req, res) => {
+    try {
+        res.render("change-password", { user: req.session.user });
+    } catch (error) {
+        console.error("Error in loadChangePassword:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
 
+const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const user = await usercollection.findOne({ email: req.session.user.email });
 
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User  not found." });
+        }
 
+        // Verify the old password
+        const isOldPasswordValid = await comparePassword(oldPassword, user.password);
+        if (!isOldPasswordValid) {
+            return res.status(400).json({ success: false, message: "Old password is incorrect." });
+        }
 
+        // Update the password
+        const hashedNewPassword = await encryptPassword(newPassword);
+        await usercollection.updateOne(
+            { email: req.session.user.email },
+            { $set: { password: hashedNewPassword } }
+        );
 
-
-
+        res.status(200).json({ success: true, message: "Password updated successfully." });
+    } catch (error) {
+        console.error("Error in changePassword:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
 
 const verifyOtp2 = async (req, res) => {
     try {
@@ -755,6 +784,9 @@ module.exports = {
     loadVerifyotp2,
     loadChangeEmail,
     changeEmail,
+    changePassword,
+    loadChangePassword,
+
 
 
    
