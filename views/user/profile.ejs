@@ -608,8 +608,10 @@
                     </div>
                     <div class="action-buttons">
                         <button type="submit" class="profile-btn">Save Details</button>
-                        <button type="button" id="changeEmailBtn" class="profile-btn">Change Email</button>
-                        <button type="button" id="resetPasswordBtn" class="profile-btn">Change Password</button>
+                        <% if (user.googleId!==null ) { %>
+                            <button type="button" id="changeEmailBtn" class="btn btn-secondary">Change Email</button>
+                            <button type="button" id="changePasswordBtn" class="btn btn-secondary">Change Password</button>
+                        <% } %>
 
                     </div>
                 </form>
@@ -632,8 +634,6 @@
     document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
         window.location.href = '/forgot-password';
     });
-
-
 
 
     document.getElementById('changeProfileBtn').addEventListener('click', function () {

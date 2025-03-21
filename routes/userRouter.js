@@ -62,6 +62,7 @@ router.post("/change-password", userController.changePassword);
 router.get("/profile", userAuth, profileController.loadProfile);
 router.post("/profile/update", userAuth, profileController.updateProfile);
 router.post("/profile/image", userAuth, profileController.upload, profileController.updateProfileImage);
+// router.post("/update-profile",userAuth, profileController.updateProfile);
 
 // Address Routes
 router.get("/address", userAuth, profileController.loadAddress);
