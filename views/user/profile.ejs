@@ -582,7 +582,7 @@
                 <ul class="sidebar-menu">
                     <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
                     <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
-                    <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+                    <li><a href="#" id="signOutBtn"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                 </ul>
             </div>
 
@@ -710,6 +710,57 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     } else {
         console.error('Error: Could not find profile image elements.');
+    }
+});
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    if (signOutBtn) {
+        signOutBtn.addEventListener('click', function (event) {
+            event.preventDefault(); // Prevent the default link behavior
+
+            // SweetAlert2 confirmation modal
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'You are about to sign out. Do you want to continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, sign out!',
+                cancelButtonText: 'Cancel',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Send a POST request to /logout
+                    fetch('/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => {
+                        if (response.redirected) {
+                            // Redirect to the home page after logout
+                            window.location.href = response.url;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: 'Something went wrong while signing out!',
+                        });
+                    });
+                }
+            });
+        });
+    } else {
+        console.error('Error: Could not find Sign Out button.');
     }
 });
 </script>
