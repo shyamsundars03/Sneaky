@@ -1,7 +1,25 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-
-const {Schema}= mongoose;
+const transactionSchema = new Schema({
+    type: {
+        type: String,
+        enum: ["cashback", "refund", "purchase"], // Types of transactions
+        required: true,
+    },
+    amount: {
+        type: Number,
+        required: true,
+    },
+    date: {
+        type: Date,
+        default: Date.now,
+    },
+    description: {
+        type: String,
+        default: "",
+    },
+});
 
 const userSchema = new Schema({
     name: {
@@ -10,7 +28,7 @@ const userSchema = new Schema({
     email: {
         type: String,
         required: true,
-        unique: true, 
+        unique: true,
     },
     phone: {
         type: String,
@@ -18,7 +36,7 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        default: null, 
+        default: null,
     },
     profileImage: {
         type: String,
@@ -32,14 +50,17 @@ const userSchema = new Schema({
         type: Boolean,
         default: true,
     },
+    wallet: {
+        balance: {
+            type: Number,
+            default: 0, // Default wallet balance is 0
+        },
+        transactions: [transactionSchema], // Array of transactions
+    },
 }, {
     timestamps: true,
 });
- 
- 
- 
- 
- const User = mongoose.model("User",userSchema);
- 
- 
- module.exports = User;
+
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;

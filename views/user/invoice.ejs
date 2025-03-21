@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .invoice-header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .invoice-header p {
+            margin: 5px 0;
+        }
+        .bill-to, .invoice-details {
+            margin-bottom: 20px;
+        }
+        .bill-to h2, .invoice-details h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .bill-to p, .invoice-details p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .summary {
+            margin-top: 20px;
+        }
+        .summary p {
+            margin: 5px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <h1>SNEAKY</h1>
+        <p>No 11, Ram Nagar</p>
+        <p>Ghandhipuram, Coimbatore, Tamil Nadu</p>
+        <p>Phone: +91 8148413021 | Email: sneakyteam@gmail.com</p>
+    </div>
+
+    <div class="bill-to">
+        <h2>BILL TO</h2>
+        <p><%= shippingAddress.name %></p>
+        <p><%= shippingAddress.street %></p>
+        <p><%= shippingAddress.city %>, <%= shippingAddress.state %>, <%= shippingAddress.zip %></p>
+        <p>Phone: <%= user.phone %> | Email: <%= user.email %></p>
+    </div>
+
+    <div class="invoice-details">
+        <h2>INVOICE DETAILS</h2>
+        <p>Invoice No: <%= transactionId %></p>
+        <p>Invoice Date: <%= createdAt %></p>
+        <p>Payment Method: <%= paymentMethod %></p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach(item => { %>
+            <tr>
+                <td><%= item.product.productName %></td>
+                <td><%= item.quantity %></td>
+                <td>₹<%= item.price %></td>
+                <td>₹<%= item.total %></td>
+            </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <p>Sub Total: ₹<%= subTotal %></p>
+        <p>Shipping & handling: ₹<%= shippingCost %></p>
+        <p><strong>Total: ₹<%= totalAmount %></strong></p>
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your business!</p>
+    </div>
+</body>
+</html>

@@ -26,6 +26,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pdfkit": "^0.16.0",
+    "puppeteer": "^24.4.0",
     "sweetalert2": "^11.17.2"
   }
 }

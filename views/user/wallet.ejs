@@ -1,0 +1,292 @@
+<%- include("../../views/partials/user/header") %>
+
+<section class="wallet-banner">
+    <div class="container">
+        <h1>WALLET</h1>
+    </div>
+</section>
+
+<section class="wallet-section">
+    <div class="container">
+        <div class="wallet-content">
+            <!-- Sidebar -->
+            <div class="account-sidebar">
+                <div class="profile-image-container">
+                    <div class="profile-image" onclick="window.location.href='/profile'" style="cursor: pointer;">
+                        <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
+                    </div>
+                </div>
+                <h2 class="account-name"><%= user.name || '' %></h2>
+                <p class="account-email"><%= user.email || '' %></p>
+                <ul class="sidebar-menu">
+                    <li><a href="/orders"><i class="fas fa-box"></i> Orders</a></li>
+                    <li><a href="/address"><i class="fas fa-map-marker-alt"></i> Address</a></li>
+                    <li><a href="/wallet"><i class="fas fa-wallet"></i> Wallet</a></li>
+                    <li><a href="#" id="signOutBtn"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
+                </ul>
+            </div>
+
+            <!-- Wallet Details -->
+            <div class="wallet-details">
+                <h2>My Balance - ₹<%= walletBalance || '0' %></h2>
+                
+                <div class="wallet-transactions">
+                    <% if (transactions && transactions.length > 0) { %>
+                        <% transactions.forEach(transaction => { %>
+                            <div class="transaction-card <%= transaction.type === 'cashback' || transaction.type === 'refund' ? 'cashback' : 'purchase' %>">
+                                <div class="transaction-info">
+                                    <div class="transaction-type-icon">
+                                        <i class="fas <%= transaction.type === 'cashback' || transaction.type === 'refund' ? 'fa-plus' : 'fa-minus' %>"></i>
+                                    </div>
+                                    <div class="transaction-details">
+                                        <h3 class="transaction-type"><%= transaction.type === 'cashback' ? 'Cashback' : transaction.type === 'refund' ? 'Refund' : 'Purchase' %></h3>
+                                        <p class="transaction-date">On <%= transaction.date.toLocaleDateString() %></p>
+                                        <p class="transaction-description"><%= transaction.description %></p>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount <%= transaction.type === 'cashback' || transaction.type === 'refund' ? 'amount-positive' : 'amount-negative' %>">
+                                    <%= transaction.type === 'cashback' || transaction.type === 'refund' ? '+' : '-' %>₹<%= transaction.amount %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No transactions found.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CSS Styles for Wallet Page -->
+<style>
+/* Wallet Banner */
+.wallet-banner {
+    background-color: #000;
+    color: white;
+    padding: 50px 0;
+    text-align: center;
+}
+
+.wallet-banner h1 {
+    font-size: 2.5rem;
+    letter-spacing: 2px;
+}
+
+/* Wallet Section */
+.wallet-section {
+    background-color: #fff;
+    border-radius: 20px 20px 0 0;
+    margin-top: -20px;
+    padding: 50px 0;
+}
+
+.wallet-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+/* Wallet Details */
+.wallet-details {
+    flex: 2;
+    min-width: 300px;
+}
+
+.wallet-details h2 {
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+}
+
+.wallet-transactions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.transaction-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.transaction-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.transaction-type-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.cashback .transaction-type-icon {
+    background-color: #e6f7ee;
+    color: #27ae60;
+}
+
+.purchase .transaction-type-icon {
+    background-color: #ffeaea;
+    color: #e74c3c;
+}
+
+.transaction-details h3 {
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 0.25rem 0;
+}
+
+.transaction-details p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.transaction-amount {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.amount-positive {
+    color: #27ae60;
+}
+
+.amount-negative {
+    color: #e74c3c;
+}
+
+/* Inherit sidebar styles from address page */
+.account-sidebar {
+    flex: 1;
+    min-width: 250px;
+    max-width: 300px;
+    background: #fff;
+    border-radius: 15px;
+    border: 2px solid rgb(181, 181, 181);
+    padding: 30px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.profile-image-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.profile-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-name {
+    text-align: center;
+    font-size: 1.25rem;
+    margin: 0.5rem 0;
+}
+
+.account-email {
+    text-align: center;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 4px;
+    color: #333;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.sidebar-menu a:hover {
+    background-color: #f5f5f5;
+}
+
+.sidebar-menu a i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const signOutBtn = document.getElementById('signOutBtn');
+
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default link behavior
+
+                // SweetAlert2 confirmation modal
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'You are about to sign out. Do you want to continue?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, sign out!',
+                    cancelButtonText: 'Cancel',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Send a POST request to /logout
+                        fetch('/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => {
+                            if (response.redirected) {
+                                // Redirect to the home page after logout
+                                window.location.href = response.url;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: 'Something went wrong while signing out!',
+                            });
+                        });
+                    }
+                });
+            });
+        } else {
+            console.error('Error: Could not find Sign Out button.');
+        }
+    });
+</script>
+
+<%- include("../../views/partials/user/footer") %>

@@ -611,7 +611,7 @@
                                 <td><%= item.product.productName %></td>
                                 <td>₹<%= item.price %></td>
                                 <td><%= item.quantity %></td>
-                                <td><span class="status <%= item.status.toLowerCase() %>"><%= item.status %></span></td>
+                                <td><span class="status <%= order.status.toLowerCase() %>"><%= order.status %></span></td>
                                 <td >₹<%= item.price * item.quantity %></td>
                             </tr>
                         <% }) %>
@@ -725,9 +725,9 @@
     }
     </script>
     <script>
-        function downloadInvoice(orderId) {
-            window.location.href = `/download-invoice/${orderId}`;
-        }
+    function downloadInvoice(orderId) {
+        window.location.href = `/download-invoice/${orderId}`;
+    }
     </script>
 </body>
 </html>

@@ -10,6 +10,7 @@ const profileController = require("../controllers/user/profileController");
 const checkoutController = require("../controllers/user/checkoutController");
 const wishlistController = require("../controllers/user/wishlistController");
 const orderController = require("../controllers/user/orderController");
+const walletController = require('../controllers/user/walletController');
 const userAuth = require('../middlewares/userAuth');
 const multer = require('multer');
 const path = require('path');
@@ -86,7 +87,6 @@ router.get("/orders/:orderId", orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
 router.post('/cancel-order', orderController.cancelOrder);
 router.post('/return-order', orderController.returnOrder);
-router.get('/search-orders', orderController.searchOrders);
 router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 
 // Error page
@@ -105,6 +105,9 @@ router.post("/place-order", userAuth, checkoutController.placeOrder);
 router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'] }));
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/signin' }), userController.googleCallback);
 
+// Wallet routes
+router.get('/wallet', walletController.loadWallet); // Load wallet page
+router.post('/wallet/add-funds', walletController.addFunds); // Add funds to wallet (optional)
 
 
 
