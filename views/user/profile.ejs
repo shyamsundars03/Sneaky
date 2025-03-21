@@ -570,12 +570,12 @@
                     <div class="profile-image">
                         <img id="profileImg" src="<%= user.profileImage || 'https://via.placeholder.com/150' %>" alt="Profile Picture">
                         <div class="profile-image-overlay">
-                            <button id="changeProfileBtn"><i class="fas fa-camera"></i></button>
+                            <!-- Button to trigger file input -->
+                            <button id="changeProfileBtn"><i class="fas fa-camera"></i> Change Profile</button>
                         </div>
                     </div>
-                    <form id="profileImageForm" enctype="multipart/form-data">
-                        <input type="file" id="profileImageInput" name="profileImage" accept="image/*" style="display: none;">
-                    </form>
+                    <!-- Hidden file input -->
+                    <input type="file" id="profileImageInput" style="display: none;">
                 </div>
                 <h2 class="account-name"><%= user.name || '' %></h2>
                 <p class="account-email"><%= user.email || '' %></p>
@@ -603,14 +603,14 @@
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" required />
+                            <input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" required maxlength="10"  />
                         </div>
                     </div>
                     <div class="action-buttons">
                         <button type="submit" class="profile-btn">Save Details</button>
-                        <% if (user.googleId!==null ) { %>
-                            <button type="button" id="changeEmailBtn" class="btn btn-secondary">Change Email</button>
-                            <button type="button" id="changePasswordBtn" class="btn btn-secondary">Change Password</button>
+                        <% if (user.googleId===null ) { %>
+                            <button type="button" id="changeEmailBtn" class="profile-btn">Change Email</button>
+                            <button type="button" id="changePasswordBtn" class="profile-btn">Change Password</button>
                         <% } %>
 
                     </div>
@@ -636,46 +636,82 @@
     });
 
 
-    document.getElementById('changeProfileBtn').addEventListener('click', function () {
-        document.getElementById('profileImageInput').click();
-    });
+   
+</script>
 
-    document.getElementById('profileImageInput').addEventListener('change', function () {
-        const formData = new FormData();
-        formData.append('profileImage', this.files[0]);
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM fully loaded!'); // Debugging
 
-        fetch('/profile/image', {
-            method: 'POST',
-            body: formData,
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: data.message,
-                    }).then(() => {
-                        // Reload the page to reflect the new image
-                        window.location.reload();
-                    });
-                } else {
+    const changeProfileBtn = document.getElementById('changeProfileBtn');
+    const profileImageInput = document.getElementById('profileImageInput');
+
+    if (changeProfileBtn && profileImageInput) {
+        changeProfileBtn.addEventListener('click', function () {
+            console.log('File input clicked!'); // Debugging
+            profileImageInput.click();
+        });
+
+        profileImageInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                console.log('File selected:', this.files[0]); // Debugging
+
+                const formData = new FormData();
+                formData.append('profileImage', this.files[0]);
+
+                console.log('Sending fetch request...'); // Debugging
+                fetch('/profile/image', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => {
+                    console.log('Response received:', response); // Debugging
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data); // Debugging
+                    if (data.success) {
+                        // SweetAlert2 success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Profile image updated successfully!',
+                        }).then(() => {
+                            // Reload the page after the alert is closed
+                            window.location.reload();
+                        });
+                    } else {
+                        // SweetAlert2 error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: data.message || 'Failed to upload image.',
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error); // Debugging
+                    // SweetAlert2 error message
                     Swal.fire({
                         icon: 'error',
                         title: 'Oops...',
-                        text: data.message,
+                        text: 'Something went wrong while uploading the image!',
                     });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'Something went wrong!',
                 });
-            });
-    });
+            } else {
+                console.log('No file selected.'); // Debugging
+                // SweetAlert2 warning message
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No File Selected',
+                    text: 'Please select an image to upload.',
+                });
+            }
+        });
+    } else {
+        console.error('Error: Could not find profile image elements.');
+    }
+});
 </script>
 
 <%- include("../../views/partials/user/footer") %>
