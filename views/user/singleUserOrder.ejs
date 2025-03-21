@@ -473,6 +473,7 @@
     
                 <!-- Order Details -->
                 <div class="orders-details">
+                    <a href="/download-invoice/<%= order._id %>" class="btn">Download Invoice</a>
                     <h2>Order #<%= order.transactionId %></h2>
                     <p>Placed on: <%= order.createdAt.toLocaleDateString() %></p>
                     <p>Status: <span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></p>
@@ -492,7 +493,11 @@
                                 <tr>
                                     <td>
                                         <div class="item-details">
-                                            <img src="<%= item.product.images[0] %>" alt="<%= item.product.productName %>" width="50" height="50">
+                                            <% if (item.product.productImage && item.product.productImage[0]) { %>
+                                                <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" width="50" height="50">
+                                            <% } else { %>
+                                                <img src="/path/to/placeholder-image.jpg" alt="No image available" width="50" height="50">
+                                            <% } %>
                                             <span><%= item.product.productName %></span>
                                         </div>
                                     </td>

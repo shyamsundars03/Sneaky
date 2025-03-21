@@ -14,6 +14,13 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    status: {
+        type: String,
+        enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
+        default: "Pending",
+    },
+    cancellationReason: String,
+    returnReason: String,
 });
 
 const orderSchema = new mongoose.Schema({
@@ -41,15 +48,24 @@ const orderSchema = new mongoose.Schema({
         enum: ["Standard", "Premium"],
         required: true,
     },
+    shippingCost: {
+        type: Number,
+        default: 0, 
+    },
     totalAmount: {
         type: Number,
         required: true,
     },
     status: {
         type: String,
-        enum: ["Pending", "Shipped", "Delivered", "Cancelled"],
+        enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
         default: "Pending",
     },
+    transactionId: {
+        type: String,
+        unique: true, 
+    },
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Order", orderSchema);

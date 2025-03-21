@@ -109,7 +109,7 @@ const loadCheckout3 = async (req, res) => {
 const placeOrder = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { shippingAddress, paymentMethod, shippingMethod } = req.body;
+        const { shippingAddress, paymentMethod, shippingMethod, shippingCost } = req.body;
 
         // Retrieve the cart
         const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
@@ -118,8 +118,13 @@ const placeOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: "Cart is empty." });
         }
 
-        // Calculate total amount
-        const totalAmount = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        // Calculate total amount (products total + shipping cost)
+        const productsTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const totalAmount = productsTotal + Number(shippingCost || 0);
+
+        // Generate a unique transactionId
+        const transactionId = `ORD${Math.floor(100000 + Math.random() * 900000)}`;
+
 
         // Create order
         const order = new Order({
@@ -128,32 +133,32 @@ const placeOrder = async (req, res) => {
                 product: item.product._id,
                 quantity: item.quantity,
                 price: item.price,
+                size: item.size, // Include the size in the order item
             })),
             shippingAddress,
             paymentMethod,
             shippingMethod,
-            totalAmount,
+            shippingCost: Number(shippingCost || 0), // Save shipping cost
+            totalAmount, // Save total amount (products total + shipping cost)
+            transactionId,
         });
 
         // Save the order
         await order.save();
 
-        // Generate transaction ID using the last 4 digits of the order's _id
-        const transactionId = `PN${order._id.toString().slice(-4)}`;
-
-        // Update the order with the transaction ID
-        order.transactionId = transactionId;
-        await order.save();
-
-        // Update stock quantities in bulk
+        // Update stock quantities in bulk for specific sizes
         const bulkOps = cart.cartItems.map(item => ({
             updateOne: {
-                filter: { _id: item.product._id },
-                update: { $inc: { stock: -item.quantity } },
+                filter: { 
+                    _id: item.product._id,
+                    "sizes.size": item.size, // Match the specific size
+                },
+                update: { 
+                    $inc: { "sizes.$.stock": -item.quantity }, // Decrease stock for the specific size
+                },
             },
         }));
         await Product.bulkWrite(bulkOps);
-
 
         // Clear the cart
         await Cart.findOneAndDelete({ user: userId });

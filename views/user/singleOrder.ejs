@@ -516,7 +516,10 @@
 
         }
 
-
+.detail-card{
+    border: 1px solid red;
+    border-radius: 10px;
+}
 
 
 
@@ -525,13 +528,12 @@
 <body>
     <%-include("../../views/partials/user/header")%>
     
-    
     <!-- Orders Banner -->
     <section class="orders-banner">
         <div class="container">
             <h1>ORDERS</h1>
             <div class="breadcrumb">
-                <a href="/orders">ORDERS</a> / <span>TRANSACTION ID</span>
+                <a href="/orders">ORDERS</a> / <span><%= order.transactionId %></span>
             </div>
         </div>
     </section>
@@ -543,14 +545,12 @@
                 <!-- Order Header -->
                 <div class="order-header">
                     <div class="order-id">
-                        Order ID: #PN001
-                        <span class="pending-tag">Pending</span>
+                        Order ID: #<%= order.transactionId %>
+                        <span class="status <%= order.status.toLowerCase() %>"><%= order.status %></span>
                     </div>
                     
                     <div class="order-actions">
-                        <button class="singleorder-btn ">Buy Again</button>
-                        <button class="singleorder-btn ">Save</button>
-                        <button class="singleorder-btn ">Download Invoice</button>
+                        <button class="singleorder-btn" onclick="downloadInvoice('<%= order._id %>')">Download Invoice</button>
                     </div>
                 </div>
                 
@@ -559,26 +559,27 @@
                     <!-- Customer Details -->
                     <div class="detail-card">
                         <h3>Customer Details</h3>
-                        <p>John Doe</p>
-                        <p>johndoe@example.com</p>
-                        <p>+999 99 21212456</p>
-                        <a href="#" class="view-profile">View Profile</a>
+                        <p><%= user.name %></p>
+                        <p><%= user.email %></p>
+                        <p><%= user.phone || 'No Phone' %></p>
+                        <a href="/profile" class="view-profile">View Profile</a>
                     </div>
                     
                     <!-- Shipping Address -->
                     <div class="detail-card">
                         <h3>Shipping Address</h3>
-                        <p>Greg Harvell</p>
-                        <p>56A, Suite Ave.</p>
-                        <p>Austria, 235153</p>
+                        <p><%= order.shippingAddress.name %></p>
+                        <p><%= order.shippingAddress.street %></p>
+                        <p><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %>, <%= order.shippingAddress.zip %></p>
+                        <p><%= order.shippingAddress.country %></p>
                     </div>
                     
                     <!-- Order Details -->
                     <div class="detail-card">
                         <h3>Order Details</h3>
-                        <p>Order ID: PN001</p>
-                        <p>Order Date: October 22, 2023</p>
-                        <p>Order Total: ₹9000.38</p>
+                        <p>Order ID: <%= order.transactionId %></p>
+                        <p>Order Date: <%= order.createdAt.toLocaleDateString() %></p>
+                        <p>Order Total: ₹<%= order.totalAmount %></p>
                     </div>
                 </div>
                 
@@ -586,73 +587,45 @@
                 <table class="products-table">
                     <thead>
                         <tr>
-                            <th>Products</th>
+                            <th>Image</th>
+                            <th>Product Name</th>
                             <th>Price</th>
                             <th>Quantity</th>
                             <th>Order Status</th>
-                            <th class="text-right">Total</th>
+                            <th >Total</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <% order.items.forEach(item => { %>
+                            <tr>
+                                <td>
+                                    <div class="product-row">
+                                        <% if (item.product.productImage && item.product.productImage[0]) { %>
+                                            <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img" />
+                                        <% } else { %>
+                                            <img src="/images/placeholder.jpg" alt="No image available" class="product-img" />
+                                        <% } %>
+
+                                    </div>
+                                </td>
+                                <td><%= item.product.productName %></td>
+                                <td>₹<%= item.price %></td>
+                                <td><%= item.quantity %></td>
+                                <td><span class="status <%= item.status.toLowerCase() %>"><%= item.status %></span></td>
+                                <td >₹<%= item.price * item.quantity %></td>
+                            </tr>
+                        <% }) %>
                         <tr>
-                            <td>
-                                <div class="product-row">
-                                    <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-img" />
-                                    <span>Nike Daily-wears</span>
-                                </div>
-                            </td>
-                            <td>₹1800.0</td>
-                            <td>1</td>
-                            <td><span class="status pending">Delivered</span></td>
-                            <td class="text-right">₹1800.0</td>
+                            <td colspan="6" class="text-right">Sub Total :</td>
+                            <td class="text-right">₹<%= order.totalAmount - (order.shippingCost || 0) %></td>
                         </tr>
                         <tr>
-                            <td>
-                                <div class="product-row">
-                                    <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-img" />
-                                    <span>Nike Daily-wears</span>
-                                </div>
-                            </td>
-                            <td>₹2400.0</td>
-                            <td>1</td>
-                            <td><span class="status pending">Delivered</span></td>
-                            <td class="text-right">₹1800.0</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="product-row">
-                                    <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-img" />
-                                    <span>Nike Daily-wears</span>
-                                </div>
-                            </td>
-                            <td>₹3002.0</td>
-                            <td>1</td>
-                            <td><span class="status pending">shipped</span></td>
-                            <td class="text-right">₹3002.0</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="product-row">
-                                    <img src="/api/placeholder/50/50" alt="Nike Daily-wears" class="product-img" />
-                                    <span>Nike Daily-wears</span>
-                                </div>
-                            </td>
-                            <td>₹3000.0</td>
-                            <td>2</td>
-                            <td><span class="status pending">Pending</span></td>
-                            <td class="text-right">₹3000.0</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="text-right">Sub Total :</td>
-                            <td class="text-right">₹9800.00</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="text-right">Shipping Cost :</td>
-                            <td class="text-right">₹100.00</td>
+                            <td colspan="6" class="text-right">Shipping Cost :</td>
+                            <td class="text-right">₹<%= order.shippingCost || 0 %></td>
                         </tr>
                         <tr class="total-row">
-                            <td colspan="3" class="text-right">Grand Total :</td>
-                            <td class="text-right">₹9900.00</td>
+                            <td colspan="6" class="text-right">Grand Total :</td>
+                            <td class="text-right">₹<%= order.totalAmount  %></td>
                         </tr>
                     </tbody>
                 </table>
@@ -660,13 +633,18 @@
                 <!-- Payment Info -->
                 <div class="payment-info">
                     <h3>Payment Info</h3>
-                    <p>Cash on Delivery</p>
+                    <p><%= order.paymentMethod %></p>
                 </div>
                 
+
                 <!-- Bottom Actions -->
                 <div class="bottom-actions">
-                    <a href="#" class="singleorder-btn ">Back</a>
-                    <a href="#" class="singleorder-btn ">Cancel Order</a>
+                    <a href="/orders" class="singleorder-btn">Back</a>
+                    <% if (order.status === 'Pending' || order.status === 'Shipped') { %>
+                        <button class="singleorder-btn" id="cancelOrderBtn">Cancel Order</button>
+                    <% } else if (order.status === 'Delivered') { %>
+                        <button class="singleorder-btn" onclick="returnOrder('<%= order._id %>')">Return Order</button>
+                    <% } %>
                 </div>
             </div>
         </div>
@@ -674,14 +652,82 @@
     
     <%-include("../../views/partials/user/footer")%>
     
-
-    
     <script>
-        // Simple mobile menu toggle
-        document.querySelector('.menu-icon').addEventListener('click', function() {
-            const navLinks = document.querySelector('.nav-links');
-            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+        // Cancel Order Functionality
+        document.getElementById('cancelOrderBtn').addEventListener('click', function () {
+        Swal.fire({
+            title: 'Cancel Order',
+            input: 'text',
+            inputLabel: 'Reason for cancellation (optional):',
+            inputPlaceholder: 'Enter your reason here...',
+            showCancelButton: true,
+            confirmButtonText: 'Submit',
+            cancelButtonText: 'Cancel',
+            preConfirm: (reason) => {
+                return fetch(`/cancel-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message || 'Failed to cancel order.');
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error.message}`);
+                });
+            },
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Order Cancelled',
+                    text: 'Your order has been cancelled successfully.',
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
         });
+    });
+
+    // Return Order Functionality
+    function returnOrder(orderId) {
+        const reason = prompt("Please enter the reason for return (mandatory):");
+        if (reason) {
+            fetch(`/return-order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ orderId, reason }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Return request submitted successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Failed to submit return request.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        } else {
+            alert('Reason for return is mandatory.');
+        }
+    }
+    </script>
+    <script>
+        function downloadInvoice(orderId) {
+            window.location.href = `/download-invoice/${orderId}`;
+        }
     </script>
 </body>
 </html>

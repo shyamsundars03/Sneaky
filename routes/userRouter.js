@@ -82,8 +82,12 @@ router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
 
 // Order
 router.get("/orders", userAuth, orderController.loadOrder);
-router.get("/orders/:id", orderController.loadSingleOrder);
+router.get("/orders/:orderId", orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
+router.post('/cancel-order', orderController.cancelOrder);
+router.post('/return-order', orderController.returnOrder);
+router.get('/search-orders', orderController.searchOrders);
+router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);

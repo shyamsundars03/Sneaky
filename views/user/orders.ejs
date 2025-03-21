@@ -430,6 +430,49 @@
                 font-size: 12px;
             }
         }
+
+
+        .view-btn {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.view-btn:hover {
+    background-color: #45a049;
+}
+
+.cancel-btn {
+    background-color: #f44336; /* Red */
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background-color: #d32f2f;
+}
+
+.return-btn {
+    background-color: #2196F3; /* Blue */
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.return-btn:hover {
+    background-color: #1976D2;
+}
+
+
     </style>
 </head>
 <body>
@@ -464,6 +507,9 @@
 <!-- Orders Details -->
 <div class="orders-details">
     <h2>Orders</h2>
+    <!-- <div class="header-actions">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search Orders">
+    </div> -->
     <table class="orders-table">
         <thead>
             <tr>
@@ -472,7 +518,7 @@
                 <th>Items</th>
                 <th>Total</th>
                 <th>Status</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -481,10 +527,19 @@
                     <tr>
                         <td><%= order.transactionId %></td>
                         <td><%= order.createdAt.toLocaleDateString() %></td>
-                        <td><%= order.items.length %></td>
+                        <td>
+                            <% order.items.forEach(item => { %>
+                                <div>
+                                     <%= item.quantity %>
+                                </div>
+                            <% }) %>
+                        </td>
                         <td>₹<%= order.totalAmount %></td>
                         <td><span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></td>
-                        <td><a href="/orders/<%= order._id %>" class="view-btn">View</a></td>
+                        <td>
+<a href="/orders/<%= order._id %>" class="view-btn">View</a>
+                            
+                        </td>
                     </tr>
                 <% }) %>
             <% } else { %>
@@ -551,5 +606,95 @@
     }
 });
 </script>
+<script>
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const cancelButtons = document.querySelectorAll('.cancel-btn');
+    const returnButtons = document.querySelectorAll('.return-btn');
+
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const orderId = this.getAttribute('data-order-id');
+            const itemId = this.getAttribute('data-item-id');
+            const reason = prompt("Please enter the reason for cancellation (optional):");
+
+            fetch('/cancel-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ orderId, itemId, reason }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Order item cancelled successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Failed to cancel order item.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    });
+
+    returnButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const orderId = this.getAttribute('data-order-id');
+            const itemId = this.getAttribute('data-item-id');
+            const reason = prompt("Please enter the reason for return (mandatory):");
+
+            if (!reason) {
+                alert('Reason for return is mandatory.');
+                return;
+            }
+
+            fetch('/return-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ orderId, itemId, reason }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Order item returned successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Failed to return order item.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    });
+});
+</script>
+
+<script>
+    // Search functionality
+    const searchBox = document.getElementById('searchBox');
+
+    // Set the search box value from the URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTerm = urlParams.get('search') || '';
+    searchBox.value = searchTerm;
+
+    searchBox.addEventListener('input', function (e) {
+        const searchTerm = e.target.value.trim();
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchTerm);
+        url.searchParams.set('page', 1); // Reset to the first page when searching
+        window.location.href = url.toString();
+    });
+</script>
+
 
 </html>
