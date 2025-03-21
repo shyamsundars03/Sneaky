@@ -39,6 +39,11 @@ router.get("/reset-password", userController.loadResetPassword);
 router.post("/forgot-password", userController.forgotPassword);
 router.post("/reset-password", userController.resetPassword);
 
+// New routes for change email flow
+router.get("/change-email", userController.loadChangeEmail); // Render change-email.ejs
+router.post("/change-email", userController.changeEmail); // Handle email change request
+router.post("/verify-otp", userController.verifyOtp2); // Reuse OTP verification
+router.get("/verify-otp", userController.loadVerifyotp2); 
 // OTP
 router.get("/otpsend", userController.otpSend);
 router.get("/otp", userController.otpPage);
@@ -48,7 +53,8 @@ router.post("/otp-send", userController.resendOtp);
 router.get("/verify-otp", userController.loadVerifyotp2);
 router.post("/verify-otp", userController.verifyOtp2);
 router.get("/otp2-time", userController.otp2Time); 
-router.post("/otp2-send", userController.resendOtp2);
+// router.post("/otp2-send", userController.resendOtp2);
+router.post("/resend-otp2", userController.resendOtp2);
 
 // Profile Routes
 router.get("/profile", userAuth, profileController.loadProfile);

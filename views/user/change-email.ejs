@@ -58,58 +58,60 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const form = document.getElementById("changeEmailForm");
-            const newEmailField = document.getElementById("newEmail");
-            const newEmailError = document.getElementById("newEmailError");
+ document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("changeEmailForm");
+        const newEmailField = document.getElementById("newEmail");
+        const newEmailError = document.getElementById("newEmailError");
 
-            form.addEventListener("submit", async function (event) {
-                event.preventDefault();
-                newEmailError.textContent = "";
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            newEmailError.textContent = "";
 
-                const newEmail = newEmailField.value.trim();
+            const newEmail = newEmailField.value.trim();
 
-                if (!newEmail) {
-                    newEmailError.textContent = "New email is required";
-                    return;
-                }
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!newEmail || !emailRegex.test(newEmail)) {
+                newEmailError.textContent = "Please enter a valid email address.";
+                return;
+            }
 
-                try {
-                    const response = await fetch('/change-email', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ newEmail }),
+            try {
+                const response = await fetch('/change-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ newEmail }),
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'OTP Sent!',
+                        text: 'An OTP has been sent to your new email.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = data.redirectUrl; // Redirect to OTP verification page
                     });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'OTP Sent!',
-                            text: 'An OTP has been sent to your new email.',
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.href = '/verify-otp?scenario=change-email';
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: data.message || 'Failed to send OTP.',
-                        });
-                    }
-                } catch (error) {
+                } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: 'An error occurred. Please try again.',
+                        text: data.message || 'Failed to send OTP.',
                     });
                 }
-            });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An error occurred. Please try again.',
+                });
+            }
         });
+    });
     </script>
 </body>
 </html>

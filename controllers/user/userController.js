@@ -531,10 +531,71 @@ const forgotPassword = async (req, res) => {
     }
 };
 
+
+// New methods for change email flow
+const loadChangeEmail = async (req, res) => {
+    try {
+        res.render("change-email", { user: req.session.user });
+    } catch (error) {
+        console.error("Error in loadChangeEmail:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
+
+const changeEmail = async (req, res) => {
+    try {
+        const { newEmail } = req.body;
+        const user = await usercollection.findOne({ email: req.session.user.email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        // Check if the new email already exists
+        const emailExists = await usercollection.findOne({ email: newEmail });
+        if (emailExists) {
+            return res.status(409).json({ success: false, message: "Email already in use." });
+        }
+
+        // Generate OTP
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpSession = true;
+        req.session.otpError = null;
+        req.session.otpTime = 75;
+        req.session.otpStartTime = Date.now();
+
+        // Send OTP to the new email
+        sendotp(generatedOtp, newEmail);
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: newEmail },
+            { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
+            { upsert: true }
+        );
+
+        // Store the new email in session for verification
+        req.session.tempEmail = newEmail;
+
+        res.status(200).json({ success: true, message: "OTP sent successfully.", redirectUrl: `/verify-otp?scenario=change-email` });
+    } catch (error) {
+        console.error("Error in changeEmail:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
+
+
+
+
+
+
+
+
+
 const verifyOtp2 = async (req, res) => {
     try {
         const { otp } = req.body;
-        const findOtp = await otpCollection.findOne({ email: req.session.user.email });
+        const email = req.session.tempEmail || req.session.user.email; // Handle both scenarios
+        const findOtp = await otpCollection.findOne({ email });
 
         if (!findOtp || findOtp.expiresAt < new Date()) {
             return res.status(400).json({ success: false, message: "OTP has expired." });
@@ -546,9 +607,21 @@ const verifyOtp2 = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid OTP." });
         }
 
+        // Handle change email scenario
+        if (req.session.tempEmail) {
+            await usercollection.updateOne(
+                { email: req.session.user.email },
+                { $set: { email: req.session.tempEmail } }
+            );
+            req.session.user.email = req.session.tempEmail; // Update session email
+            delete req.session.tempEmail;
+            return res.status(200).json({ success: true, message: "Email updated successfully." });
+        }
+
+        // Handle forgot password scenario
         res.status(200).json({ success: true, message: "OTP verified successfully." });
     } catch (error) {
-        console.error("Error in verifyOtp:", error);
+        console.error("Error in verifyOtp2:", error);
         res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
@@ -588,14 +661,20 @@ const loadForgotPassword = async (req, res) => {
 };
 const loadVerifyotp2 = async (req, res) => {
     try {
+        const scenario = req.query.scenario || 'forgot-password'; // Default to 'forgot-password' if scenario is not provided
 
-            res.render("otp2"); 
+        // Calculate remaining time
+        const otpStartTime = req.session.otpStartTime || Date.now();
+        const elapsedTime = Math.floor((Date.now() - otpStartTime) / 1000);
+        const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
 
-    } catch (error){
-        console.log(error)
-        next(new AppError('Sorry...Something went wrong', 500));
+        res.render("otp2", { scenario, remainingTime, user: req.session.user });
+    } catch (error) {
+        console.error("Error in loadVerifyotp2:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
+
 const loadResetPassword = async (req, res) => {
     try {
 
@@ -625,24 +704,25 @@ const otp2Time = (req, res) => {
 
 const resendOtp2 = async (req, res) => {
     try {
-        if (!req.session.user || !req.session.user.email) {
-            return res.status(400).json({ success: false, message: "User data not found in session." });
+        const email = req.session.tempEmail || req.session.user.email; // Handle both scenarios
+        if (!email) {
+            return res.status(400).json({ success: false, message: "User  data not found in session." });
         }
 
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        req.session.otpStartTime = Date.now();
-        sendotp(generatedOtp, req.session.user.email);
+        req.session.otpStartTime = Date.now(); // Update the start time in session
+        sendotp(generatedOtp, email); // Ensure this function is working correctly
         const hashedOtp = await encryptPassword(generatedOtp);
         await otpCollection.updateOne(
-            { email: req.session.user.email },
+            { email },
             { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } },
             { upsert: true }
         );
-        console.log("resendOtp2 used");
-        res.json({ success: true });
+
+        res.status(200).json({ success: true, message: "OTP resent successfully." });
     } catch (error) {
         console.error("Error in resendOtp2:", error);
-        res.status(500).json({ success: false });
+        res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
 
@@ -673,6 +753,10 @@ module.exports = {
     loadForgotPassword,
     loadResetPassword,
     loadVerifyotp2,
+    loadChangeEmail,
+    changeEmail,
+
+
    
 
 };
