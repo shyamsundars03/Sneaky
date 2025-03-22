@@ -40,9 +40,14 @@ router.delete('/userManagement/:id', adminAuth, userController.deleteUser);
 router.post('/userManagement/:id/toggle-status', adminAuth, userController.toggleUserStatus);
 
 // Order management
-router.get("/orderManagement", adminAuth, orderController.loadOrderManagement);
-router.get("/orderManagement/:id", adminAuth, orderController.loadSingleAdminOrder);
-router.get('/order/:id', orderController.loadSingleAdminOrder);
+router.get("/orderManagement", adminAuth, orderController.loadOrderManagement); // Load order management page
+router.get("/orderManagement/:id", adminAuth, orderController.loadSingleAdminOrder); // Load single order details
+router.get('/order/:id', adminAuth, orderController.loadSingleAdminOrder); // Alternative route for single order
+router.post('/update-order-status', adminAuth, orderController.updateOrderStatus); // Update order status
+router.post('/cancel-order', adminAuth, orderController.cancelOrder); // Cancel order
+router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest);
+
+
 // Coupon management
 router.get("/couponManagement", adminAuth, couponController.loadCouponManagement);
 

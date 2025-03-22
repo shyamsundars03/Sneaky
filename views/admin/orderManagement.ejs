@@ -354,8 +354,8 @@
                     <% if (orders.length > 0) { %>
                         <% orders.forEach(order => { %>
                             <tr>
-                                <td>#<%= order._id.toString().slice(-6).toUpperCase() %></td>
-                                <td><%= order.user.name %></td>
+                                <td><%= order.transactionId %></td>
+                                <td><%= order.user ? order.user.name : 'Unknown User' %></td>
                                 <td><%= order.paymentMethod %></td>
                                 <td><%= order.createdAt.toLocaleDateString() %></td>
                                 <td>₹<%= order.totalAmount.toFixed(2) %></td>
