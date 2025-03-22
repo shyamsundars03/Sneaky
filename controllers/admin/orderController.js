@@ -228,10 +228,69 @@ const verifyReturnRequest = async (req, res) => {
     }
 };
 
+
+const verifyOrder = async (req, res) => {
+    try {
+        const { orderId, status } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found.' });
+        }
+
+        // Update order status
+        order.status = status;
+        await order.save();
+
+        res.status(200).json({ success: true, message: `Order status updated to ${status}.` });
+    } catch (error) {
+        console.error('Error verifying order:', error);
+        res.status(500).json({ success: false, message: 'Failed to verify order.' });
+    }
+};
+const verifyReturn = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found.' });
+        }
+
+        // Check if the order is in "Return Requested" status
+        if (order.status !== 'Return Requested') {
+            return res.status(400).json({ success: false, message: 'Order is not in return requested status.' });
+        }
+
+        // Update order status to "Returned"
+        order.status = 'Returned';
+        await order.save();
+
+        // Refund the amount to the user's wallet
+        const user = await User.findById(order.user);
+        if (user) {
+            user.wallet.balance += order.totalAmount; // Refund the amount
+            user.wallet.transactions.push({
+                type: 'refund',
+                amount: order.totalAmount,
+                description: 'Refund for returned order',
+            });
+            await user.save();
+        }
+
+        res.status(200).json({ success: true, message: 'Return request verified and order status updated.' });
+    } catch (error) {
+        console.error('Error verifying return:', error);
+        res.status(500).json({ success: false, message: 'Failed to verify return request.' });
+    }
+};
+
 module.exports = {
     loadOrderManagement,
     loadSingleAdminOrder,
     updateOrderStatus,
     cancelOrder,
     verifyReturnRequest,
+    verifyOrder,
+    verifyReturn
 };

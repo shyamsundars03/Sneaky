@@ -6,6 +6,7 @@
     <link rel="icon" href="/images/sneaky.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>SNEAKY</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Reset and base styles */
         * {
@@ -643,7 +644,7 @@
                     <% if (order.status === 'Pending' || order.status === 'Shipped') { %>
                         <button class="singleorder-btn" id="cancelOrderBtn">Cancel Order</button>
                     <% } else if (order.status === 'Delivered') { %>
-                        <button class="singleorder-btn" onclick="returnOrder('<%= order._id %>')">Return Order</button>
+                        <button class="singleorder-btn" id="returnOrderBtn">Return Order</button>
                     <% } %>
                 </div>
             </div>
@@ -695,35 +696,64 @@
         });
     });
 
-    // Return Order Functionality
-    function returnOrder(orderId) {
-        const reason = prompt("Please enter the reason for return (mandatory):");
-        if (reason) {
-            fetch(`/return-order`, {
+
+    </script>
+
+
+<script>
+
+        // Return Order Functionality
+document.getElementById('returnOrderBtn').addEventListener('click', function () {
+    Swal.fire({
+        title: 'Return Order',
+        input: 'text',
+        inputLabel: 'Reason for return (mandatory):',
+        inputPlaceholder: 'Enter your reason here...',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Reason for return is mandatory.';
+            }
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Submit',
+        cancelButtonText: 'Cancel',
+        preConfirm: (reason) => {
+            return fetch('/return-order', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ orderId, reason }),
+                body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert('Return request submitted successfully.');
-                    window.location.reload();
-                } else {
-                    alert('Failed to submit return request.');
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to submit return request.');
                 }
+                return data;
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                Swal.showValidationMessage(`Request failed: ${error.message}`);
             });
-        } else {
-            alert('Reason for return is mandatory.');
+        },
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Return Request Submitted',
+                text: 'Your return request has been submitted successfully.',
+            }).then(() => {
+                window.location.reload();
+            });
         }
-    }
-    </script>
+    });
+});
+</script>
+
+
+
+
+
     <script>
     function downloadInvoice(orderId) {
         window.location.href = `/download-invoice/${orderId}`;

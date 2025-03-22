@@ -46,6 +46,8 @@ router.get('/order/:id', adminAuth, orderController.loadSingleAdminOrder); // Al
 router.post('/update-order-status', adminAuth, orderController.updateOrderStatus); // Update order status
 router.post('/cancel-order', adminAuth, orderController.cancelOrder); // Cancel order
 router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest);
+router.post('/admin/verify-return', adminAuth, orderController.verifyReturn);
+router.post('/verify-order', adminAuth, orderController.verifyOrder);
 
 
 // Coupon management

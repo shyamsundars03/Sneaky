@@ -202,7 +202,7 @@
                 </div>
                 <div class="summary-item total-row">
                     <span>Total</span>
-                    <span id="totalAmount">₹<%= cartTotal + shippingCost %></span>
+                    <span id="totalAmount">₹<%= cartTotal + Number(shippingCost) %></span>
                 </div>
             </div>
         </div>
@@ -270,6 +270,8 @@
     <script>
     let selectedAddressId = null;
     let shippingCost = 100; // Default shipping cost
+    const cartTotal = <%= cartTotal %>;
+
 
     // Function to select an address
     function selectAddress(addressId, addressDetails) {
@@ -285,7 +287,9 @@
     function updateShippingCost(cost) {
         shippingCost = cost;
         document.getElementById('shippingCost').textContent = `₹${cost}`;
-        document.getElementById('totalAmount').textContent = `₹${ cartTotal  + cost}`;
+        // Calculate and update the total amount
+        const totalAmount = cartTotal + cost;
+        document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
 
         // Store shipping cost in sessionStorage
         sessionStorage.setItem('shippingCost', cost);

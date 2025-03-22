@@ -581,6 +581,26 @@
             padding: 10px;
         }
 
+        .reason-section {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.reason-section h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #333;
+}
+
+.reason-section p {
+    font-size: 16px;
+    color: #555;
+}
+
+
 
     </style>
 </head>
@@ -617,14 +637,16 @@
                 </span>
             </div>
             <div class="status-actions">
-                <select class="status-select" id="statusSelect">
-                    <option value="Pending" <%= order.status === 'Pending' ? 'selected' : '' %>>Pending</option>
-                    <option value="Shipped" <%= order.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
-                    <option value="Delivered" <%= order.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
-                    <option value="Cancelled" <%= order.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
-                    <option value="Returned" <%= order.status === 'Returned' ? 'selected' : '' %>>Returned</option>
-                </select>
-                <button class="singleadminorder-btn" id="saveStatusBtn">Save</button>
+                <% if (order.status !== 'Returned') { %>
+                    <select class="status-select" id="statusSelect">
+                        <option value="Pending" <%= order.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                        <option value="Shipped" <%= order.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                        <option value="Delivered" <%= order.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                        <option value="Cancelled" <%= order.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                        <option value="Returned" <%= order.status === 'Returned' ? 'selected' : '' %>>Returned</option>
+                    </select>
+                    <button class="singleadminorder-btn" id="saveStatusBtn">Save</button>
+                <% } %>
             </div>
         </div>
 
@@ -704,6 +726,19 @@
         <div class="payment-info">
             <h3>Payment Info</h3>
             <p class="payment-method"><%= order.paymentMethod %></p>
+
+            <% if (order.returnReason) { %>
+                <div class="reason-section">
+                    <h3>Reason for Return</h3>
+                    <p><%= order.returnReason %></p>
+                    <% if (order.status === 'Return Requested') { %>
+                        <button class="singleadminorder-btn" id="verifyBtn">Verify Return</button>
+                    <% } %>
+                </div>
+            <% } %>
+            
+
+
             <div class="action-buttons">
                 <a href="/admin/orderManagement" class="singleadminorder-btn">Back</a>
             </div>
@@ -944,6 +979,65 @@
     function downloadInvoice(orderId) {
         window.location.href = `/admin/download-invoice/${orderId}`;
     }
+
+
+
+// Verify Return Functionality
+document.getElementById('verifyBtn').addEventListener('click', function () {
+    const orderId = '<%= order._id %>';
+
+    Swal.fire({
+        title: 'Verify Return',
+        text: 'Are you sure you want to verify this return request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, verify it!',
+        cancelButtonText: 'No, cancel!',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/verify-return', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ orderId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Return Verified',
+                        text: 'The return request has been verified and the order status updated.',
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed!',
+                        text: 'Failed to verify return request.',
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'An error occurred. Please try again.',
+                });
+            });
+        }
+    });
+});
+
+
+
+
+
+
+
 </script>
 
 </html>

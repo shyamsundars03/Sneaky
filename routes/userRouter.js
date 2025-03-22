@@ -86,7 +86,7 @@ router.get("/orders", userAuth, orderController.loadOrder);
 router.get("/orders/:orderId", orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
 router.post('/cancel-order', orderController.cancelOrder);
-router.post('/return-order', orderController.returnOrder);
+router.post('/return-order', userAuth, orderController.returnOrder);
 router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 
 // Error page

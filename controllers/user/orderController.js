@@ -157,35 +157,23 @@ const returnOrder = async (req, res) => {
 
         const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found." });
+            return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
         // Check if the order can be returned
         if (order.status !== 'Delivered') {
-            return res.status(400).json({ success: false, message: "Order cannot be returned." });
+            return res.status(400).json({ success: false, message: 'Order cannot be returned.' });
         }
 
-        // Update order status
-        order.status = 'Returned';
-        order.returnReason = reason;
+        // Update order status and return reason
+        order.status = 'Return Requested'; // Set a temporary status
+        order.returnReason = reason; // Store the return reason
         await order.save();
 
-        // Add the refunded amount to the user's wallet
-        const user = await User.findById(order.user);
-        if (user) {
-            user.wallet.balance += order.totalAmount; // Add refunded amount to wallet
-            user.wallet.transactions.push({
-                type: "refund",
-                amount: order.totalAmount,
-                description: "Refund for returned order",
-            });
-            await user.save();
-        }
-
-        res.status(200).json({ success: true, message: "Return request submitted successfully." });
+        res.status(200).json({ success: true, message: 'Return request submitted successfully.' });
     } catch (error) {
-        console.error("Error returning order:", error);
-        res.status(500).json({ success: false, message: "Failed to submit return request." });
+        console.error('Error returning order:', error);
+        res.status(500).json({ success: false, message: 'Failed to submit return request.' });
     }
 };
 

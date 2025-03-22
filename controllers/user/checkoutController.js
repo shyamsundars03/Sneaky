@@ -15,12 +15,13 @@ const loadCheckout1 = async (req, res) => {
         // Fetch the user's addresses
         const addresses = await Address.find({ userId });
         
-        const shippingCost = 100; 
+        // Calculate cart total
+        const cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
         
         res.render("checkout1", { 
             cart, 
             addresses, 
-            shippingCost ,
+            shippingCost:100,
             user: req.user, 
             cartTotal: cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0) 
         });
