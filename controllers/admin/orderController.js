@@ -11,7 +11,7 @@ const loadOrderManagement = async (req, res) => {
         const limit = 5; // Number of orders per page
         const skip = (page - 1) * limit;
 
-        // Fetch orders from the database and populate user details
+
         const orders = await Order.find({})
             .populate('user', 'name email') // Populate user details
             .populate('items.product', 'productName price') // Populate product details
@@ -19,10 +19,10 @@ const loadOrderManagement = async (req, res) => {
             .limit(limit)
             .sort({ createdAt: -1 });
 
-        // Filter out orders with missing or null user fields
+
         const validOrders = orders.filter(order => order.user !== null);
 
-        // Count total number of orders for pagination
+
         const totalOrders = await Order.countDocuments({});
         const totalPages = Math.ceil(totalOrders / limit);
 
@@ -34,65 +34,63 @@ const loadOrderManagement = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading order management page:", error);
-        res.status(500).render("page-404"); // Render a 404 page or error page
+        res.status(500).render("page-404"); 
     }
 };
 
-// Load Single Admin Order Page
+
 const loadSingleAdminOrder = async (req, res) => {
     try {
-        const orderId = req.params.id; // Get the order ID from the URL
+        const orderId = req.params.id; 
 
-        // Validate orderId
+
         if (!mongoose.Types.ObjectId.isValid(orderId)) {
             return res.status(400).render("page-404", { message: "Invalid order ID." });
         }
 
-        // Fetch the order details from the database
+
         const order = await Order.findById(orderId)
-            .populate('user', 'name email phone') // Populate user details
+            .populate('user', 'name email phone') 
             .populate({
                 path: 'items.product',
-                select: 'productName productImage price', // Populate product details
+                select: 'productName productImage price', 
             });
 
         if (!order) {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
 
-        // Transform image paths for the frontend
+
         order.items = order.items.map(item => {
             if (item.product.productImage && item.product.productImage[0]) {
                 item.product.productImage[0] = item.product.productImage[0]
-                    .replace(/\\/g, '/') // Replace backslashes with forward slashes
-                    .replace('public/', '/'); // Remove the 'public/' prefix
+                    .replace(/\\/g, '/') 
+                    .replace('public/', '/');
             }
             return item;
         });
 
-        // Debug: Log product image paths
+
         order.items.forEach(item => {
             console.log("Transformed Product Image Path:", item.product.productImage[0]);
         });
 
-        // Calculate subtotal (sum of all items' prices)
+
         const subTotal = order.items.reduce((total, item) => {
-            return total + (item.price * item.quantity); // Use item.price from the order, not product.price
+            return total + (item.price * item.quantity); 
         }, 0);
 
-        // Use shippingCost from the order document
+
         const shippingCost = order.shippingCost || 0;
 
-        // Use totalAmount from the order document
+
         const totalAmount = order.totalAmount || subTotal + shippingCost;
 
-        // Add calculated fields to the order object
+
         order.subTotal = subTotal;
         order.shippingCost = shippingCost;
         order.totalAmount = totalAmount;
 
-
-        // Render the single admin order view
         res.render("singleAdminOrder", { order });
     } catch (error) {
         console.error("Error loading single admin order page:", error);
@@ -257,19 +255,19 @@ const verifyReturn = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
-        // Check if the order is in "Return Requested" status
+
         if (order.status !== 'Return Requested') {
             return res.status(400).json({ success: false, message: 'Order is not in return requested status.' });
         }
 
-        // Update order status to "Returned"
+
         order.status = 'Returned';
         await order.save();
 
-        // Refund the amount to the user's wallet
+
         const user = await User.findById(order.user);
         if (user) {
-            user.wallet.balance += order.totalAmount; // Refund the amount
+            user.wallet.balance += order.totalAmount; 
             user.wallet.transactions.push({
                 type: 'refund',
                 amount: order.totalAmount,

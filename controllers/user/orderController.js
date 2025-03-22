@@ -160,12 +160,10 @@ const returnOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
-        // Check if the order can be returned
         if (order.status !== 'Delivered') {
             return res.status(400).json({ success: false, message: 'Order cannot be returned.' });
         }
 
-        // Update order status and return reason
         order.status = 'Return Requested'; // Set a temporary status
         order.returnReason = reason; // Store the return reason
         await order.save();
