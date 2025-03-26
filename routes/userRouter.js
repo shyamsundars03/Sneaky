@@ -102,12 +102,12 @@ router.post("/place-order", userAuth, checkoutController.placeOrder);
 
 
 // Google authentication
-router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'] }));
-router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/signin' }), userController.googleCallback);
+router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'], prompt: "select_account" }));
+router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/signin' }), userController.googleCallback  );
 
 // Wallet routes
-router.get('/wallet', walletController.loadWallet); // Load wallet page
-router.post('/wallet/add-funds', walletController.addFunds); // Add funds to wallet (optional)
+router.get('/wallet',userAuth, walletController.loadWallet); 
+router.post('/wallet/add-funds',userAuth, walletController.addFunds); 
 
 
 

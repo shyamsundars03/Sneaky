@@ -124,7 +124,56 @@
             height: 49px;
             width: 100px;
     }
+/* Shipping Method Styles (now matching address cards) */
+.shipping-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 10px;
+}
 
+.shipping-option-card {
+    display: block;
+    padding: 15px;
+    border: 2px solid #ddd; /* Grey border */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.shipping-option-card:hover {
+    border-color: #aaa; /* Darker grey on hover */
+}
+
+.shipping-option-card input[type="radio"] {
+    display: none; /* Hide default radio */
+}
+
+.shipping-option-card input[type="radio"]:checked + .shipping-option-content {
+    color: #333; /* Keep text color consistent */
+}
+
+/* Selected state - red border */
+.shipping-option-card input[type="radio"]:checked ~ .shipping-option-content,
+.shipping-option-card input[type="radio"]:checked {
+    border-color: #ff0000; /* Red border when selected */
+}
+
+.shipping-option-content {
+    padding: 5px;
+}
+
+.shipping-option-content h4 {
+    margin: 0 0 5px 0;
+    color: inherit;
+    font-size: 16px;
+}
+
+.shipping-option-content p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
     </style>
 
 
@@ -132,152 +181,273 @@
 
 <%-include("../../views/partials/user/header")%>
 
-    <div class="checkout-header">
-        <h1>CHECKOUT 1</h1>
+<div class="checkout-header">
+    <h1>CHECKOUT 1</h1>
+</div>
 
-    </div>
-
-    <main class="checkout-main-content">
-        <div class="checkout-container">
-            <div class="checkout-form">
-                <h2>Bill details</h2>
-                <div class="checkout-progress-bar">
-                    <div class="checkout-progress-item active">Shipping Method</div>
-                    <div class="checkout-progress-item">Payment Method</div>
-                    <div class="checkout-progress-item">Review</div>
-                </div>
-        
-                <!-- Shipping Address Section -->
-                <div class="shipping-address">
-                    <h3>Shipping Address</h3>
-                    <div class="address-cards">
-                        <% if (addresses.length > 0) { %>
-                            <% addresses.forEach((address, index) => { %>
-                                <div class="address-card <%= address.isDefault ? 'selected' : '' %>" onclick="selectAddress('<%= address._id %>', <%= JSON.stringify(address) %>)">
+<main class="checkout-main-content">
+    <div class="checkout-container">
+        <div class="checkout-form">
+            <h2>Bill details</h2>
+            <div class="checkout-progress-bar">
+                <div class="checkout-progress-item active">Shipping Method</div>
+                <div class="checkout-progress-item">Payment Method</div>
+                <div class="checkout-progress-item">Review</div>
+            </div>
+    
+            <!-- Shipping Address Section -->
+            <div class="shipping-address">
+                <h3>Shipping Address</h3>
+                <div class="address-cards">
+                    <% if (addresses.length > 0) { %>
+                        <% addresses.forEach((address, index) => { %>
+                            <label class="address-card <%= address.isDefault ? 'selected' : '' %>">
+                                <input 
+                                    type="radio" 
+                                    name="selectedAddress" 
+                                    value="<%= address._id %>" 
+                                    <%= address.isDefault ? 'checked' : '' %>
+                                    onchange="selectAddress('<%= address._id %>', <%= JSON.stringify(address) %>)"
+                                >
+                                <div class="address-content">
                                     <h4><%= index === 0 ? 'Home' : index === 1 ? 'Office' : address.name %></h4>
                                     <p><%= address.street %>, <%= address.city %>, <%= address.state %>, <%= address.zip %>, <%= address.country %></p>
                                     <p><%= address.phone %></p>
                                     <p><%= address.email %></p>
                                 </div>
-                            <% }) %>
-                        <% } else { %>
-                            <p>No addresses found. Please add an address.</p>
-                        <% } %>
-                    </div>
-                    <button class="checkout-btn" onclick="openAddressModal()">Add Address</button>
+                            </label>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No addresses found. Please add an address.</p>
+                    <% } %>
                 </div>
-        
-                <!-- Shipping Method Section -->
-                <div class="shipping-methods">
-                    <h3>Select a Shipping Method</h3>
-                    <div class="shipping-option">
-                        <input type="radio" name="shipping" value="Standard" checked onchange="updateShippingCost(100)">
-                        <div>
-                            <h4>Standard Ground (USPS) - ₹100</h4>
-                            <p>Delivered in 8-12 business days</p>
-                        </div>
-                    </div>
-                    <div class="shipping-option">
-                        <input type="radio" name="shipping" value="Premium" onchange="updateShippingCost(500)">
-                        <div>
-                            <h4>Premium Ground (UPS) - ₹500</h4>
-                            <p>Delivered in 4-7 business days</p>
-                        </div>
-                    </div>
-                </div>
-        
-                <button class="checkout-btn" onclick="proceedToCheckout2()">Continue</button>
+                <button class="checkout-btn" onclick="openAddressModal()">Add Address</button>
             </div>
-        
-            <!-- Order Summary -->
-            <div class="order-summary">
-                <h2>Your order</h2>
-                <div class="summary-item">
-                    <span>Subtotal</span>
-                    <span>₹<%= cartTotal %></span>
-                </div>
-                <div class="summary-item">
-                    <span>Shipping & Handling</span>
-                    <span id="shippingCost">₹100</span>
-                </div>
-                <div class="summary-item total-row">
-                    <span>Total</span>
-                    <span id="totalAmount">₹<%= cartTotal + Number(shippingCost) %></span>
-                </div>
+    
+            <!-- Shipping Method Section -->
+            <!-- Shipping Method Section -->
+<div class="shipping-methods">
+    <h3>Select a Shipping Method</h3>
+    <div class="shipping-options-container">
+        <label class="shipping-option-card" onclick="updateShippingCost(100)">
+            <input type="radio" name="shipping" value="Standard" checked>
+            <div class="shipping-option-content">
+                <h4>Standard Ground (USPS) - ₹100</h4>
+                <p>Delivered in 8-12 business days</p>
+            </div>
+        </label>
+        <label class="shipping-option-card" onclick="updateShippingCost(500)">
+            <input type="radio" name="shipping" value="Premium">
+            <div class="shipping-option-content">
+                <h4>Premium Ground (UPS) - ₹500</h4>
+                <p>Delivered in 4-7 business days</p>
+            </div>
+        </label>
+    </div>
+</div>
+    
+            <button class="checkout-btn" onclick="proceedToCheckout2()">Continue</button>
+        </div>
+    
+        <!-- Order Summary -->
+        <div class="order-summary">
+            <h2>Your order</h2>
+            <div class="summary-item">
+                <span>Subtotal</span>
+                <span>₹<%= cartTotal %></span>
+            </div>
+            <div class="summary-item">
+                <span>Shipping & Handling</span>
+                <span id="shippingCost">₹100</span>
+            </div>
+            <div class="summary-item total-row">
+                <span>Total</span>
+                <span id="totalAmount">₹<%= cartTotal + Number(shippingCost) %></span>
             </div>
         </div>
-        
-        <div id="addressModal" class="modal-overlay" style="display: none;">
-            <div class="modal">
-                <div class="modal-header">
-                    <h2>Add New Address</h2>
-                    <button class="close-btn" onclick="closeAddressModal()">&times;</button>
+    </div>
+    
+    <div id="addressModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add New Address</h2>
+                <button class="close-btn" onclick="closeAddressModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+               <!-- Address Form (keep this part as is, without phone/email) -->
+            <form id="addressForm" onsubmit="saveAddress(event)">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" name="name" required>
                 </div>
-                <div class="modal-body">
-                    <form id="addressForm" onsubmit="saveAddress(event)">
-                        <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Street</label>
-                            <input type="text" name="street" required>
-                        </div>
-                        <div class="form-group">
-                            <label>City</label>
-                            <input type="text" name="city" required>
-                        </div>
-                        <div class="form-group">
-                            <label>State</label>
-                            <input type="text" name="state" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Zip Code</label>
-                            <input type="text" name="zip" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Country</label>
-                            <input type="text" name="country" required>
-                        </div>
-                        <!-- <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" name="phone" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" name="email" required>
-                        </div> -->
-                        <div class="modal-footer">
-                            <button type="button" class="btn-btn" onclick="closeAddressModal()">Cancel</button>
-                            <button type="submit" class="btn-btn">Save Address</button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label>Street</label>
+                    <input type="text" name="street" required>
                 </div>
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" name="city" required>
+                </div>
+                <div class="form-group">
+                    <label>State</label>
+                    <input type="text" name="state" required>
+                </div>
+                <div class="form-group">
+                    <label>Zip Code</label>
+                    <input type="text" name="zip" required>
+                </div>
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" name="country" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-btn" onclick="closeAddressModal()">Cancel</button>
+                    <button type="submit" class="btn-btn">Save Address</button>
+                </div>
+            </form>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
-    <%-include("../../views/partials/user/footer")%>
+<%-include("../../views/partials/user/footer")%>
 
 <style>
-    .address-card{
-        border: 1px solid grey;
-        bor
+     .address-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .address-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        padding: 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .address-card:hover {
+        border-color: #aaa;
+    }
+    
+    .address-card.selected {
+        border-color: red;
+        background-color: #f8f9fa;
+    }
+    
+    .address-card input[type="radio"] {
+        margin-top: 5px;
+    }
+    
+    .address-content {
+        flex: 1;
+    }
+    
+    .address-content h4 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+    
+    .address-content p {
+        margin: 3px 0;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    
+    .modal {
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    
+    .btn-btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .btn-btn[type="submit"] {
+        background-color: #4CAF50;
+        color: white;
     }
 </style>
 
 
-    <script>
+<script>
     let selectedAddressId = null;
     let shippingCost = 100; // Default shipping cost
     const cartTotal = <%= cartTotal %>;
 
-
     // Function to select an address
     function selectAddress(addressId, addressDetails) {
         selectedAddressId = addressId;
-        document.querySelectorAll('.address-card').forEach(card => card.classList.remove('selected'));
-        document.querySelector(`.address-card[onclick*="${addressId}"]`).classList.add('selected');
+        
+        // Update radio button state
+        document.querySelectorAll('.address-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Add selected class to the clicked card
+        const selectedCard = document.querySelector(`.address-card input[value="${addressId}"]`).parentElement;
+        selectedCard.classList.add('selected');
 
         // Store selected address in sessionStorage
         sessionStorage.setItem('selectedAddress', JSON.stringify(addressDetails));
@@ -285,19 +455,28 @@
 
     // Function to update shipping cost
     function updateShippingCost(cost) {
-        shippingCost = cost;
-        document.getElementById('shippingCost').textContent = `₹${cost}`;
-        // Calculate and update the total amount
-        const totalAmount = cartTotal + cost;
-        document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
-
-        // Store shipping cost in sessionStorage
-        sessionStorage.setItem('shippingCost', cost);
-    }
+    shippingCost = cost;
+    document.getElementById('shippingCost').textContent = `₹${cost}`;
+    
+    // Update selected visual state
+    document.querySelectorAll('.shipping-option-card').forEach(card => {
+        card.style.borderColor = '#ddd'; // Reset all to grey
+    });
+    
+    // Set current selection to red
+    const selectedCard = event.currentTarget;
+    selectedCard.style.borderColor = '#ff0000';
+    
+    // Update total
+    const totalAmount = cartTotal + cost;
+    document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+    sessionStorage.setItem('shippingCost', cost);
+}
 
     // Function to open the address modal
     function openAddressModal() {
-        document.getElementById('addressModal').style.display = 'block';
+        document.getElementById('addressModal').style.display = 'flex';
+        document.getElementById('addressForm').reset();
     }
 
     // Function to close the address modal
@@ -306,12 +485,12 @@
     }
 
     // Function to save the address
-    // Function to save the address
     async function saveAddress(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const address = Object.fromEntries(formData.entries());
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const address = Object.fromEntries(formData.entries());
 
+    try {
         const response = await fetch('/address/save', {
             method: 'POST',
             headers: {
@@ -323,36 +502,65 @@
         const result = await response.json();
 
         if (result.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Address Saved',
-                    text: 'Your address has been saved successfully!',
-                }).then(() => {
-                    closeAddressModal();
-                    window.location.reload(); // Refresh the page to show the new address
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to save address. Please try again.',
-                });
-            }
+            // Show success alert
+            await Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: result.message || 'Address saved successfully',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            
+            // Close modal and refresh addresses
+            closeAddressModal();
+            window.location.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: result.message || 'Failed to save address',
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to save address. Please try again.',
+        });
     }
-
-       // Function to proceed to checkout step 2
-       function proceedToCheckout2() {
-    if (!selectedAddressId) {
-        alert('Please select a shipping address.');
-        return;
-    }
-
-    // Get the selected address and shipping method
-    const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
-    const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-
-    // Redirect to checkout2 with query parameters
-    window.location.href = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}`;
 }
 
-    </script>
+    // Function to proceed to checkout step 2
+    async function proceedToCheckout2() {
+        // Check if address is selected
+        const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
+        
+        if (!selectedRadio) {
+            await Swal.fire({
+                icon: 'warning',
+                title: 'Address Required',
+                text: 'Please select a shipping address to continue.',
+                confirmButtonColor: '#4CAF50',
+            });
+            return;
+        }
+
+        // Get the selected address and shipping method
+        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+        const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+
+        // Redirect to checkout2 with query parameters
+        window.location.href = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}`;
+    }
+
+    // Initialize default selected address if exists
+    document.addEventListener('DOMContentLoaded', () => {
+        const defaultAddress = document.querySelector('.address-card.selected');
+        if (defaultAddress) {
+            const addressId = defaultAddress.querySelector('input').value;
+            const addressDetails = JSON.parse(defaultAddress.querySelector('input').getAttribute('data-address'));
+            selectAddress(addressId, addressDetails);
+        }
+    });
+</script>

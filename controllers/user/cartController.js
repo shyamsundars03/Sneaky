@@ -63,7 +63,20 @@ const addToCart = async (req, res) => {
 
         const product = await Product.findById(productId);
         if (!product) {
-            return res.status(404).json({ success: false, message: "Product not found." });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'PRODUCT_NOT_FOUND', // Add this
+                message: "Product not found." 
+            });
+        }
+
+        // 2. NEW: Check if product is unlisted
+        if (!product.isListed) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'PRODUCT_UNLISTED', // Add this
+                message: "This product is currently unavailable." 
+            });
         }
 
         // Find the selected size and its stock

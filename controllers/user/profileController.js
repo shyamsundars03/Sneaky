@@ -53,13 +53,73 @@ const loadProfile = async (req, res) => {
 // Update profile details
 const updateProfile = async (req, res) => {
     try {
-        const { username, email, phone } = req.body;
-        await User.findByIdAndUpdate(req.user._id, { name: username, email, phone });
-        req.user.name = username; // Update session
-        res.redirect('/profile');
+        const { username, phone } = req.body;
+        const user = await User.findById(req.user._id);
+
+        // Google user handling
+        if (user.googleId) {
+
+            if (phone !== user.phone) {
+                const updatedUser = await User.findByIdAndUpdate(
+                    req.user._id,
+                    { phone },
+                    { new: true, runValidators: true }
+                );
+                console.log('Google user updated:', updatedUser);
+                
+                // Update session
+                req.session.user.phone = updatedUser.phone;
+                await req.session.save(); // Explicitly save session
+                
+                return res.json({ 
+                    success: true, 
+                    message: "Phone number updated!",
+                    user: { phone: updatedUser.phone }
+                });
+            }
+            return res.json({ success: false, message: "No changes made" });
+        }
+
+        // Regular user handling
+
+        const updateData = {};
+        if (username !== user.name) updateData.name = username;
+        if (phone !== user.phone) updateData.phone = phone;
+
+        if (Object.keys(updateData).length === 0) {
+            return res.json({ success: false, message: "No changes made" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+
+        // Update session
+        req.session.user = {
+            ...req.session.user,
+            name: updatedUser.name,
+            phone: updatedUser.phone
+        };
+        await req.session.save();
+
+        res.json({ 
+            success: true,
+            message: "Profile updated!",
+            user: {
+                name: updatedUser.name,
+                phone: updatedUser.phone
+            }
+        });
+
     } catch (error) {
-        console.error("Error updating profile:", error);
-        res.status(500).render("page-404");
+        console.error("Update error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
     }
 };
 
@@ -99,7 +159,7 @@ const saveAddress = async (req, res) => {
             await newAddress.save();
         }
 
-        res.redirect('/address?success=true');
+        res.json({ success: true, message: "Address saved successfully!" });
     } catch (error) {
         console.error("Error saving address:", error);
         res.redirect('/address?success=false');

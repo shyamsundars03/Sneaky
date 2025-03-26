@@ -334,24 +334,74 @@ const loadAbout = async (req, res) => {
 
 const loadShop = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1; // Get the page number from the query parameter
-        const limit = 6; // Number of products per page
-        const skip = (page - 1) * limit; // Calculate the number of documents to skip
-        const categoryId = req.query.category; // Get the category ID from the query parameter
+        // Extract query parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = 6;
+        const skip = (page - 1) * limit;
+        
+        // Filtering parameters
+        const categoryIds = req.query.category ? req.query.category.split(',') : [];
+        const selectedSizes = req.query.size ? req.query.size.split(',') : [];
+        const minPrice = parseFloat(req.query.minPrice);
+        const maxPrice = parseFloat(req.query.maxPrice);
+        const searchTerm = req.query.search;
+        const sortOption = req.query.sort || 'bestMatch';
 
         // Build the search query
         const searchQuery = {
             isDeleted: false,
-            isListed: true,
-            ...(categoryId && { category: categoryId }) // Add category filter if categoryId exists
+            isListed: true
         };
 
-        // Fetch products based on the search query
+        // Add category filter
+        if (categoryIds.length > 0) {
+            searchQuery.category = { $in: categoryIds };
+        }
+
+        // Add size filter
+        if (selectedSizes.length > 0) {
+            searchQuery['sizes.size'] = { $in: selectedSizes };
+        }
+
+        // Add price filter
+        if (!isNaN(minPrice) && !isNaN(maxPrice)) {
+            searchQuery.price = { $gte: minPrice, $lte: maxPrice };
+        } else if (!isNaN(minPrice)) {
+            searchQuery.price = { $gte: minPrice };
+        } else if (!isNaN(maxPrice)) {
+            searchQuery.price = { $lte: maxPrice };
+        }
+
+
+        if (searchTerm) {
+            searchQuery.productName = { $regex: searchTerm, $options: 'i' };
+        }
+
+        // Determine sorting
+        let sortCriteria = { createdAt: -1 }; // Default: newest first
+        switch (sortOption) {
+            case 'nameAsc':
+                sortCriteria = { productName: 1 };
+                break;
+            case 'nameDesc':
+                sortCriteria = { productName: -1 };
+                break;
+            case 'priceLow':
+                sortCriteria = { price: 1 };
+                break;
+            case 'priceHigh':
+                sortCriteria = { price: -1 };
+                break;
+            default:
+                sortCriteria = { createdAt: -1 }; // Best match (newest)
+        }
+
+        // Fetch products
         const products = await Product.find(searchQuery)
             .populate('category')
             .skip(skip)
             .limit(limit)
-            .sort({ createdAt: -1 });
+            .sort(sortCriteria);
 
         // Fetch all categories for the sidebar
         const categories = await Category.find({ isDeleted: false });
@@ -371,6 +421,21 @@ const loadShop = async (req, res) => {
             };
         });
 
+        // Build query string for pagination
+        const buildQueryString = (params) => {
+            const searchParams = new URLSearchParams();
+            for (const [key, value] of Object.entries(params)) {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        value.forEach(v => searchParams.append(key, v));
+                    } else {
+                        searchParams.set(key, value);
+                    }
+                }
+            }
+            return searchParams.toString();
+        };
+
         // Render the shop page with the filtered products and other data
         res.render("shop", {
             products: fixedProducts,
@@ -378,8 +443,22 @@ const loadShop = async (req, res) => {
             currentPage: page,
             totalPages,
             totalProducts,
-            selectedCategory: categoryId, // Pass the selected category ID to the view
+            selectedCategory: categoryIds,
+            selectedSizes: selectedSizes,
+            minPrice: minPrice || '',
+            maxPrice: maxPrice || '',
+            searchTerm: searchTerm || '',
+            sortOption,
             user: req.session.user,
+            buildQueryString,
+            queryParams: {
+                category: categoryIds,
+                size: selectedSizes,
+                minPrice: minPrice || '',
+                maxPrice: maxPrice || '',
+                search: searchTerm || '',
+                sort: sortOption
+            }
         });
     } catch (error) {
         console.error('Error in loadShop:', error);
@@ -390,8 +469,15 @@ const loadShop = async (req, res) => {
             currentPage: 1,
             totalPages: 0,
             totalProducts: 0,
-            selectedCategory: null, // No category selected in case of an error
+            selectedCategory: [],
+            selectedSizes: [],
+            minPrice: '',
+            maxPrice: '',
+            searchTerm: '',
+            sortOption: 'bestMatch',
             user: req.session.user,
+            buildQueryString: () => '',
+            queryParams: {}
         });
     }
 };

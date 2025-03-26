@@ -542,7 +542,20 @@
        
 
 
+        .error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none;
+}
 
+.error-message.show {
+    display: block;
+}
+
+input.error {
+    border-color: #dc3545;
+}
 
 
 
@@ -594,7 +607,8 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="username">User Name</label>
-                            <input type="text" id="username" name="username" value="<%= user.name || '' %>" required />
+                            <input type="text" id="username" name="username" value="<%= user.name || '' %>" />
+                            <div id="usernameError" class="error-message"></div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -604,16 +618,16 @@
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" required maxlength="10"  />
+                            <input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" maxlength="10" />
+                            <div id="phoneError" class="error-message"></div>
                         </div>
                     </div>
                     <div class="action-buttons">
-                        <button type="submit" class="profile-btn">Save Details</button>
+                        <button type="submit" class="profile-btn" id="saveDetailsBtn">Save Details</button>
                         <% if (user.googleId===null ) { %>
                             <button type="button" id="changeEmailBtn" class="profile-btn">Change Email</button>
                             <button type="button" id="changePasswordBtn" class="profile-btn">Change Password</button>
                         <% } %>
-
                     </div>
                 </form>
             </div>
@@ -628,7 +642,7 @@
         window.location.href = '/change-email';
     });
 
-    document.getElementById('resetPasswordBtn').addEventListener('click', () => {
+    document.getElementById('changePasswordBtn').addEventListener('click', () => {
         window.location.href = '/change-password';
     });
 
@@ -765,6 +779,185 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profileForm = document.getElementById('profileForm');
+    const saveDetailsBtn = document.getElementById('saveDetailsBtn');
+    const isGoogleUser = <%= user.googleId ? 'true' : 'false' %>;
+    const usernameInput = document.getElementById('username');
+    const phoneInput = document.getElementById('phone');
+    
+    // Create error message elements
+    const usernameError = document.createElement('div');
+    usernameError.className = 'error-message';
+    usernameInput.parentNode.appendChild(usernameError);
+    
+    const phoneError = document.createElement('div');
+    phoneError.className = 'error-message';
+    phoneInput.parentNode.appendChild(phoneError);
+
+    // Store original values
+    const originalValues = {
+        username: usernameInput.value,
+        phone: phoneInput.value
+    };
+
+    // Validation functions
+    function validateName(name) {
+        if (name.trim() === '') {
+            usernameError.textContent = "Name is required";
+            usernameError.style.display = 'block';
+            usernameInput.style.borderColor = '#dc3545';
+            return false;
+        }
+        if (/^[0-9!@#$%^&*()_+=\-[\]{};':"\\|,.<>?]/.test(name)) {
+            usernameError.textContent = "Name cannot start with numbers or symbols";
+            usernameError.style.display = 'block';
+            usernameInput.style.borderColor = '#dc3545';
+            return false;
+        }
+        usernameError.style.display = 'none';
+        usernameInput.style.borderColor = '';
+        return true;
+    }
+
+    function validatePhone(phone) {
+        if (phone.trim() !== '' && !/^\d{10}$/.test(phone)) {
+            phoneError.textContent = "Phone must be 10 digits";
+            phoneError.style.display = 'block';
+            phoneInput.style.borderColor = '#dc3545';
+            return false;
+        }
+        phoneError.style.display = 'none';
+        phoneInput.style.borderColor = '';
+        return true;
+    }
+
+    // Real-time validation
+    usernameInput.addEventListener('input', function() {
+        validateName(this.value);
+    });
+
+    phoneInput.addEventListener('input', function() {
+        // Auto-format phone input
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
+        validatePhone(this.value);
+    });
+
+    if (profileForm) {
+        profileForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get current values
+            const currentValues = {
+                username: isGoogleUser ? originalValues.username : usernameInput.value,
+                phone: phoneInput.value
+            };
+
+            // Validate fields (name is now required)
+            const isNameValid = validateName(currentValues.username);
+            const isPhoneValid = validatePhone(currentValues.phone);
+            
+            if (!isNameValid || !isPhoneValid) {
+                return;
+            }
+
+            // Rest of your existing submit handler...
+            const changesMade = 
+                (!isGoogleUser && currentValues.username !== originalValues.username) || 
+                currentValues.phone !== originalValues.phone;
+
+            if (!changesMade) {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'No Changes',
+                    text: 'You haven\'t made any changes to save.',
+                    confirmButtonColor: '#3085d6',
+                });
+                return;
+            }
+
+            // Show loading state
+            saveDetailsBtn.disabled = true;
+            saveDetailsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const response = await fetch('/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: currentValues.username,
+                        phone: currentValues.phone
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: result.message || 'Your changes have been saved successfully!',
+                        confirmButtonColor: '#3085d6',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    
+                    window.location.reload();
+                    
+                    if (result.user) {
+                        if (!isGoogleUser && result.user.name) {
+                            originalValues.username = result.user.name;
+                        }
+                        if (result.user.phone) {
+                            originalValues.phone = result.user.phone;
+                        }
+                    }
+                } else {
+                    if (result.message.includes('Name')) {
+                        usernameError.textContent = result.message;
+                        usernameError.style.display = 'block';
+                        usernameInput.style.borderColor = '#dc3545';
+                    } else if (result.message.includes('Phone')) {
+                        phoneError.textContent = result.message;
+                        phoneError.style.display = 'block';
+                        phoneInput.style.borderColor = '#dc3545';
+                    } else {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message || 'Failed to save changes.',
+                            confirmButtonColor: '#d33',
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Could not connect to the server. Please try again.',
+                    confirmButtonColor: '#d33',
+                });
+            } finally {
+                saveDetailsBtn.disabled = false;
+                saveDetailsBtn.innerHTML = 'Save Details';
+            }
+        });
+
+        // Handle Google users
+        if (isGoogleUser) {
+            usernameInput.disabled = true;
+            usernameInput.title = "Username cannot be changed for Google-authenticated accounts";
+            usernameInput.style.cursor = 'not-allowed';
+            usernameInput.style.backgroundColor = '#f5f5f5';
+        }
+    }
+});
+    </script>
 
 <%- include("../../views/partials/user/footer") %>
 </body>

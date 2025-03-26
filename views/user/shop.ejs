@@ -19,7 +19,7 @@
             cursor: pointer;
             margin-bottom: 10px; */
             border: none;
-            width: 100%;
+            width: 163%;
             height: 30px;
             padding: 4px;
             border-radius: 4px;
@@ -42,12 +42,21 @@
 <!-- Shop Content -->
 <div class="shop-container">
     <aside class="shop-sidebar">
-
         <div class="header-actions">
-            <input type="text" class="search-box" id="searchBox" placeholder="Search Products">
+            <form id="searchForm" onsubmit="updateFilters(); return false;">
+                <input 
+                    type="text" 
+                    class="search-box" 
+                    id="searchBox" 
+                    placeholder="Search Products by Name" 
+                    value="<%= searchTerm %>"
+                    oninput="handleSearchInput()"
+                >
+            </form>
         </div>
 
-        <button  class="filter-button"  onclick="clearFilters()">Clear Filters</button>
+        <button class="filter-button" onclick="clearFilters()">Clear Filters</button>
+        
         <!-- Categories Section -->
         <div class="filter-section">
             <div class="filter-header">
@@ -63,8 +72,8 @@
                                     type="checkbox" 
                                     name="category" 
                                     value="<%= category._id %>" 
-                                    onchange="filterProducts()"
-                                    <%= selectedCategory === category._id.toString() ? 'checked' : '' %>
+                                    onchange="updateFilters()"
+                                    <%= selectedCategory.includes(category._id.toString()) ? 'checked' : '' %>
                                 >
                                 <%= category.name %>
                             </label>
@@ -85,10 +94,10 @@
             <div class="filter-options">
                 <div class="price-range">
                     <div class="range-inputs">
-                        <input type="text" placeholder="Min" value="">
-                        <input type="text" placeholder="Max" value="">
+                        <input type="number" placeholder="Min" value="<%= minPrice %>" onchange="updateFilters()">
+                        <input type="number" placeholder="Max" value="<%= maxPrice %>" onchange="updateFilters()">
                     </div>
-                    <button class="apply-button" onclick="filterProducts()">Apply</button>
+                    <button class="apply-button" onclick="updateFilters()">Apply</button>
                 </div>
             </div>
         </div>
@@ -104,7 +113,7 @@
                     <% const sizes = ['7', '8', '9', '10']; %>
                     <% sizes.forEach(size => { %>
                         <button 
-                            class="size-option" 
+                            class="size-option <%= selectedSizes.includes(size) ? 'active' : '' %>" 
                             data-size="<%= size %>" 
                             onclick="toggleSizeFilter('<%= size %>')"
                         >
@@ -120,8 +129,12 @@
         <div class="products-header">
             <h3><%= totalProducts %> items found</h3>
             <div class="products-view-options">
-                <select class="sort-select">
-                    <option>Best match</option>
+                <select class="sort-select" onchange="updateFilters()">
+                    <option value="bestMatch" <%= sortOption === 'bestMatch' ? 'selected' : '' %>>Best match</option>
+                    <option value="nameAsc" <%= sortOption === 'nameAsc' ? 'selected' : '' %>>Name (A-Z)</option>
+                    <option value="nameDesc" <%= sortOption === 'nameDesc' ? 'selected' : '' %>>Name (Z-A)</option>
+                    <option value="priceLow" <%= sortOption === 'priceLow' ? 'selected' : '' %>>Price (Low to High)</option>
+                    <option value="priceHigh" <%= sortOption === 'priceHigh' ? 'selected' : '' %>>Price (High to Low)</option>
                 </select>
             </div>
         </div>
@@ -130,7 +143,7 @@
         <div class="products-grid" id="products-grid">
             <% if (products.length > 0) { %>
                 <% products.forEach(product => { %>
-                    <div class="product-card" data-category="<%= product.category._id || product.category %>" data-sizes="<%= product.sizes ? product.sizes.map(size => size.size).join(',') : '' %>">
+                    <div class="product-card">
                         <a href="/product/<%= product._id %>" class="product-image">
                             <img src="<%= product.productImage[0] %>" alt="<%= product.productName %>">
                         </a>
@@ -145,14 +158,12 @@
                             </div>
                             <h4 class="product-name"><%= product.productName %></h4>
                             <div class="product-actions">
-                            <!-- Add to Cart Button -->
-                            <button class="add-to-cart-btn" onclick="addToCart('<%= product._id %>', '<%= product.sizes && product.sizes[0] ? product.sizes[0].size : "7" %>')">
-                                Add to cart
-                            </button>
-                            <!-- Add to Wishlist Button -->
-                            <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
-                                <i class="far fa-heart"></i>
-                            </button>
+                                <button class="add-to-cart-btn" onclick="addToCart('<%= product._id %>', '<%= product.sizes && product.sizes[0] ? product.sizes[0].size : "7" %>')">
+                                    Add to cart
+                                </button>
+                                <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
+                                    <i class="far fa-heart"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -167,13 +178,13 @@
             <span class="pagination-info">Showing <%= (currentPage - 1) * 6 + 1 %> to <%= Math.min(currentPage * 6, totalProducts) %> of <%= totalProducts %> entries</span>
             <div class="pagination-controls">
                 <% if (currentPage > 1) { %>
-                    <a href="/shop?page=<%= currentPage - 1 %>" class="pagination-prev">Previous</a>
+                    <a href="/shop?<%= buildQueryString({ ...queryParams, page: currentPage - 1 }) %>" class="pagination-prev">Previous</a>
                 <% } %>
                 <% for (let i = 1; i <= totalPages; i++) { %>
-                    <a href="/shop?page=<%= i %>" class="page-number <%= i === currentPage ? 'active' : '' %>"><%= i %></a>
+                    <a href="/shop?<%= buildQueryString({ ...queryParams, page: i }) %>" class="page-number <%= i === currentPage ? 'active' : '' %>"><%= i %></a>
                 <% } %>
                 <% if (currentPage < totalPages) { %>
-                    <a href="/shop?page=<%= currentPage + 1 %>" class="pagination-next">Next</a>
+                    <a href="/shop?<%= buildQueryString({ ...queryParams, page: currentPage + 1 }) %>" class="pagination-next">Next</a>
                 <% } %>
             </div>
         </div>
@@ -181,373 +192,87 @@
 </div>
 
 <script>
-    // Function to filter products based on selected categories and sizes
-    function filterProducts() {
-    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
-    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
-    const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
-    const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
-    const searchTerm = document.getElementById('searchBox').value.trim().toLowerCase();
-    const productCards = document.querySelectorAll('.product-card');
-
-    let visibleProductsCount = 0;
-
-    // Build the new URL with the applied filters
-    const url = new URL(window.location.href);
-    url.searchParams.delete('category');
-    url.searchParams.delete('size');
-    url.searchParams.delete('minPrice');
-    url.searchParams.delete('maxPrice');
-    url.searchParams.delete('search');
-
-    // Add selected filters to the URL
-    if (selectedCategories.length > 0) {
-        url.searchParams.set('category', selectedCategories.join(','));
-    }
-    if (selectedSizes.length > 0) {
-        url.searchParams.set('size', selectedSizes.join(','));
-    }
-    if (minPrice) {
-        url.searchParams.set('minPrice', minPrice);
-    }
-    if (maxPrice) {
-        url.searchParams.set('maxPrice', maxPrice);
-    }
-    if (searchTerm) {
-        url.searchParams.set('search', searchTerm);
-    }
-
-    // Update the URL without reloading the page
-    window.history.pushState({}, '', url);
-
-    // Apply the filters to the products
-    productCards.forEach(card => {
-        const category = card.getAttribute('data-category');
-        const sizes = card.getAttribute('data-sizes').split(',');
-        const price = parseFloat(card.querySelector('.current-price, .offer-price').textContent.replace('₹', ''));
-        const productName = card.querySelector('.product-name').textContent.toLowerCase();
-
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
-        const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
-        const matchesPrice = (!minPrice || price >= parseFloat(minPrice)) && (!maxPrice || price <= parseFloat(maxPrice));
-        const matchesSearch = !searchTerm || productName.includes(searchTerm);
-
-        if (matchesCategory && matchesSize && matchesPrice && matchesSearch) {
-            card.style.display = 'block';
-            visibleProductsCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-
-    // Update the total products count displayed above the grid
-    const totalProductsHeader = document.querySelector('.products-header h3');
-    if (totalProductsHeader) {
-        totalProductsHeader.textContent = `${visibleProductsCount} items found`;
-    }
-}
-
     // Function to toggle size filter
     function toggleSizeFilter(size) {
         const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
         sizeButton.classList.toggle('active');
-        filterProducts();
+        updateFilters();
     }
 
-    function clearFilters() {
-    // Clear the URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('category');
-    url.searchParams.delete('size');
-    url.searchParams.delete('minPrice');
-    url.searchParams.delete('maxPrice');
-    url.searchParams.delete('search');
-    window.history.pushState({}, '', url);
+    // Function to update filters and reload page
+    function updateFilters() {
+        const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
+        const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+        const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
+        const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
+        const searchTerm = document.getElementById('searchBox').value.trim();
+        const sortOption = document.querySelector('.sort-select').value;
 
-    // Uncheck all category checkboxes
-    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-
-    // Remove active class from all size buttons
-    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Reset price inputs
-    document.querySelector('.price-range input[placeholder="Min"]').value = '';
-    document.querySelector('.price-range input[placeholder="Max"]').value = '';
-
-    // Reset search box
-    document.getElementById('searchBox').value = '';
-
-    // Apply the filters (which will now show all products)
-    filterProducts();
-}
+        // Build new URL
+        const url = new URL('/shop', window.location.origin);
+        
+        // Add filters to URL
+        if (selectedCategories.length > 0) {
+            url.searchParams.set('category', selectedCategories.join(','));
+        }
+        if (selectedSizes.length > 0) {
+            url.searchParams.set('size', selectedSizes.join(','));
+        }
+        if (minPrice) {
+            url.searchParams.set('minPrice', minPrice);
+        }
+        if (maxPrice) {
+            url.searchParams.set('maxPrice', maxPrice);
+        }
+        if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+        }
+        if (sortOption !== 'bestMatch') {
+            url.searchParams.set('sort', sortOption);
+        }
+        
+        // Reload page with new filters
+        window.location.href = url.toString();
+    }
 
     // Function to clear all filters
     function clearFilters() {
-    // Clear the URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('category');
-    url.searchParams.delete('size');
-    url.searchParams.delete('minPrice');
-    url.searchParams.delete('maxPrice');
-    url.searchParams.delete('search');
-    window.history.pushState({}, '', url);
+        window.location.href = '/shop';
+    }
 
-    // Uncheck all category checkboxes
-    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
-        checkbox.checked = false;
+    // Debounce for search input
+    let searchTimer;
+    document.getElementById('searchBox').addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(updateFilters, 500);
     });
 
-    // Remove active class from all size buttons
-    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
-        button.classList.remove('active');
-    });
+    // Add to cart function
+    async function addToCart(productId, size) {
+    try {
+        const response = await fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ productId, size }),
+        });
 
-    // Reset price inputs
-    document.querySelector('.price-range input[placeholder="Min"]').value = '';
-    document.querySelector('.price-range input[placeholder="Max"]').value = '';
+        const result = await response.json();
 
-    // Reset search box
-    document.getElementById('searchBox').value = '';
-
-    // Apply the filters (which will now show all products)
-    filterProducts();
-}
-
-
-
-// Function to filter products based on search term, categories, sizes, and price range
-function filterProducts() {
-    const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
-    const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
-    const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
-    const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
-    const searchTerm = document.getElementById('searchBox').value.trim().toLowerCase();
-    const productCards = document.querySelectorAll('.product-card');
-
-    let visibleProductsCount = 0;
-
-    // Build the new URL with the applied filters
-    const url = new URL(window.location.href);
-    url.searchParams.delete('category');
-    url.searchParams.delete('size');
-    url.searchParams.delete('minPrice');
-    url.searchParams.delete('maxPrice');
-    url.searchParams.delete('search');
-
-    // Add selected filters to the URL
-    if (selectedCategories.length > 0) {
-        url.searchParams.set('category', selectedCategories.join(','));
-    }
-    if (selectedSizes.length > 0) {
-        url.searchParams.set('size', selectedSizes.join(','));
-    }
-    if (minPrice) {
-        url.searchParams.set('minPrice', minPrice);
-    }
-    if (maxPrice) {
-        url.searchParams.set('maxPrice', maxPrice);
-    }
-    if (searchTerm) {
-        url.searchParams.set('search', searchTerm);
-    }
-
-    // Update the URL without reloading the page
-    window.history.pushState({}, '', url);
-
-    // Apply the filters to the products
-    productCards.forEach(card => {
-        const productName = card.querySelector('.product-name').textContent.toLowerCase();
-        const category = card.getAttribute('data-category');
-        const sizes = card.getAttribute('data-sizes').split(',');
-        const price = parseFloat(card.querySelector('.current-price, .offer-price').textContent.replace('₹', ''));
-
-        // If search term is present, prioritize filtering by product name
-        if (searchTerm) {
-            if (productName.includes(searchTerm)) {
-                card.style.display = 'block';
-                visibleProductsCount++;
-            } else {
-                card.style.display = 'none';
-            }
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added to Cart!',
+                text: 'The product has been added to your cart.',
+            });
         } else {
-            // If no search term, apply other filters (category, size, price)
-            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
-            const matchesSize = selectedSizes.length === 0 || selectedSizes.some(size => sizes.includes(size));
-            const matchesPrice = (!minPrice || price >= parseFloat(minPrice)) && (!maxPrice || price <= parseFloat(maxPrice));
-
-            if (matchesCategory && matchesSize && matchesPrice) {
-                card.style.display = 'block';
-                visibleProductsCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        }
-    });
-
-    // Update the total products count displayed above the grid
-    const totalProductsHeader = document.querySelector('.products-header h3');
-    if (totalProductsHeader) {
-        totalProductsHeader.textContent = `${visibleProductsCount} items found`;
-    }
-}
-
-// Function to clear all filters
-function clearFilters() {
-    // Clear the URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('category');
-    url.searchParams.delete('size');
-    url.searchParams.delete('minPrice');
-    url.searchParams.delete('maxPrice');
-    url.searchParams.delete('search');
-    window.history.pushState({}, '', url);
-
-    // Uncheck all category checkboxes
-    document.querySelectorAll('#category-filters input:checked').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-
-    // Remove active class from all size buttons
-    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Reset price inputs
-    document.querySelector('.price-range input[placeholder="Min"]').value = '';
-    document.querySelector('.price-range input[placeholder="Max"]').value = '';
-
-    // Reset search box
-    document.getElementById('searchBox').value = '';
-
-    // Apply the filters (which will now show all products)
-    filterProducts();
-}
-
-// Event listeners for search box and price range inputs
-document.getElementById('searchBox').addEventListener('input', filterProducts);
-document.querySelector('.price-range input[placeholder="Min"]').addEventListener('input', filterProducts);
-document.querySelector('.price-range input[placeholder="Max"]').addEventListener('input', filterProducts);
-document.querySelector('.apply-button').addEventListener('click', filterProducts);
-
-// Function to read URL parameters and apply filters on page load
-document.addEventListener('DOMContentLoaded', function () {
-    const urlParams = new URLSearchParams(window.location.search);
-
-    // Apply category filter
-    const selectedCategory = urlParams.get('category');
-    if (selectedCategory) {
-        selectedCategory.split(',').forEach(categoryId => {
-            const categoryCheckbox = document.querySelector(`#category-filters input[value="${categoryId}"]`);
-            if (categoryCheckbox) {
-                categoryCheckbox.checked = true;
-            }
-        });
-    }
-
-    // Apply size filter
-    const selectedSizes = urlParams.get('size');
-    if (selectedSizes) {
-        selectedSizes.split(',').forEach(size => {
-            const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
-            if (sizeButton) {
-                sizeButton.classList.add('active');
-            }
-        });
-    }
-
-    // Apply price filter
-    const minPrice = urlParams.get('minPrice');
-    const maxPrice = urlParams.get('maxPrice');
-    if (minPrice) {
-        document.querySelector('.price-range input[placeholder="Min"]').value = minPrice;
-    }
-    if (maxPrice) {
-        document.querySelector('.price-range input[placeholder="Max"]').value = maxPrice;
-    }
-
-    // Apply search term
-    const searchTerm = urlParams.get('search');
-    if (searchTerm) {
-        document.getElementById('searchBox').value = searchTerm;
-    }
-
-    // Apply the filters
-    filterProducts();
-});
-
-    // Function to handle "Add to Cart" button click
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-        button.addEventListener('click', async function () {
-            const productId = this.getAttribute('data-product-id');
-
-            // Check if the user is logged in
-            const isLoggedIn = <%= user ? true : false %>; // Use the user object passed from the controller
-
-            if (!isLoggedIn) {
-                // Redirect to the signin page with the current page as the redirect URL
-                window.location.href = '/signin?redirect=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-
-            // Add the product to the cart
-            try {
-                const response = await fetch('/cart/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ productId }), // Only send productId
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // Show SweetAlert for "Added to Cart"
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Added to Cart!',
-                        text: 'The product has been added to your cart.',
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Oops...',
-                        text: result.message || 'Failed to add the product to the cart.',
-                    });
-                }
-            } catch (error) {
-                console.error('Error:', error);
+            // Handle specific cases like unlisted products
+            if (result.error === 'PRODUCT_NOT_FOUND' || result.error === 'PRODUCT_UNLISTED') {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Oops...',
-                    text: 'Something went wrong!',
-                });
-            }
-        });
-    });
-
-
-    async function addToCart(productId, size) {
-        try {
-            const response = await fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productId, size }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Added to Cart!',
-                    text: 'The product has been added to your cart.',
+                    title: 'Product Unavailable',
+                    text: 'This product cannot be added to cart because it is not available or not found.',
                 });
             } else {
                 Swal.fire({
@@ -556,137 +281,107 @@ document.addEventListener('DOMContentLoaded', function () {
                     text: result.message || 'Failed to add to cart.',
                 });
             }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
         }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong!',
+        });
     }
-    
-    // Function to update wishlist heart icons
-    async function updateWishlistIcons() {
+}
+
+    // Wishlist functions
+    async function toggleWishlist(productId) {
+    try {
+        const response = await fetch('/wishlist/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ productId }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
+            if (heartIcon) {
+                heartIcon.classList.toggle('far');
+                heartIcon.classList.toggle('fas');
+            }
+            
+            await Swal.fire({
+                icon: 'success',
+                title: result.message,
+                timer: 1500, 
+                showConfirmButton: false
+            });
+        } else {
+            // Handle specific cases like unlisted products
+            if (result.error === 'PRODUCT_NOT_FOUND' || result.error === 'PRODUCT_UNLISTED') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Product Unavailable',
+                    text: 'Cannot add to wishlist because the product is not available or not found.',
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: result.message || 'Failed to update wishlist.',
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong!',
+        });
+    }
+}
+
+    // Initialize wishlist icons
+    document.addEventListener('DOMContentLoaded', async function() {
         try {
             const response = await fetch('/wishlist/status');
             const result = await response.json();
 
             if (result.success) {
                 result.wishlistItems.forEach(productId => {
-                    const wishlistButton = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"]`);
-                    if (wishlistButton) {
-                        const heartIcon = wishlistButton.querySelector('i');
-                        heartIcon.classList.remove('far'); // Remove outline heart
-                        heartIcon.classList.add('fas'); // Add filled heart
+                    const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
+                    if (heartIcon) {
+                        heartIcon.classList.remove('far');
+                        heartIcon.classList.add('fas');
                     }
                 });
             }
         } catch (error) {
-            console.error('Error updating wishlist icons:', error);
-        }
-    }
-
-    // Update wishlist icons when the page loads
-    document.addEventListener('DOMContentLoaded', updateWishlistIcons);
-
-    // Function to handle "Add to Wishlist" button click
-// Function to handle "Add to Wishlist" button click
-document.querySelectorAll('.add-to-wishlist').forEach(button => {
-    button.addEventListener('click', async function () {
-        const productId = this.getAttribute('data-product-id');
-        const productSize = this.getAttribute('data-product-size'); // Ensure size is included
-
-        // Check if the user is logged in
-        const isLoggedIn = <%= user ? true : false %>; // Use the user object passed from the controller
-
-        if (!isLoggedIn) {
-            // Redirect to the signin page with the current page as the redirect URL
-            window.location.href = '/signin?redirect=' + encodeURIComponent(window.location.pathname);
-            return;
-        }
-
-        // Toggle the product in the wishlist
-        try {
-            const response = await fetch('/wishlist/toggle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productId, size: productSize }), // Ensure size is included
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                // Toggle the heart icon
-                const heartIcon = this.querySelector('i');
-                heartIcon.classList.toggle('far'); // Outline heart
-                heartIcon.classList.toggle('fas'); // Filled heart
-
-                // Show SweetAlert for "Added to Wishlist" or "Removed from Wishlist"
-                Swal.fire({
-                    icon: 'success',
-                    title: result.message,
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: result.message || 'Failed to update the wishlist.',
-                });
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
+            console.error('Error initializing wishlist:', error);
         }
     });
-});
 
- // Toggle Wishlist Function
- async function toggleWishlist(productId) {
-        try {
-            const response = await fetch('/wishlist/toggle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productId }),
-            });
 
-            const result = await response.json();
+// Add this function for search input handling
+function handleSearchInput() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        updateFilters();
+    }, 500);
+}
 
-            if (result.success) {
-                // Toggle the heart icon
-                const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
-                heartIcon.classList.toggle('far'); // Outline heart
-                heartIcon.classList.toggle('fas'); // Filled heart
 
-                // Show SweetAlert for "Added to Wishlist" or "Removed from Wishlist"
-                Swal.fire({
-                    icon: 'success',
-                    title: result.message,
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: result.message || 'Failed to update the wishlist.',
-                });
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
-        }
-    }
+
+
+
+
+
+
+
+
 
 
 
@@ -698,12 +393,15 @@ document.querySelectorAll('.add-to-wishlist').forEach(button => {
 
 <style>
     .add-to-wishlist i.fas {
-    color: red; 
-}
-
-.add-to-wishlist i.far {
-    color: black; 
-}
+        color: red; 
+    }
+    .add-to-wishlist i.far {
+        color: black; 
+    }
+    .size-option.active {
+        background-color: #333;
+        color: white;
+    }
 </style>
 
 <%- include("../../views/partials/user/footer") %>
