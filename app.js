@@ -27,8 +27,8 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     store: MongoStore.create({
-        mongoUrl: "mongodb://localhost:27017/SneakyDB",
-        ttl: 14 * 24 * 60 * 60, 
+        mongoUrl: process.env.MONGODB_URI + "SneakyDB",
+        ttl: 2 * 24 * 60 * 60, 
     }),
     cookie: { secure: false }
 }));

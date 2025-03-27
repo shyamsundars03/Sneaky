@@ -35,9 +35,9 @@
                         <% transactions.forEach(transaction => { %>
                             <div class="transaction-card <%= transaction.type === 'cashback' || transaction.type === 'refund' ? 'cashback' : 'purchase' %>">
                                 <div class="transaction-info">
-                                    <div class="transaction-type-icon">
+                                    <!-- <div class="transaction-type-icon">
                                         <i class="fas <%= transaction.type === 'cashback' || transaction.type === 'refund' ? 'fa-plus' : 'fa-minus' %>"></i>
-                                    </div>
+                                    </div> -->
                                     <div class="transaction-details">
                                         <h3 class="transaction-type"><%= transaction.type === 'cashback' ? 'Cashback' : transaction.type === 'refund' ? 'Refund' : 'Purchase' %></h3>
                                         <p class="transaction-date">On <%= transaction.date.toLocaleDateString() %></p>

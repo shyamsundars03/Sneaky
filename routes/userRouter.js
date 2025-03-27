@@ -83,7 +83,7 @@ router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
 
 // Order
 router.get("/orders", userAuth, orderController.loadOrder);
-router.get("/orders/:orderId", orderController.loadSingleOrder);
+router.get("/orders/:orderId",userAuth, orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
 router.post('/cancel-order', orderController.cancelOrder);
 router.post('/return-order', userAuth, orderController.returnOrder);
@@ -92,7 +92,7 @@ router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);
 
-//Checkout
+//Checkout 
 router.get("/checkout1", userAuth, checkoutController.loadCheckout1);
 router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
