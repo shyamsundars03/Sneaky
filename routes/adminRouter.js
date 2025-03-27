@@ -52,10 +52,18 @@ router.post('/verify-order', adminAuth, orderController.verifyOrder);
 
 // Coupon management
 router.get("/couponManagement", adminAuth, couponController.loadCouponManagement);
+router.post("/coupon/add", adminAuth, couponController.addCoupon);
+router.put("/coupon/:id", adminAuth, couponController.updateCoupon);
+router.delete("/coupon/:id", adminAuth, couponController.deleteCoupon);
+router.get("/coupon/:id", adminAuth, couponController.getCouponById);
+
 
 // Offer management
 router.get("/offerManagement", adminAuth, offerController.loadOfferManagement);
-
+router.post("/offer/add", adminAuth, offerController.addOffer);
+router.put("/offer/:id", adminAuth, offerController.updateOffer);
+router.delete("/offer/:id", adminAuth, offerController.deleteOffer);
+router.get("/offer/:id", adminAuth, offerController.getOfferById);
 // Sales management
 router.get("/sales", adminAuth, salesController.loadSales);
 
