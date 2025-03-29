@@ -58,7 +58,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["Payment Processing", "Pending", "Shipped", "Delivered", "Cancelled", "Return Requested", "Returned"],
+        enum: ["Payment Processing","Processing", "Pending", "Shipped", "Delivered", "Cancelled", "Return Requested", "Returned"],
         default: "Payment Processing"
     },
     transactionId: {
@@ -77,6 +77,12 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ["Pending", "Completed", "Failed"],
         default: "Pending"
+    },
+    walletDetails: {
+        amountDeducted: Number,
+        transactionId: String,
+        previousBalance: Number,
+        newBalance: Number
     },
 
 }, { timestamps: true });

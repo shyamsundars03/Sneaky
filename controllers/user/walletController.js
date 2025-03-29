@@ -25,31 +25,47 @@ const loadWallet = async (req, res) => {
 };
 
 // Add funds to wallet (optional)
+// In walletController.js
 const addFunds = async (req, res) => {
     try {
         const userId = req.user._id;
         const { amount } = req.body;
 
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid amount" 
+            });
+        }
+
         // Update the wallet balance
         const user = await User.findByIdAndUpdate(
             userId,
             {
-                $inc: { "wallet.balance": amount }, // Increase wallet balance
+                $inc: { "wallet.balance": amount },
                 $push: {
                     "wallet.transactions": {
-                        type: "cashback",
+                        type: "credit",
                         amount: amount,
                         description: "Funds added to wallet",
-                    },
-                },
+                        date: new Date()
+                    }
+                }
             },
             { new: true }
         );
 
-        res.status(200).json({ success: true, balance: user.wallet.balance });
+        res.json({ 
+            success: true, 
+            balance: user.wallet.balance,
+            message: `₹${amount} added to wallet successfully`
+        });
     } catch (error) {
-        console.error("Error adding funds to wallet:", error);
-        res.status(500).json({ success: false, message: "Failed to add funds." });
+        console.error("Error adding funds:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to add funds" 
+        });
     }
 };
 

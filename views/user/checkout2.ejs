@@ -346,18 +346,60 @@ console.log("Selected Address:", selectedAddress);
             <h4>${shippingMethod} - ₹${shippingCost}</h4>
         `;
     }
-
     function proceedToCheckout3() {
     const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+    const walletBalance = <%= walletBalance %>;
+    const cartTotal = <%= cartTotal %>;
+    const shippingCost = <%= shippingCost %>;
+    const totalAmount = cartTotal + shippingCost;
 
-    // Retrieve data from sessionStorage
-    const shippingCost = sessionStorage.getItem('shippingCost');
+    // If wallet is selected and balance is insufficient
+    if (paymentMethod === 'Wallet' && walletBalance < totalAmount) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Insufficient Wallet Balance',
+            html: `
+                <div style="text-align: left;">
+                    <p>Your wallet balance: <strong>₹${walletBalance.toFixed(2)}</strong></p>
+                    <p>Order total: <strong>₹${totalAmount.toFixed(2)}</strong></p>
+                    <p>Short by: <strong>₹${(totalAmount - walletBalance).toFixed(2)}</strong></p>
+                </div>
+                <div class="payment-options" style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" 
+                            onclick="selectPaymentMethod('Razorpay')"
+                            style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                        Pay Online
+                    </button>
+                    <button class="btn btn-secondary" 
+                            onclick="selectPaymentMethod('CashOnDelivery')"
+                            style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px;">
+                        Cash on Delivery
+                    </button>
+                </div>
+            `,
+            showConfirmButton: false,
+            footer: '<a href="/wallet" style="color: #007bff;">Add funds to wallet</a>'
+        });
+        return;
+    }
+
+    // Proceed if validation passes
+    const shippingCostParam = sessionStorage.getItem('shippingCost');
     const shippingMethod = sessionStorage.getItem('shippingMethod');
     const selectedAddress = sessionStorage.getItem('selectedAddress');
 
-    // Redirect to checkout3 with query parameters
-    window.location.href = `/checkout3?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(selectedAddress)}&paymentMethod=${paymentMethod}`;
+    window.location.href = `/checkout3?shippingCost=${shippingCostParam}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(selectedAddress)}&paymentMethod=${paymentMethod}`;
 }
+
+function selectPaymentMethod(method) {
+    document.querySelector(`input[value="${method}"]`).checked = true;
+    Swal.close();
+}
+
+    function selectPaymentMethod(method) {
+        document.querySelector(`input[value="${method}"]`).checked = true;
+        Swal.close();
+    }
 
 </script>
     

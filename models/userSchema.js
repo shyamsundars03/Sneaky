@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const transactionSchema = new Schema({
     type: {
         type: String,
-        enum: ["cashback", "refund", "purchase"], // Types of transactions
+        enum: ['credit', 'debit', 'refund'],  // Types of transactions
         required: true,
     },
     amount: {

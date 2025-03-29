@@ -404,6 +404,48 @@ ul {
         color: #333; /* Set a color for the price */
     }
 
+
+    <style>
+    .balance-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    
+    .balance-info p {
+        margin: 5px 0;
+        font-size: 0.9em;
+    }
+    
+    .payment-options {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .payment-options .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .payment-options .btn:nth-child(1) {
+        background: #007bff;
+        color: white;
+    }
+    
+    .payment-options .btn:nth-child(2) {
+        background: #28a745;
+        color: white;
+    }
+</style>
+
+
+
+
+
     </style>
 </head>
 <body>
@@ -589,75 +631,75 @@ ul {
             couponCode: couponCode
         };
 
+        // Show processing loader
+        const swalInstance = Swal.fire({
+            title: 'Processing Payment',
+            html: 'Please wait while we process your order...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        let endpoint;
         if (paymentMethod === 'Razorpay') {
-            const razorpayResponse = await fetch('/process-razorpay', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            });
-
-            const razorpayData = await razorpayResponse.json();
-            if (!razorpayData.success) throw new Error('Failed to create Razorpay order');
-
-            const options = {
-                key: '<%= process.env.RAZORPAY_KEY_ID %>',
-                amount: razorpayData.razorpayOrder.amount,
-                currency: razorpayData.razorpayOrder.currency,
-                name: 'SNEAKY',
-                description: 'Order Payment',
-                order_id: razorpayData.razorpayOrder.id,
-                handler: async function(response) {
-                    try {
-                        const verifyResponse = await fetch('/verify-razorpay', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(response)
-                        });
-                        const result = await verifyResponse.json();
-                        
-                        if (result.success) {
-                            window.location.href = `/order-success/${result.orderId}`;
-                        } else {
-                            window.location.href = `/order-failed/${razorpayData.orderId}`;
-                        }
-                    } catch (error) {
-                        console.error('Verification error:', error);
-                        window.location.href = `/orders/${razorpayData.orderId}`;
-                    }
-                },
-                prefill: {
-                    name: '<%= user.name %>',
-                    email: '<%= user.email %>',
-                    contact: '<%= user.phone || "" %>'
-                },
-                theme: { color: '#3399cc' },
-                modal: {
-                    ondismiss: async function() {
-                        // Redirect to order page when modal is dismissed
-                        window.location.href = `/orders/${razorpayData.orderId}`;
-                    }
-                }
-            };
-
-            const rzp = new Razorpay(options);
-            rzp.open();
-            
+            endpoint = '/process-razorpay';
+        } else if (paymentMethod === 'Wallet') {
+            endpoint = '/process-wallet';
         } else {
-            // Handle other payment methods (COD/Wallet)
-            const endpoint = paymentMethod === 'CashOnDelivery' ? '/process-cod' : '/process-wallet';
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            });
-            const result = await response.json();
-            window.location.href = result.success ? 
-                `/order-success/${result.orderId}` : 
-                `/order-failed/${result.orderId}`;
+            endpoint = '/process-cod';
         }
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.message || 'Payment failed');
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Payment failed');
+        }
+
+        window.location.href = result.redirectUrl || `/order-success/${result.orderId}`;
+
     } catch (error) {
-        console.error('Order error:', error);
-        alert(error.message || 'An error occurred. Please try again.');
+        console.error('Order Error:', error);
+        
+        // Close processing alert if it's still open
+        if (Swal.isVisible()) {
+            Swal.close();
+        }
+        
+        let errorHtml = `<p>${error.message}</p>`;
+        
+        if (error.message.includes('Insufficient wallet balance')) {
+            errorHtml += `
+                <div style="margin-top: 15px;">
+                    <button onclick="window.location.href='/wallet'" 
+                            style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                        Add Funds to Wallet
+                    </button>
+                    <button onclick="window.location.href='/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}'"
+                            style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; margin-left: 10px;">
+                        Change Payment Method
+                    </button>
+                </div>
+            `;
+        }
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Payment Failed',
+            html: errorHtml,
+            showConfirmButton: false
+        });
     }
 }
 

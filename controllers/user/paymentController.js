@@ -5,6 +5,7 @@ const Product = require("../../models/productSchema");
 const Coupon = require("../../models/couponSchema");
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -99,16 +100,32 @@ const processCOD = async (req, res) => {
     }
 };
 
-// Wallet Payment
+// In paymentController.js - update processWallet function
 const processWallet = async (req, res) => {
     try {
         const { shippingAddress, shippingMethod, shippingCost, couponCode } = req.body;
         const userId = req.user._id;
+        
+        // Get user with wallet balance
         const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
+        }
 
-        // Calculate total amount
+        // Get cart and calculate total
         const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
-        const productsTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        if (!cart || cart.cartItems.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Cart is empty" 
+            });
+        }
+
+        // Calculate amounts
+        const productsTotal = cart.cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
         const totalAmount = productsTotal + Number(shippingCost || 0);
         
         // Apply coupon discount
@@ -123,35 +140,82 @@ const processWallet = async (req, res) => {
         const finalAmount = totalAmount - discountAmount;
 
         // Check wallet balance
-        if (user.walletBalance < finalAmount) {
+        if (user.wallet.balance < finalAmount) {
             return res.status(400).json({ 
                 success: false, 
-                message: "Insufficient wallet balance" 
+                message: `Insufficient wallet balance. Available: ₹${user.wallet.balance.toFixed(2)}, Required: ₹${finalAmount.toFixed(2)}`,
+                currentBalance: user.wallet.balance,
+                requiredAmount: finalAmount
             });
         }
 
+        // Create order
+        const order = new Order({
+            user: userId,
+            items: cart.cartItems.map(item => ({
+                product: item.product._id,
+                quantity: item.quantity,
+                price: item.price,
+                size: item.size,
+            })),
+            shippingAddress,
+            paymentMethod: 'Wallet',
+            shippingMethod,
+            shippingCost: Number(shippingCost || 0),
+            totalAmount: finalAmount,
+            couponCode,
+            status: 'Pending',
+            transactionId: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
+        });
+
+        await order.save();
+
         // Deduct from wallet
-        user.walletBalance -= finalAmount;
+        user.wallet.balance -= finalAmount;
+        user.wallet.transactions.push({
+            type: 'debit',
+            amount: finalAmount,
+            description: `Payment for order ${order.transactionId}`,
+            date: new Date()
+        });
         await user.save();
 
-        const order = await createOrder(userId, {
-            shippingAddress,
-            shippingMethod,
-            shippingCost,
-            paymentMethod: 'Wallet',
-            couponCode
-        });
+        // Update product stock
+        const bulkOps = cart.cartItems.map(item => ({
+            updateOne: {
+                filter: { 
+                    _id: item.product._id,
+                    "sizes.size": item.size,
+                },
+                update: { 
+                    $inc: { "sizes.$.stock": -item.quantity },
+                },
+            },
+        }));
+        await Product.bulkWrite(bulkOps);
+
+        // Clear cart
+        await Cart.findOneAndDelete({ user: userId });
 
         res.json({ 
             success: true, 
             orderId: order._id,
-            transactionId: order.transactionId
+            transactionId: order.transactionId,
+            redirectUrl: `/order-success/${order._id}`,
+            newBalance: user.wallet.balance
         });
+
     } catch (error) {
         console.error("Error in wallet processing:", error);
-        res.status(500).json({ success: false, message: "Failed to process wallet payment" });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to process wallet payment",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
+
+
 
 // Razorpay Payment
 const processRazorpay = async (req, res) => {
