@@ -11,6 +11,7 @@ const checkoutController = require("../controllers/user/checkoutController");
 const wishlistController = require("../controllers/user/wishlistController");
 const orderController = require("../controllers/user/orderController");
 const walletController = require('../controllers/user/walletController');
+const paymentController = require('../controllers/user/paymentController');
 const userAuth = require('../middlewares/userAuth');
 const multer = require('multer');
 const path = require('path');
@@ -88,6 +89,10 @@ router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess
 router.post('/cancel-order', orderController.cancelOrder);
 router.post('/return-order', userAuth, orderController.returnOrder);
 router.get('/download-invoice/:orderId', orderController.downloadInvoice);
+router.get('/order-failed/:orderId', userAuth, orderController.loadOrderFailed);
+router.post('/orders/:orderId/retry', userAuth, paymentController.retryPayment);
+
+
 
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);
@@ -97,6 +102,24 @@ router.get("/checkout1", userAuth, checkoutController.loadCheckout1);
 router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
 router.post("/place-order", userAuth, checkoutController.placeOrder);
+
+
+// Payment routes
+router.post('/process-cod', userAuth, paymentController.processCOD);
+router.post('/process-wallet', userAuth, paymentController.processWallet);
+router.post('/process-razorpay', userAuth, paymentController.processRazorpay);
+router.post('/verify-razorpay', userAuth, paymentController.verifyRazorpay);
+router.post('/validate-coupon', userAuth, paymentController.validateCoupon);
+router.post('/save-failed-order', userAuth, paymentController.saveFailedOrder);
+// In your routes file
+router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPayment);
+
+
+
+
+
+
+
 
 
 

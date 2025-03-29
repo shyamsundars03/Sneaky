@@ -33,9 +33,14 @@
                 <h2><%= product.productName %></h2>
                 <!-- <div class="rating">★★★★★ <span>(1 customer review)</span></div> -->
                 <div class="price">
-                    ₹<span id="offerPrice"><%= product.offerPrice %></span>
-                    <% if (product.price && product.price > 0 && product.offerPrice !== product.price) { %>
+                    <% if (product.finalPrice < product.price) { %>
+                        ₹<span id="offerPrice"><%= product.finalPrice %></span>
                         <span class="discount">₹<span id="price"><%= product.price %></span></span>
+                        <% if (product.hasCategoryOffer) { %>
+                            <div class="category-offer-tag"><%= product.categoryDiscount %>% OFF</div>
+                        <% } %>
+                    <% } else { %>
+                        ₹<span id="price"><%= product.price %></span>
                     <% } %>
                 </div>
                 <p><%= product.description %></p>
@@ -92,10 +97,11 @@
 </section>
 
 <!-- Related Products Section -->
+<!-- Related Products Section -->
 <section class="related-products">
     <div class="container">
         <h2>Related Products</h2>
-        <div class="products-grid">
+        <div class="products-grid" id="related-products-grid">
             <% if (relatedProducts.length > 0) { %>
                 <% relatedProducts.forEach(relatedProduct => { %>
                     <div class="product-card">
@@ -104,15 +110,22 @@
                         </a>
                         <div class="product-info">
                             <div class="product-price">
-                                <% if (relatedProduct.offerPrice && relatedProduct.offerPrice > 0) { %>
-                                    <span class="related-original-price">₹<%= relatedProduct.offerPrice %></span>
+                                <% if (relatedProduct.finalPrice < relatedProduct.price) { %>
+                                    <span class="offer-price">₹<%= relatedProduct.finalPrice %></span>
+                                    <span class="original-price">₹<%= relatedProduct.price %></span>
+                                    <% if (relatedProduct.hasCategoryOffer) { %>
+                                        <span class="category-offer-badge">Category Offer</span>
+                                    <% } %>
+                                <% } else { %>
+                                    <span class="current-price">₹<%= relatedProduct.price %></span>
                                 <% } %>
-                                <span class="related-current-price">₹<%= relatedProduct.price %></span>
                             </div>
                             <h4 class="product-name"><%= relatedProduct.productName %></h4>
                             <div class="product-actions">
-                                <button class="add-to-cart">Add to cart</button>
-                                <button class="add-to-wishlist" data-product-id="<%= product._id %>" onclick="toggleWishlist('<%= product._id %>')">
+                                <button class="add-to-cart-btn" onclick="addToCart('<%= relatedProduct._id %>', '<%= relatedProduct.sizes && relatedProduct.sizes[0] ? relatedProduct.sizes[0].size : "7" %>')">
+                                    Add to cart
+                                </button>
+                                <button class="add-to-wishlist" data-product-id="<%= relatedProduct._id %>" onclick="toggleWishlist('<%= relatedProduct._id %>')">
                                     <i class="far fa-heart"></i>
                                 </button>
                             </div>
@@ -328,6 +341,23 @@ function updateStockDisplay(stock) {
     .zoom-container:hover .zoom-overlay {
         opacity: 1;
     }
+
+
+
+.related-products .category-offer-badge {
+    display: inline-block;
+    background: #28a745;
+    color: white;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+
+
+    
 </style>
 
 <%- include("../../views/partials/user/footer") %>

@@ -64,7 +64,20 @@ router.post("/offer/add", adminAuth, offerController.addOffer);
 router.put("/offer/:id", adminAuth, offerController.updateOffer);
 router.delete("/offer/:id", adminAuth, offerController.deleteOffer);
 router.get("/offer/:id", adminAuth, offerController.getOfferById);
+
+
+
 // Sales management
 router.get("/sales", adminAuth, salesController.loadSales);
+router.get("/sales/data", adminAuth, salesController.getSalesData);
+router.get("/sales/download/pdf", adminAuth, salesController.downloadPDF);
+router.get("/sales/download/excel", adminAuth, salesController.downloadExcel);
+
+
+
+
+
+
+
 
 module.exports = router;

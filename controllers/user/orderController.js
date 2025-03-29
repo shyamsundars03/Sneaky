@@ -9,104 +9,131 @@ const { generateInvoice } = require('../../services/invoiceService');
 // Load orders page
 const loadOrder = async (req, res) => {
     try {
-        if (!req.user) {
-            return res.redirect('/signin');
-        }
+        if (!req.user) return res.redirect('/signin');
 
         const userId = req.user._id;
         const searchTerm = req.query.search || '';
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5; // Items per page
 
-        // Fetch orders for the logged-in user and populate product details
-        const orders = await Order.find({
+        // Build query
+        const query = {
             user: userId,
             $or: [
                 { transactionId: { $regex: searchTerm, $options: 'i' } },
-                { status: { $regex: searchTerm, $options: 'i' } },
-            ],
-        })
-            .sort({ createdAt: -1 }) // Sort by most recent orders first
-            .populate("items.product"); // Populate product details in the order items
+                { status: { $regex: searchTerm, $options: 'i' } }
+            ]
+        };
 
-        // Render the orders page with the orders data
-        res.render("orders", { orders, user: req.user, searchTerm });
+        // Get total count
+        const totalOrders = await Order.countDocuments(query);
+        
+        // Calculate pagination values
+        const totalPages = Math.ceil(totalOrders / limit);
+        const skip = (page - 1) * limit;
+
+        // Get orders with pagination
+        const orders = await Order.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate("items.product");
+
+        res.render("orders", {
+            orders,
+            user: req.user,
+            searchTerm,
+            currentPage: page,
+            totalPages,
+            totalOrders
+        });
     } catch (error) {
         console.error("Error loading orders:", error);
-        res.status(500).render("page-404", { message: "Failed to load orders." });
+        res.status(500).render("page-404");
     }
 };
 
 // Load single order page
 const loadSingleOrder = async (req, res) => {
     try {
-        if (!req.user) {
-            return res.redirect('/signin');
-        }
+        if (!req.user) return res.redirect('/signin');
 
         const orderId = req.params.orderId;
-
-        // Validate orderId
         if (!mongoose.Types.ObjectId.isValid(orderId)) {
             return res.status(400).render("page-404", { message: "Invalid order ID." });
         }
 
-        // Find the order by ID and populate product details
+        // Enhanced population
         const order = await Order.findById(orderId).populate({
             path: 'items.product',
-            select: 'productName productImage price', // Ensure productImage is included
+            select: 'productName productImage price sizes', // Added sizes
+            populate: { // Optional: populate category if needed
+                path: 'category',
+                select: 'name'
+            }
         });
 
         if (!order) {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
 
-        // Transform image paths for the frontend
+        // Transform image paths
         order.items = order.items.map(item => {
-            if (item.product.productImage && item.product.productImage[0]) {
-                item.product.productImage[0] = item.product.productImage[0].replace(/\\/g, '/').replace('public/', '/');
+            if (item.product?.productImage?.[0]) {
+                item.product.productImage[0] = item.product.productImage[0]
+                    .replace(/\\/g, '/')
+                    .replace('public/', '/');
             }
             return item;
         });
 
-        // Debug: Log product image paths
-        order.items.forEach(item => {
-            console.log("Transformed Product Image Path:", item.product.productImage[0]);
-        });
+        // Debug logging
+        console.log("Order items:", order.items);
 
-        // Render the single order page with the order data
-        res.render("singleOrder", { order, user: req.user });
+        res.render("singleOrder", { 
+            order: {
+                ...order.toObject(),
+                // Ensure status is properly set
+                status: order.status || 'Pending'
+            },
+            user: req.user
+        });
     } catch (error) {
         console.error("Error loading single order:", error);
         res.status(500).render("page-404", { message: "Failed to load order details." });
     }
 };
 
-// Load Order Success Page
 const loadOrderSuccess = async (req, res) => {
     try {
-        const orderId = req.params.orderId;
-
-        // Validate orderId
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).render("page-404", { message: "Invalid order ID." });
-        }
-
-        // Find the order by ID
-        const order = await Order.findById(orderId);
-
-        if (!order) {
-            return res.status(404).render("page-404", { message: "Order not found." });
-        }
-
-        // Render the order success page with the transactionId
+        const order = await Order.findById(req.params.orderId);
+        if (!order) return res.status(404).render("page-404");
         res.render("orderSuccess", {
             orderId: order._id,
-            transactionId: order.transactionId, // Ensure this is passed correctly
+            transactionId: order.transactionId
         });
     } catch (error) {
-        console.error("Error loading order success page:", error);
-        res.status(500).render("page-404", { message: "Internal server error." });
+        console.error(error);
+        res.status(500).render("page-404");
     }
 };
+
+const loadOrderFailed = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId);
+        if (!order) return res.status(404).render("page-404");
+        res.render("orderFailed", {
+            orderId: order._id,
+            transactionId: order.transactionId
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).render("page-404");
+    }
+};
+
+
+
 
 // Cancel Order
 const cancelOrder = async (req, res) => {
@@ -197,6 +224,7 @@ module.exports = {
     cancelOrder,
     returnOrder,
     downloadInvoice,
+    loadOrderFailed,
 
 
 };

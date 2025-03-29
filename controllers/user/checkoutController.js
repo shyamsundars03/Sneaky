@@ -36,23 +36,22 @@ const loadCheckout2 = async (req, res) => {
     try {
         const userId = req.user._id;
         const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
+        const user = await User.findById(userId);
+
 
         if (!cart || cart.cartItems.length === 0) {
             return res.redirect("/cart");
         }
 
+        const walletBalance = user.wallet?.balance || 0;
         const cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
-        // Retrieve shipping cost from sessionStorage or default to 100
-        const shippingCost = req.query.shippingCost ? Number(req.query.shippingCost) : 100; 
-
-        console.log("Shipping Cost (Server):", shippingCost);
-        console.log("Cart Total (Server):", cartTotal);
+        const shippingCost = req.query.shippingCost ? Number(req.query.shippingCost) : 100;
 
         res.render("checkout2", { 
             cart, 
-            user: req.user, 
-            cartTotal ,
+            user: req.user,
+            walletBalance,
+            cartTotal,
             shippingCost,
         });
     } catch (error) {

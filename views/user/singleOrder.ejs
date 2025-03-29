@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>SNEAKY</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
         /* Reset and base styles */
         * {
@@ -525,6 +526,57 @@
 
 
     </style>
+    <style>
+        .payment-status-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .payment-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .payment-status.payment-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .payment-status.payment-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .payment-status.payment-processing {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .repay-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .debug-info {
+        color: #888;
+        font-size: 0.8em;
+        margin-top: 10px;
+        display: block;
+    }
+    
+    .swal2-popup {
+        max-width: 500px !important;
+    }
+
+    </style>
+
 </head>
 <body>
     <%-include("../../views/partials/user/header")%>
@@ -549,12 +601,18 @@
                         Order ID: #<%= order.transactionId %>
                         <span class="status <%= order.status.toLowerCase() %>"><%= order.status %></span>
                     </div>
-                    
-                    <div class="order-actions">
-                        <button class="singleorder-btn" onclick="downloadInvoice('<%= order._id %>')">Download Invoice</button>
-                    </div>
-                </div>
-                
+                    <% if (order.status === 'Payment Processing') { %>
+                        <div class="payment-action-container">
+                            <button class="repay-btn" onclick="retryPayment('<%= order._id %>')">
+                                Retry Payment
+                            </button>
+                        </div>
+                    <% } else { %>
+                        <button class="singleorder-btn" onclick="downloadInvoice('<%= order._id %>')">
+                            Download Invoice
+                        </button>
+                    <% } %>
+                        </div>
                 <!-- Order Details Grid -->
                 <div class="order-details-grid">
                     <!-- Customer Details -->
@@ -759,5 +817,119 @@ document.getElementById('returnOrderBtn').addEventListener('click', function () 
         window.location.href = `/download-invoice/${orderId}`;
     }
     </script>
+
+<script>
+    // SINGLE UNIFIED PAYMENT HANDLER
+    function retryPayment(orderId) {
+        Swal.fire({
+            title: 'Preparing Payment',
+            html: 'Connecting to payment gateway...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch(`/orders/${orderId}/retry`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                
+            }
+        })
+        .then(response => {
+        console.log("Raw response:", response); // Debug
+        if (!response.ok) {
+            return response.json().then(err => { 
+                console.error("Server error:", err); // Debug
+                throw err; 
+            });
+        }
+        return response.json();
+    })
+        .then(data => {
+            Swal.close();
+            
+            if (!data.success) {
+                throw new Error(data.message || 'Payment initiation failed');
+            }
+
+            const options = {
+                key: data.key,
+                amount: data.razorpayOrder.amount,
+                currency: data.razorpayOrder.currency,
+                order_id: data.razorpayOrder.id,
+                name: "SNEAKY",
+                description: `Payment for Order #${orderId}`,
+                prefill: {
+                    name: '<%= user.name %>',
+                    email: '<%= user.email %>',
+                    contact: '<%= user.phone || "" %>'
+                },
+                theme: { color: "#F37254" },
+                handler: function(response) {
+                    verifyPayment(response, orderId); // Use the unified verification
+                },
+                modal: {
+                    ondismiss: () => {
+                        Swal.fire('Info', 'Payment window closed', 'info');
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment Failed',
+                html: `<p>${error.message}</p>`,
+                footer: '<a href="/contact">Contact Support</a>'
+            });
+            console.error('Payment Error:', error);
+        });
+    }
+
+    // UNIFIED VERIFICATION FUNCTION
+    function verifyPayment(paymentResponse, orderId) {
+        Swal.fire({
+            title: 'Verifying Payment',
+            html: 'Please wait...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch('/verify-razorpay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+
+            },
+            body: JSON.stringify({
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+                orderId: orderId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Payment Successful!',
+                    willClose: () => {
+                        window.location.href = `/order-success/${orderId}`;
+                    }
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Payment verification failed', 'error');
+            }
+        })
+        .catch(error => {
+            Swal.fire('Error', 'Failed to verify payment', 'error');
+            console.error('Verification Error:', error);
+        });
+    }
+</script>
 </body>
 </html>

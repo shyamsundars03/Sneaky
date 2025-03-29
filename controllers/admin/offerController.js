@@ -113,13 +113,7 @@ const addOffer = async (req, res) => {
 const updateOffer = async (req, res) => {
     try {
         const offerId = req.params.id;
-
-        if (category) {
-            const categoryExists = await Category.findOne({ _id: category, isListed: true });
-            if (!categoryExists) {
-                return res.status(400).json({ success: false, error: 'Category not found or unlisted' });
-            }
-        }
+        const { category, discountPercentage, startDate, endDate } = req.body;
 
         if (!offerId) {
             return res.status(400).json({
@@ -128,10 +122,19 @@ const updateOffer = async (req, res) => {
             });
         }
 
-        const { category, discountPercentage, startDate, endDate } = req.body;
+        // Check category exists (only if category is being updated)
+        if (category) {
+            const categoryExists = await Category.findOne({ _id: category, isListed: true });
+            if (!categoryExists) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Category not found or unlisted' 
+                });
+            }
+        }
 
         const offerData = {
-            category,
+            ...(category && { category }),
             discountPercentage: parseFloat(discountPercentage),
             startDate: new Date(startDate),
             endDate: new Date(endDate)
@@ -154,15 +157,17 @@ const updateOffer = async (req, res) => {
         }
 
         // Check if offer already exists for this category (excluding current offer)
-        const duplicateOffer = await Offer.findOne({ 
-            category: offerData.category,
-            _id: { $ne: offerId }
-        });
-        if (duplicateOffer) {
-            return res.status(400).json({
-                success: false,
-                error: 'Offer already exists for this category'
+        if (category) {
+            const duplicateOffer = await Offer.findOne({ 
+                category: offerData.category,
+                _id: { $ne: offerId }
             });
+            if (duplicateOffer) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Offer already exists for this category'
+                });
+            }
         }
 
         const updatedOffer = await Offer.findByIdAndUpdate(

@@ -219,12 +219,15 @@
                                     </div>
                                     <div class="product-info">
                                         <h3><%= item.product.productName %></h3>
-                                        <div class="product-price">₹<%= item.product.price %></div>
+                                        <div class="product-price">₹<%= item.price %></div>
                                     </div>
                                 </div>
                             </td>
                             <td class="actions-cell">
-                                <button class="add-to-cart-btn" onclick="addToCart('<%= item.product._id %>')">Add to cart</button>
+                                <button class="add-to-cart-btn" 
+                                onclick="addToCartFromWishlist('<%= item.product._id %>', <%= JSON.stringify(item.product.sizes || []) %>)">
+                                Add to cart
+                                </button>
                                 <div class="delete-btn" onclick="removeFromWishlist('<%= item.product._id %>')">
                                     <i class="fas fa-trash"></i>
                                 </div>
@@ -243,15 +246,58 @@
     <%- include("../../views/partials/user/footer") %>
 
     <script>
-        // Function to add product to cart
-       async function addToCart(productId) {
+async function addToCartFromWishlist(productId, sizes) {
+    try {
+        // Validate sizes
+        if (!sizes || !sizes.length) {
+            throw new Error('No sizes available for this product');
+        }
+
+        // If only one size, use it directly
+        if (sizes.length === 1) {
+            return await addToCart(productId, sizes[0].size);
+        }
+
+        // Create size options HTML
+        const sizeOptions = sizes.map(size => 
+            `<option value="${size.size}" ${size.stock <= 0 ? 'disabled' : ''}>
+                Size ${size.size} (${size.stock} available)
+            </option>`
+        ).join('');
+
+        // Show size selection dialog
+        const { value: selectedSize } = await Swal.fire({
+            title: 'Select Size',
+            html: `<select id="sizeSelect" class="swal2-select">
+                ${sizeOptions}
+            </select>`,
+            focusConfirm: false,
+            showCancelButton: true,
+            preConfirm: () => {
+                const select = document.getElementById('sizeSelect');
+                return select.value;
+            }
+        });
+
+        if (selectedSize) {
+            await addToCart(productId, selectedSize);
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to add to cart'
+        });
+    }
+}
+
+
+async function addToCart(productId, size) {
     try {
         const response = await fetch('/cart/add', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ productId }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, size })
         });
 
         const result = await response.json();
@@ -259,22 +305,23 @@
         if (result.success) {
             Swal.fire({
                 icon: 'success',
-                title: 'Added to Cart!',
-                text: 'The product has been added to your cart.',
+                title: 'Success!',
+                text: result.message || 'Added to cart successfully',
+                timer: 1500
             });
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: result.message || 'Failed to add to cart.',
-            });
+            throw new Error(
+                result.error === 'INVALID_SIZE' ? 'Selected size not available' :
+                result.error === 'INSUFFICIENT_STOCK' ? 'Not enough stock available' :
+                result.message || 'Failed to add to cart'
+            );
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Cart Error:', error);
         Swal.fire({
             icon: 'error',
-            title: 'Oops...',
-            text: 'Something went wrong!',
+            title: 'Error',
+            text: error.message || 'Failed to add to cart'
         });
     }
 }

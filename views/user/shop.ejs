@@ -24,6 +24,35 @@
             padding: 4px;
             border-radius: 4px;
         }
+
+
+/* Category offer badges */
+.category-offer-badge {
+    display: inline-block;
+    background: #28a745;
+    color: white;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+.category-offer-tag {
+    display: inline-block;
+    background: #f8f9fa;
+    color: #28a745;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+    font-weight: bold;
+    border: 1px solid #28a745;
+}
+
+
+
+
 </style>
 
 <%- include("../../views/partials/user/header") %>
@@ -149,9 +178,12 @@
                         </a>
                         <div class="product-info">
                             <div class="product-price">
-                                <% if (product.offerPrice && product.offerPrice > 0 && product.offerPrice !== product.price) { %>
-                                    <span class="offer-price">₹<%= product.offerPrice %></span>
+                                <% if (product.finalPrice < product.price) { %>
+                                    <span class="offer-price">₹<%= product.finalPrice %></span>
                                     <span class="original-price">₹<%= product.price %></span>
+                                    <% if (product.hasCategoryOffer) { %>
+                                        <span class="category-offer-badge">Category Offer</span>
+                                    <% } %>
                                 <% } else { %>
                                     <span class="current-price">₹<%= product.price %></span>
                                 <% } %>

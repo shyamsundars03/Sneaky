@@ -1,5 +1,6 @@
 const Product = require('../../models/productSchema'); 
 const Category = require('../../models/categorySchema');
+const Offer = require('../../models/offerSchema');
 const bcrypt = require('bcrypt')
 const usercollection = require("../../models/userSchema");
 const otpCollection = require("../../models/otpSchema");
@@ -332,6 +333,40 @@ const loadAbout = async (req, res) => {
     }
 };
 
+
+// Helper function to calculate final price
+const calculateFinalPrice = (product, activeOffers) => {
+    // Convert to plain object if it's a Mongoose document
+    const productObj = product.toObject ? product.toObject() : product;
+    
+    let finalPrice = productObj.offerPrice;
+    let hasCategoryOffer = false;
+    let categoryDiscount = 0;
+
+    // Check for active category offer
+    const categoryOffer = activeOffers.find(offer => 
+        offer.category._id.toString() === productObj.category._id.toString()
+    );
+
+    if (categoryOffer) {
+        const categoryOfferPrice = Math.round(productObj.price * (1 - categoryOffer.discountPercentage/100));
+        if (categoryOfferPrice < finalPrice) {
+            finalPrice = categoryOfferPrice;
+            hasCategoryOffer = true;
+            categoryDiscount = categoryOffer.discountPercentage;
+        }
+    }
+
+    return {
+        ...productObj,
+        finalPrice,
+        hasCategoryOffer,
+        categoryDiscount
+    };
+};
+
+
+
 const loadShop = async (req, res) => {
     try {
         // Extract query parameters
@@ -396,13 +431,24 @@ const loadShop = async (req, res) => {
                 sortCriteria = { createdAt: -1 }; // Best match (newest)
         }
 
+        // Get active offers once
+        const currentDate = new Date();
+        const activeOffers = await Offer.find({
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate }
+        }).populate('category');
+
         // Fetch products
-        const products = await Product.find(searchQuery)
+        let products = await Product.find(searchQuery)
             .populate('category')
             .skip(skip)
             .limit(limit)
             .sort(sortCriteria);
 
+        // Calculate final prices - ensure we're working with plain objects
+        products = products.map(product => 
+            calculateFinalPrice(product, activeOffers)
+        );
         // Fetch all categories for the sidebar
         const categories = await Category.find({ isDeleted: false });
 
@@ -416,7 +462,7 @@ const loadShop = async (req, res) => {
                 img.replace(/\\/g, '/').replace(/^public\//, '/')
             );
             return {
-                ...product.toObject(),
+                ...product,
                 productImage: fixedImages
             };
         });
@@ -524,47 +570,72 @@ const loadSingleProduct = async (req, res) => {
     try {
         const productId = req.params.id;
 
-        const product = await Product.findById(productId).populate('category');
+        let product = await Product.findById(productId).populate('category');
         if (!product || product.isDeleted) {
-            return res.status(404).render("user/page-404", { error: "Product not found", user: req.session.user  });
+            return res.status(404).render("user/page-404", { 
+                error: "Product not found", 
+                user: req.session.user,
+                searchTerm: '' // Add this
+            });
         }
 
         if (!Array.isArray(product.size)) {
             product.size = []; 
         }
 
+ // Get active offers
+ const currentDate = new Date();
+ const activeOffers = await Offer.find({
+     startDate: { $lte: currentDate },
+     endDate: { $gte: currentDate }
+ }).populate('category');
 
-        const relatedProducts = await Product.find({
-            _id: { $ne: productId }, 
-            category: product.category, 
+ // Calculate final price
+ product = calculateFinalPrice(product, activeOffers);
+
+        // Get related products
+        let relatedProducts = await Product.find({
+            _id: { $ne: productId },
+            category: product.category._id, // Use the category ID
             isDeleted: false,
             isListed: true
-        }).limit(3);
+        }).populate('category').limit(4); // Limit to 4 related products
 
-        const fixedProduct = {
-            ...product.toObject(),
-            productImage: product.productImage.map(img =>
-                img.replace(/\\/g, '/').replace(/^public\//, '/')
-            )
-        };
+        // Calculate final prices for related products
+        relatedProducts = relatedProducts.map(relatedProduct => 
+            calculateFinalPrice(relatedProduct, activeOffers)
+        );
 
-        const fixedRelatedProducts = relatedProducts.map(relatedProduct => {
-            return {
-                ...relatedProduct.toObject(),
-                productImage: relatedProduct.productImage.map(img =>
-                    img.replace(/\\/g, '/').replace(/^public\//, '/')
-                )
-            };
-        });
 
-        res.render("singleProduct", {
-            product: fixedProduct,
-            relatedProducts: fixedRelatedProducts,
-            user: req.session.user,
-        });
+ const fixedProduct = {
+    ...product,
+    productImage: product.productImage.map(img =>
+        img.replace(/\\/g, '/').replace(/^public\//, '/')
+    )
+};
+
+const fixedRelatedProducts = relatedProducts.map(relatedProduct => {
+    return {
+        ...relatedProduct,
+        productImage: relatedProduct.productImage.map(img =>
+            img.replace(/\\/g, '/').replace(/^public\//, '/')
+        )
+    };
+});
+
+res.render("singleProduct", {
+    product: fixedProduct,
+    relatedProducts: fixedRelatedProducts,
+    user: req.session.user,
+    searchTerm: '' 
+});
     } catch (error) {
         console.error('Error in loadSingleProduct:', error);
-        res.status(500).render("shop", { error: "Failed to load product", user: req.session.user });
+        res.status(500).render("shop", { 
+            error: "Failed to load product", 
+            user: req.session.user,
+            searchTerm: '' // Add this
+        });
     }
 };
 

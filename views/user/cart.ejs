@@ -50,6 +50,7 @@
             <thead>
                 <tr>
                     <th style="width: 50%; font-weight: bolder;">Products</th>
+                    <th style="width: 15%; font-weight: bolder; ">Size</th>
                     <th style="width: 15%; font-weight: bolder;">Quantity</th>
                     <th style="width: 15%; font-weight: bolder;">Price</th>
                     <th style="width: 10%; font-weight: bolder;">Delete</th>
@@ -72,6 +73,9 @@
                                     </div>
                                 </div>
                             </td>
+                            <td data-label="Size"> 
+                                <%= item.size %>
+                            </td>
                             <td data-label="cart-Quantity">
                                 <div class="cart-quantity-control">
                                     <div class="cart-quantity-btn" onclick="updateQuantity('<%= item.product._id %>', 'decrease')">-</div>
@@ -81,9 +85,9 @@
                             </td>
                             <td data-label="cart-Price">₹<%= item.price * item.quantity %></td>
                             <td data-label="Delete">
-                                <div class="cart-delete-btn" onclick="removeFromCart('<%= item.product._id %>')">
+                                <button class="cart-delete-btn" onclick="removeFromCart('<%= item._id %>')">
                                     <i class="fas fa-trash"></i>
-                                </div>
+                                </button>
                             </td>
                         </tr>
                     <% }) %>
@@ -132,7 +136,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ productId, action }),
+                body: JSON.stringify({ itemId, action }),
             });
 
             const result = await response.json();
@@ -157,34 +161,39 @@
     }
 
     // Remove from Cart Function
-    async function removeFromCart(productId) {
-        try {
-            const response = await fetch('/cart/remove', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productId }),
-            });
+    async function removeFromCart(itemId) {
+    try {
+        const response = await fetch('/cart/remove', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ itemId }),
+        });
 
-            const result = await response.json();
+        const data = await response.json();
 
-            if (result.success) {
-                window.location.reload(); // Reload to reflect updated cart
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: result.message || 'Failed to remove from cart.',
-                });
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to remove item');
         }
+
+        if (data.success) {
+            await Swal.fire(
+                'Removed!',
+                'Your item has been removed.',
+                'success'
+            );
+            window.location.reload();
+        } else {
+            throw new Error(data.message || 'Failed to remove item');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Something went wrong'
+        });
     }
+}
 </script>

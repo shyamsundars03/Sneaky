@@ -471,7 +471,48 @@
 .return-btn:hover {
     background-color: #1976D2;
 }
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px 0;
+}
 
+.pagination-info {
+    color: #666;
+    font-size: 14px;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+/* .page-btn:hover:not(:disabled) {
+    background: #f0f0f0;
+} */
+
+.page-btn.active {
+    background: red;
+    color: white;
+
+}
+/* 
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+} */
 
     </style>
 </head>
@@ -538,7 +579,7 @@
                         <td>₹<%= order.totalAmount %></td>
                         <td><span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></td>
                         <td>
-<a href="/orders/<%= order._id %>" class="view-btn">View</a>
+                                <a href="/orders/<%= order._id %>" class="view-btn">View</a>
                             
                         </td>
                     </tr>
@@ -550,6 +591,47 @@
             <% } %>
         </tbody>
     </table>
+
+<!-- Pagination Section -->
+<div class="pagination">
+    <div class="pagination-info">
+        <% const start = (currentPage - 1) * 10 + 1; %>
+        <% const end = Math.min(currentPage * 10, totalOrders); %>
+        Showing <%= totalOrders > 0 ? start : 0 %> to <%= end %> of <%= totalOrders %> orders
+    </div>
+    
+    <div class="pagination-buttons">
+        <% if (totalPages > 0) { %>
+            <!-- Previous Button -->
+            <button class="page-btn prev-btn" 
+                <%= currentPage === 1 ? 'disabled' : '' %>
+                onclick="changePage(<%= currentPage - 1 %>)">
+                Previous
+            </button>
+            
+            <!-- Page Numbers -->
+            <% for(let i = 1; i <= totalPages; i++) { %>
+                <button class="page-btn <%= currentPage === i ? 'active' : '' %>" 
+                    onclick="changePage(<%= i %>)">
+                    <%= i %>
+                </button>
+            <% } %>
+            
+            <!-- Next Button -->
+            <button class="page-btn next-btn" 
+                <%= currentPage === totalPages ? 'disabled' : '' %>
+                onclick="changePage(<%= currentPage + 1 %>)">
+                Next
+            </button>
+        <% } %>
+    </div>
+</div>
+
+
+
+
+
+
 </div>
             </div>
         </div>
@@ -679,23 +761,30 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+
 <script>
-    // Search functionality
-    const searchBox = document.getElementById('searchBox');
+    // Handle page changes
+    function changePage(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        window.location.href = url.toString();
+    }
 
-    // Set the search box value from the URL query parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchTerm = urlParams.get('search') || '';
-    searchBox.value = searchTerm;
-
-    searchBox.addEventListener('input', function (e) {
+    // Handle search
+    document.getElementById('searchBox')?.addEventListener('input', function(e) {
         const searchTerm = e.target.value.trim();
         const url = new URL(window.location.href);
-        url.searchParams.set('search', searchTerm);
-        url.searchParams.set('page', 1); // Reset to the first page when searching
+        
+        if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+        } else {
+            url.searchParams.delete('search');
+        }
+        
+        // Reset to first page when searching
+        url.searchParams.set('page', '1');
         window.location.href = url.toString();
     });
 </script>
-
 
 </html>

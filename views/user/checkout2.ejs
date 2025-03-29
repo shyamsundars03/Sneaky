@@ -260,15 +260,30 @@
                 </div>
 
                 <!-- Payment Method Section -->
-                <div class="payment-methods">
-                    <h3>Payment Method</h3>
-                    <div class="payment-option">
-                        <input type="radio" name="payment" value="CashOnDelivery" checked>
-                        <div>
-                            <h4>Cash on Delivery</h4>
-                        </div>
-                    </div>
-                </div>
+<!-- Payment Method Section -->
+<div class="payment-methods">
+    <h3>Payment Method</h3>
+    <div class="payment-option">
+        <input type="radio" name="payment" value="CashOnDelivery" checked>
+        <div>
+            <h4>Cash on Delivery</h4>
+        </div>
+    </div>
+    <div class="payment-option">
+        <input type="radio" name="payment" value="Razorpay">
+        <div>
+            <h4>Online Payment (Razorpay)</h4>
+        </div>
+    </div>
+    <% if (walletBalance > 0) { %>
+        <div class="payment-option">
+            <input type="radio" name="payment" value="Wallet" id="wallet">
+            <label for="wallet">
+                <h4>Wallet (Balance: ₹<%= walletBalance.toFixed(2) %>)</h4>
+            </label>
+        </div>
+        <% } %>
+</div>
 
                 <button class="checkout-btn" onclick="window.location.href='/checkout1'">Back</button>
                 <button class="checkout-btn" onclick="proceedToCheckout3()">Continue</button>

@@ -12,6 +12,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
@@ -27,6 +28,7 @@
     "passport-google-oauth20": "^2.0.0",
     "pdfkit": "^0.16.0",
     "puppeteer": "^24.4.0",
+    "razorpay": "^2.9.6",
     "sweetalert2": "^11.17.2"
   }
 }

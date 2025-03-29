@@ -1,6 +1,8 @@
 const Wishlist = require("../../models/wishlistSchema");
 const Product = require("../../models/productSchema");
 const usercollection = require("../../models/userSchema");
+const Offer = require("../../models/offerSchema"); 
+
 
 // Load Wishlist Page
 const loadWishlist = async (req, res) => {
@@ -11,30 +13,29 @@ const loadWishlist = async (req, res) => {
         const wishlist = await Wishlist.findOne({ user: userId }).populate({
             path: "wishlistItems.product",
             model: "Product",
-            select: "productName productImage price", // Include required fields
+            select: "productName productImage price sizes isListed",
+
         });
 
-        // Transform image paths for the frontend
-        if (wishlist) {
-            wishlist.wishlistItems = wishlist.wishlistItems.map(item => {
-                if (item.product.productImage && item.product.productImage[0]) {
-                    // Replace backslashes with forward slashes and remove the "public/" prefix
-                    item.product.productImage[0] = item.product.productImage[0]
-                        .replace(/\\/g, '/') // Replace backslashes with forward slashes
-                        .replace('public/', '/'); // Remove the "public/" prefix
-                }
-                return item;
-            });
-        }
 
-        // Debug: Log transformed image paths
+
+ // Transform wishlist items
+        // Filter out unlisted products
         if (wishlist) {
+            wishlist.wishlistItems = wishlist.wishlistItems.filter(item => 
+                item.product && item.product.isListed
+            );
+            
+            // Transform product images
             wishlist.wishlistItems.forEach(item => {
-                console.log("Transformed Product Image Path:", item.product.productImage[0]);
+                if (item.product.productImage && item.product.productImage[0]) {
+                    item.product.productImage[0] = item.product.productImage[0]
+                        .replace(/\\/g, '/')
+                        .replace('public/', '/');
+                }
             });
         }
 
-        // Render the wishlist page with transformed image paths
         res.render("wishlist", {
             user: req.user,
             wishlist: wishlist || { wishlistItems: [] },
@@ -51,7 +52,17 @@ const toggleWishlist = async (req, res) => {
         const { productId } = req.body;
         const userId = req.user._id;
 
+        // Get product with populated category
+        const product = await Product.findById(productId).populate('category');
+        if (!product) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Product not found." 
+            });
+        }
+
         let wishlist = await Wishlist.findOne({ user: userId });
+        let finalPrice = null; // Initialize finalPrice
 
         if (!wishlist) {
             wishlist = new Wishlist({
@@ -60,41 +71,64 @@ const toggleWishlist = async (req, res) => {
             });
         }
 
-        const existingItemIndex = wishlist.wishlistItems.findIndex(item => item.product.toString() === productId);
+        const existingItemIndex = wishlist.wishlistItems.findIndex(
+            item => item.product.toString() === productId
+        );
 
         if (existingItemIndex !== -1) {
             // Remove the product from the wishlist
             wishlist.wishlistItems.splice(existingItemIndex, 1);
         } else {
-            // Add the product to the wishlist
-            wishlist.wishlistItems.push({ product: productId });
-        }
+            // Calculate final price only when adding to wishlist
+            finalPrice = product.offerPrice || product.price;
 
-        // Save the wishlist and handle VersionError
-        let retries = 3; // Number of retries
-        while (retries > 0) {
-            try {
-                await wishlist.save();
-                break; // Exit the loop if save is successful
-            } catch (error) {
-                if (error.name === 'VersionError') {
-                    // Fetch the latest version of the document
-                    wishlist = await Wishlist.findOne({ user: userId });
-                    retries--;
-                } else {
-                    throw error; // Re-throw other errors
+            // Check for active category offers if product has a category
+            if (product.category) {
+                try {
+                    const currentDate = new Date();
+                    const activeOffers = await Offer.find({
+                        startDate: { $lte: currentDate },
+                        endDate: { $gte: currentDate }
+                    }).populate('category');
+
+                    const categoryOffer = activeOffers.find(offer => 
+                        offer.category && offer.category._id.toString() === product.category._id.toString()
+                    );
+
+                    if (categoryOffer) {
+                        const categoryOfferPrice = Math.round(product.price * (1 - categoryOffer.discountPercentage/100));
+                        if (categoryOfferPrice < finalPrice) {
+                            finalPrice = categoryOfferPrice;
+                        }
+                    }
+                } catch (offerError) {
+                    console.error("Error checking offers:", offerError);
+                    // Continue with existing finalPrice if offer check fails
                 }
             }
+
+            // Add the product to the wishlist with the final price
+            wishlist.wishlistItems.push({ 
+                product: productId,
+                price: finalPrice
+            });
         }
 
-        if (retries === 0) {
-            throw new Error("Failed to update wishlist after multiple retries.");
-        }
 
-        res.json({ success: true, message: existingItemIndex !== -1 ? "Removed from Wishlist!" : "Added to Wishlist!" });
+        await wishlist.save();
+
+        res.json({ 
+            success: true, 
+            message: existingItemIndex !== -1 ? "Removed from Wishlist!" : "Added to Wishlist!",
+            price: existingItemIndex === -1 ? finalPrice : null // Only send price when adding
+        });
     } catch (error) {
         console.error("Error toggling wishlist:", error);
-        res.status(500).json({ success: false, message: "Failed to update the wishlist." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to update the wishlist.",
+            error: error.message 
+        });
     }
 };
 
