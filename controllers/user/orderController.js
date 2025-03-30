@@ -138,46 +138,76 @@ const loadOrderFailed = async (req, res) => {
 
 
 
-
 // Cancel Order
 const cancelOrder = async (req, res) => {
     try {
         const { orderId, reason } = req.body;
+        const order = await Order.findById(orderId)
+            .populate('user')
+            .populate('items.product');
 
-        const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found." });
+            return res.status(404).json({ 
+                success: false, 
+                message: "Order not found." 
+            });
         }
 
-        // Check if the order can be cancelled
-        if (order.status !== 'Pending' && order.status !== 'Shipped') {
-            return res.status(400).json({ success: false, message: "Order cannot be cancelled." });
+        // Validate order can be cancelled
+        if (!['Pending', 'Shipped', 'Processing'].includes(order.status)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Order cannot be cancelled at this stage." 
+            });
+        }
+
+        // 1. Update stock for each item (size-specific)
+        const bulkOps = order.items.map(item => ({
+            updateOne: {
+                filter: { 
+                    _id: item.product._id,
+                    "sizes.size": item.size
+                },
+                update: { 
+                    $inc: { "sizes.$.stock": item.quantity } 
+                }
+            }
+        }));
+        await mongoose.model('Product').bulkWrite(bulkOps);
+
+        // 2. Process refund to wallet regardless of payment method
+        if (!order.refundProcessed) {
+            const user = await User.findById(order.user._id);
+            if (user) {
+                user.wallet.balance += order.totalAmount;
+                user.wallet.transactions.push({
+                    type: 'refund',
+                    amount: order.totalAmount,
+                    description: `Refund for cancelled order #${order.transactionId}`,
+                    date: new Date()
+                });
+                await user.save();
+                order.refundProcessed = true;
+            }
         }
 
         // Update order status
         order.status = 'Cancelled';
         order.cancellationReason = reason;
-
-        // Update stock for each item (increase stock by the ordered quantity)
-        const bulkOps = order.items.map(item => ({
-            updateOne: {
-                filter: { 
-                    _id: item.product,
-                    "sizes.size": item.size, // Match the specific size
-                },
-                update: { 
-                    $inc: { "sizes.$.stock": +item.quantity }, // Increase stock for the specific size
-                },
-            },
-        }));
-        await Product.bulkWrite(bulkOps);
-
+        order.stockRestored = true;
         await order.save();
 
-        res.status(200).json({ success: true, message: "Order cancelled successfully." });
+        res.status(200).json({ 
+            success: true, 
+            message: "Order cancelled successfully. Amount refunded to wallet." 
+        });
+
     } catch (error) {
         console.error("Error cancelling order:", error);
-        res.status(500).json({ success: false, message: "Failed to cancel order." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to cancel order." 
+        });
     }
 };
 
@@ -188,21 +218,40 @@ const returnOrder = async (req, res) => {
 
         const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found.' });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found.' 
+            });
         }
 
         if (order.status !== 'Delivered') {
-            return res.status(400).json({ success: false, message: 'Order cannot be returned.' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Only delivered orders can be returned.' 
+            });
         }
 
-        order.status = 'Return Requested'; // Set a temporary status
-        order.returnReason = reason; // Store the return reason
+        if (!reason) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Return reason is required.' 
+            });
+        }
+
+        order.status = 'Return Requested';
+        order.returnReason = reason;
         await order.save();
 
-        res.status(200).json({ success: true, message: 'Return request submitted successfully.' });
+        res.status(200).json({ 
+            success: true, 
+            message: 'Return request submitted successfully.' 
+        });
     } catch (error) {
         console.error('Error returning order:', error);
-        res.status(500).json({ success: false, message: 'Failed to submit return request.' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to submit return request.' 
+        });
     }
 };
 

@@ -4,20 +4,36 @@ const User = require('../../models/userSchema');
 const loadWallet = async (req, res) => {
     try {
         const userId = req.user._id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = 3;
 
-        // Fetch the user with wallet details
-        const user = await User.findById(userId);
+        const user = await User.findById(userId)
+            .lean(); // Convert to plain JS object
 
         if (!user) {
             return res.status(404).render("page-404", { message: "User not found." });
         }
 
-        // Render the wallet page with user's wallet data
+        // Manually sort transactions
+        const sortedTransactions = user.wallet.transactions
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const totalTransactions = sortedTransactions.length;
+        const totalPages = Math.ceil(totalTransactions / limit);
+        const paginatedTransactions = sortedTransactions.slice(
+            (page - 1) * limit,
+            page * limit
+        );
+
         res.render("wallet", {
             user: req.user,
             walletBalance: user.wallet.balance,
-            transactions: user.wallet.transactions,
+            transactions: paginatedTransactions,
+            currentPage: page,
+            totalPages,
+            totalTransactions
         });
+
     } catch (error) {
         console.error("Error loading wallet:", error);
         res.status(500).render("page-404", { message: "Failed to load wallet." });

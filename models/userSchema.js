@@ -14,6 +14,7 @@ const transactionSchema = new Schema({
     date: {
         type: Date,
         default: Date.now,
+        index: -1
     },
     description: {
         type: String,

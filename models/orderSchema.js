@@ -14,13 +14,16 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    size: {  // Add size field for variant tracking
+        type: String,
+        required: true
+    },
+
     status: {
         type: String,
         enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
         default: "Pending",
     },
-    cancellationReason: String,
-    returnReason: String,
 });
 
 const orderSchema = new mongoose.Schema({
@@ -84,6 +87,24 @@ const orderSchema = new mongoose.Schema({
         previousBalance: Number,
         newBalance: Number
     },
+    cancellationReason: String,
+    returnReason: String,
+    returnVerified: {
+        type: Boolean,
+        default: false
+    },
+    refundProcessed: {
+        type: Boolean,
+        default: false
+    },
+    stockRestored: {
+        type: Boolean,
+        default: false
+    },
+    inventoryRestoreScheduled: {
+        type: Boolean,
+        default: false
+    }
 
 }, { timestamps: true });
 

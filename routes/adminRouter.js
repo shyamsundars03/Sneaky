@@ -39,15 +39,21 @@ router.get('/userManagement/:id', adminAuth, userController.getUserById);
 router.delete('/userManagement/:id', adminAuth, userController.deleteUser);
 router.post('/userManagement/:id/toggle-status', adminAuth, userController.toggleUserStatus);
 
-// Order management
-router.get("/orderManagement", adminAuth, orderController.loadOrderManagement); // Load order management page
-router.get("/orderManagement/:id", adminAuth, orderController.loadSingleAdminOrder); // Load single order details
-router.get('/order/:id', adminAuth, orderController.loadSingleAdminOrder); // Alternative route for single order
-router.post('/update-order-status', adminAuth, orderController.updateOrderStatus); // Update order status
-router.post('/cancel-order', adminAuth, orderController.cancelOrder); // Cancel order
-router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest);
-router.post('/admin/verify-return', adminAuth, orderController.verifyReturn);
-router.post('/verify-order', adminAuth, orderController.verifyOrder);
+// Order management routes
+router.get("/orderManagement", adminAuth, orderController.loadOrderManagement); 
+router.get("/order/:id", adminAuth, orderController.loadSingleAdminOrder); 
+
+// Order status management routes
+router.post('/update-order-status', adminAuth, orderController.updateOrderStatus); 
+router.post('/cancel-order', adminAuth, orderController.cancelOrder); 
+
+// Return management routes
+router.post('/verify-return', adminAuth, orderController.verifyReturn); 
+router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest); 
+
+// Order verification
+router.post('/verify-order', adminAuth, orderController.verifyOrder); 
+
 
 
 // Coupon management

@@ -295,6 +295,21 @@
             margin-bottom: 10px;
             color: #555;
         }
+
+
+.reason-section{
+    margin-bottom: 30px;
+}
+.reason-section h3 {
+    font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #555;
+}
+
+
+
+
+
         
         .bottom-actions {
             display: flex;
@@ -711,10 +726,31 @@
                 </div>
                 
 
+                    <!-- Cancellation/Return Reason Section -->
+                    <% if (order.status === 'Cancelled' && order.cancellationReason) { %>
+                        <div class="reason-section">
+                            <h3>Cancellation Reason</h3>
+                            <p><%= order.cancellationReason %></p>
+                        </div>
+                    <% } %>
+
+                    <% if ((order.status === 'Return Requested' || order.status === 'Returned') && order.returnReason) { %>
+                        <div class="reason-section">
+                            <h3>Return Reason</h3>
+                            <p><%= order.returnReason %></p>
+                        </div>
+                    <% } %>
+
+
+
+
+
                 <!-- Bottom Actions -->
                 <div class="bottom-actions">
                     <a href="/orders" class="singleorder-btn">Back</a>
-                    <% if (order.status === 'Pending' || order.status === 'Shipped') { %>
+                    <% if (order.status === 'Payment Processing') { %>
+                        <!-- Only retry payment button shows -->
+                    <% } else if (order.status === 'Pending' || order.status === 'Shipped') { %>
                         <button class="singleorder-btn" id="cancelOrderBtn">Cancel Order</button>
                     <% } else if (order.status === 'Delivered') { %>
                         <button class="singleorder-btn" id="returnOrderBtn">Return Order</button>

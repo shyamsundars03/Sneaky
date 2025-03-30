@@ -105,6 +105,7 @@
     <div class="summary">
         <p>Sub Total: ₹<%= subTotal %></p>
         <p>Shipping & handling: ₹<%= shippingCost %></p>
+        <p>Coupon(<%= order.couponCode %>):-₹<%= order.discountAmount.toFixed(2) %></p>
         <p><strong>Total: ₹<%= totalAmount %></strong></p>
     </div>
 
