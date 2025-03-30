@@ -38,7 +38,6 @@ const loadCheckout2 = async (req, res) => {
         const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
         const user = await User.findById(userId);
 
-
         if (!cart || cart.cartItems.length === 0) {
             return res.redirect("/cart");
         }
@@ -46,6 +45,10 @@ const loadCheckout2 = async (req, res) => {
         const walletBalance = user.wallet?.balance || 0;
         const cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
         const shippingCost = req.query.shippingCost ? Number(req.query.shippingCost) : 100;
+        const totalAmount = cartTotal + shippingCost;
+
+        // Calculate COD eligibility (max ₹7000)
+        const isCODAllowed = totalAmount <= 7000;
 
         res.render("checkout2", { 
             cart, 
@@ -53,6 +56,8 @@ const loadCheckout2 = async (req, res) => {
             walletBalance,
             cartTotal,
             shippingCost,
+            isCODAllowed, // Pass this to the view
+            totalAmount   // Pass total for client-side validation
         });
     } catch (error) {
         console.error("Error loading checkout2:", error);

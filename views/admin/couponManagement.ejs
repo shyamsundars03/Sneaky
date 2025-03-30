@@ -470,6 +470,34 @@
                 flex-direction: column;
             }
         }
+
+
+        .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.expired {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-badge.upcoming {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+
+
+
+
     </style>
 </head>
 
@@ -529,10 +557,8 @@
                                 <td>₹<%= coupon.minPurchase.toLocaleString() %></td>
                                 <td><%= coupon.discountPercentage %>%</td>
                                 <td>
-                                    <% const currentDate = new Date(); 
-                                       const isActive = new Date(coupon.startDate) <= currentDate && new Date(coupon.endDate) >= currentDate; %>
-                                    <span class="status-badge <%= isActive ? 'active' : 'expired' %>">
-                                        <%= isActive ? 'Active' : 'Expired' %>
+                                    <span class="status-badge <%= coupon.statusClass %>">
+                                        <%= coupon.status %>
                                     </span>
                                 </td>
                                 <td>

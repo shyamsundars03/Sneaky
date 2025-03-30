@@ -184,17 +184,22 @@ const updateQuantity = async (req, res) => {
             path: 'cartItems.product',
             populate: { path: 'category' }
         });
+        
         if (!cart) {
             return res.status(404).json({ success: false, message: "Cart not found." });
         }
 
-        const item = cart.cartItems.find(item => item.product._id.toString() === productId);
+        // Find the cart item by product ID (instead of item ID)
+        const item = cart.cartItems.find(item => 
+            item.product._id.toString() === productId
+        );
 
         if (!item) {
             return res.status(404).json({ success: false, message: "Product not found in cart." });
         }
 
-  // Get active category offers
+        // Rest of your existing code for price calculation and stock check...
+        // Get active category offers
         const currentDate = new Date();
         const activeOffers = await Offer.find({
             startDate: { $lte: currentDate },
@@ -202,15 +207,17 @@ const updateQuantity = async (req, res) => {
         }).populate('category');
 
         // Recalculate final price in case offers changed
-        let finalPrice = item.product.offerPrice;
-        const categoryOffer = activeOffers.find(offer => 
-            offer.category._id.toString() === item.product.category._id.toString()
-        );
+        let finalPrice = item.product.offerPrice || item.product.price;
+        if (item.product.category) {
+            const categoryOffer = activeOffers.find(offer => 
+                offer.category && offer.category._id.toString() === item.product.category._id.toString()
+            );
 
-        if (categoryOffer) {
-            const categoryOfferPrice = Math.round(item.product.price * (1 - categoryOffer.discountPercentage/100));
-            if (categoryOfferPrice < finalPrice) {
-                finalPrice = categoryOfferPrice;
+            if (categoryOffer) {
+                const categoryOfferPrice = Math.round(item.product.price * (1 - categoryOffer.discountPercentage/100));
+                if (categoryOfferPrice < finalPrice) {
+                    finalPrice = categoryOfferPrice;
+                }
             }
         }
 
@@ -219,8 +226,6 @@ const updateQuantity = async (req, res) => {
             item.price = finalPrice;
         }
 
-
-        
         // Check stock
         const selectedSize = item.product.sizes.find(s => s.size === item.size);
         if (!selectedSize) {
@@ -229,11 +234,19 @@ const updateQuantity = async (req, res) => {
 
         if (action === 'increase') {
             if (item.quantity + 1 > selectedSize.stock) {
-                return res.status(400).json({ success: false, message: "Quantity exceeds available stock." });
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Only " + selectedSize.stock + " items available in stock." 
+                });
             }
             item.quantity += 1;
         } else if (action === 'decrease' && item.quantity > 1) {
             item.quantity -= 1;
+        } else {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Minimum quantity is 1" 
+            });
         }
 
         cart.cartTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -248,7 +261,11 @@ const updateQuantity = async (req, res) => {
         });
     } catch (error) {
         console.error("Error updating quantity:", error);
-        res.status(500).json({ success: false, message: "Failed to update the quantity." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to update the quantity.",
+            error: error.message 
+        });
     }
 };
 

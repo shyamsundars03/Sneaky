@@ -12,6 +12,7 @@ const wishlistController = require("../controllers/user/wishlistController");
 const orderController = require("../controllers/user/orderController");
 const walletController = require('../controllers/user/walletController');
 const paymentController = require('../controllers/user/paymentController');
+const { validateCoupon } = require('../controllers/user/couponController');
 const userAuth = require('../middlewares/userAuth');
 const multer = require('multer');
 const path = require('path');
@@ -102,7 +103,7 @@ router.get("/checkout1", userAuth, checkoutController.loadCheckout1);
 router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
 router.post("/place-order", userAuth, checkoutController.placeOrder);
-
+router.post('/validate-coupon', userAuth, validateCoupon);
 
 // Payment routes
 router.post('/process-cod', userAuth, paymentController.processCOD);

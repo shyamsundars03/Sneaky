@@ -142,14 +142,15 @@
         .payment-methods {
             display: grid;
             gap: 1rem;
-            margin: 1rem 0;
+            /* margin: 1rem 0; */
         }
 
         .payment-option {
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
+            /* gap: 1rem; */
+            /* padding: 1rem; */
             border: 1px solid #eee;
             border-radius: 8px;
         }
@@ -221,6 +222,85 @@
                 flex-direction: column;
             }
         }
+
+/* Add these styles to your CSS file */
+
+
+.payment-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.payment-label {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.payment-option input[type="radio"]:checked + .payment-label {
+    border-color: #ff0000;
+    background-color: #fff8f8;
+}
+
+.payment-option:hover .payment-label {
+    border-color: #aaa;
+}
+
+.payment-content {
+    margin-left: 15px;
+}
+
+.payment-content h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.payment-content p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.payment-content .balance-sufficient {
+    color: #28a745;
+    margin-top: 5px;
+}
+.payment-content .balance-insufficient {
+    color: red;
+    margin-top: 5px;
+}
+
+.payment-content .cod-error-message {
+    color: #dc3545;
+    margin-top: 5px;
+    font-weight: bold;
+}
+
+/* Custom radio button styling */
+.payment-label::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #999;
+    border-radius: 50%;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.payment-option input[type="radio"]:checked + .payment-label::before {
+    border-color: #ff0000;
+    background-color: #ff0000;
+    background-image: radial-gradient(circle, white 35%, transparent 40%);
+}
+
+
     </style>
 </head>
 <body>
@@ -261,30 +341,54 @@
 
                 <!-- Payment Method Section -->
 <!-- Payment Method Section -->
+<!-- Payment Method Section -->
 <div class="payment-methods">
     <h3>Payment Method</h3>
+    
+    <!-- Cash on Delivery -->
     <div class="payment-option">
-        <input type="radio" name="payment" value="CashOnDelivery" checked>
-        <div>
-            <h4>Cash on Delivery</h4>
-        </div>
-    </div>
-    <div class="payment-option">
-        <input type="radio" name="payment" value="Razorpay">
-        <div>
-            <h4>Online Payment (Razorpay)</h4>
-        </div>
-    </div>
-    <% if (walletBalance > 0) { %>
-        <div class="payment-option">
-            <input type="radio" name="payment" value="Wallet" id="wallet">
-            <label for="wallet">
-                <h4>Wallet (Balance: ₹<%= walletBalance.toFixed(2) %>)</h4>
-            </label>
-        </div>
-        <% } %>
-</div>
+        <input type="radio" id="cod" name="payment" value="CashOnDelivery" 
+               <%= (walletBalance >= totalAmount) ? '' : 'checked' %>>
+        <label for="cod" class="payment-label">
+            <div class="payment-content">
+                <h4>Cash on Delivery</h4>
 
+                <% if (!isCODAllowed) { %>
+                    <p class="cod-error-message">Not available for orders above ₹7000</p>
+                <% } %>
+            </div>
+        </label>
+    </div>
+    
+    <!-- Razorpay -->
+    <div class="payment-option">
+        <input type="radio" id="razorpay" name="payment" value="Razorpay" 
+               <%= (walletBalance >= totalAmount) ? 'checked' : '' %>>
+        <label for="razorpay" class="payment-label">
+            <div class="payment-content">
+                <h4>Online Payment (Razorpay)</h4>
+
+            </div>
+        </label>
+    </div>
+    
+    <!-- Wallet -->
+    <div class="payment-option">
+        <input type="radio" id="wallet" name="payment" value="Wallet" 
+               <%= (walletBalance >= totalAmount) ? 'checked' : '' %>>
+        <label for="wallet" class="payment-label">
+            <div class="payment-content">
+                <h4>Wallet Payment</h4>
+                <p>Balance: ₹<%= walletBalance.toFixed(2) %></p>
+                <% if (walletBalance >= totalAmount) { %>
+                    <p class="balance-sufficient">Sufficient balance</p>
+                <% } else { %>
+                    <p class="balance-insufficient">Insufficient balance (needs ₹<%= (totalAmount - walletBalance).toFixed(2) %> more)</p>
+                <% } %>
+            </div>
+        </label>
+    </div>
+</div>
                 <button class="checkout-btn" onclick="window.location.href='/checkout1'">Back</button>
                 <button class="checkout-btn" onclick="proceedToCheckout3()">Continue</button>
             </div>
@@ -346,40 +450,23 @@ console.log("Selected Address:", selectedAddress);
             <h4>${shippingMethod} - ₹${shippingCost}</h4>
         `;
     }
+
     function proceedToCheckout3() {
     const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
     const walletBalance = <%= walletBalance %>;
     const cartTotal = <%= cartTotal %>;
     const shippingCost = <%= shippingCost %>;
     const totalAmount = cartTotal + shippingCost;
+    const isCODAllowed = <%= isCODAllowed %>;
 
-    // If wallet is selected and balance is insufficient
+    // Validate payment method
+    if (paymentMethod === 'CashOnDelivery' && !isCODAllowed) {
+        document.getElementById('cod-error').style.display = 'block';
+        return;
+    }
+
     if (paymentMethod === 'Wallet' && walletBalance < totalAmount) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Insufficient Wallet Balance',
-            html: `
-                <div style="text-align: left;">
-                    <p>Your wallet balance: <strong>₹${walletBalance.toFixed(2)}</strong></p>
-                    <p>Order total: <strong>₹${totalAmount.toFixed(2)}</strong></p>
-                    <p>Short by: <strong>₹${(totalAmount - walletBalance).toFixed(2)}</strong></p>
-                </div>
-                <div class="payment-options" style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
-                    <button class="btn btn-primary" 
-                            onclick="selectPaymentMethod('Razorpay')"
-                            style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
-                        Pay Online
-                    </button>
-                    <button class="btn btn-secondary" 
-                            onclick="selectPaymentMethod('CashOnDelivery')"
-                            style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px;">
-                        Cash on Delivery
-                    </button>
-                </div>
-            `,
-            showConfirmButton: false,
-            footer: '<a href="/wallet" style="color: #007bff;">Add funds to wallet</a>'
-        });
+        document.getElementById('wallet-error').style.display = 'block';
         return;
     }
 

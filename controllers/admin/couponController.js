@@ -52,8 +52,23 @@ const loadCouponManagement = async (req, res) => {
         // Get existing coupon codes for validation
         const existingCouponCodes = (await Coupon.find({}, 'code')).map(c => c.code);
 
+        const currentDate = new Date();
+        const enhancedCoupons = coupons.map(coupon => {
+            const isActive = new Date(coupon.startDate) <= currentDate && 
+                           new Date(coupon.endDate) >= currentDate;
+            const isUpcoming = new Date(coupon.startDate) > currentDate;
+            
+            return {
+                ...coupon.toObject(),
+                status: isActive ? 'Active' : 
+                       isUpcoming ? 'Upcoming' : 'Expired',
+                statusClass: isActive ? 'active' : 
+                           isUpcoming ? 'upcoming' : 'expired'
+            };
+        });
+
         res.render('couponManagement', {
-            coupons,
+            coupons: enhancedCoupons,
             currentPage: page,
             totalPages,
             totalCoupons,
@@ -84,6 +99,24 @@ const addCoupon = async (req, res) => {
             endDate: new Date(endDate),
             description: description || ''
         };
+
+        // Additional validation for dates - use different variable names here
+        const startDateObj = new Date(couponData.startDate);
+        const endDateObj = new Date(couponData.endDate);
+        
+        if (startDateObj < new Date()) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Start date cannot be in the past' 
+            });
+        }
+
+        if (endDateObj < startDateObj) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'End date must be after start date' 
+            });
+        }
 
         const errors = validateCoupon(couponData);
         if (errors.length > 0) {

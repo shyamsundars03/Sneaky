@@ -63,11 +63,10 @@ const loadSingleOrder = async (req, res) => {
             return res.status(400).render("page-404", { message: "Invalid order ID." });
         }
 
-        // Enhanced population
         const order = await Order.findById(orderId).populate({
             path: 'items.product',
-            select: 'productName productImage price sizes', // Added sizes
-            populate: { // Optional: populate category if needed
+            select: 'productName productImage price sizes category',
+            populate: {
                 path: 'category',
                 select: 'name'
             }
@@ -76,6 +75,12 @@ const loadSingleOrder = async (req, res) => {
         if (!order) {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
+
+        // Calculate subtotal and transform data
+        const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const hasDiscount = order.discountAmount > 0;
+        const discountPercentage = hasDiscount ? 
+            Math.round((order.discountAmount / (subtotal + order.shippingCost)) * 100) : 0;
 
         // Transform image paths
         order.items = order.items.map(item => {
@@ -87,14 +92,13 @@ const loadSingleOrder = async (req, res) => {
             return item;
         });
 
-        // Debug logging
-        console.log("Order items:", order.items);
-
         res.render("singleOrder", { 
             order: {
                 ...order.toObject(),
-                // Ensure status is properly set
-                status: order.status || 'Pending'
+                subtotal: subtotal,
+                hasDiscount: hasDiscount,
+                discountPercentage: discountPercentage,
+                grandTotal: order.totalAmount
             },
             user: req.user
         });

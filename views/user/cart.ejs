@@ -128,38 +128,59 @@
     }
 
 
- // Update Quantity Function
- async function updateQuantity(productId, action) {
-        try {
-            const response = await fetch('/cart/update-quantity', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ itemId, action }),
-            });
+ // Update Quantity Function with AJAX
+async function updateQuantity(productId, action) {
+    try {
+        const response = await fetch('/cart/update-quantity', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                productId: productId, 
+                action: action 
+            }),
+        });
 
-            const result = await response.json();
+        const result = await response.json();
 
-            if (result.success) {
-                window.location.reload(); // Reload to reflect updated quantity
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: result.message || 'Failed to update quantity.',
-                });
+        if (result.success) {
+            // Update the quantity display without page reload
+            const quantityInput = document.getElementById(`quantity-${productId}`);
+            if (quantityInput) {
+                quantityInput.value = result.newQuantity;
             }
-        } catch (error) {
-            console.error('Error:', error);
+            
+            // Update the price display for this item
+            const priceCell = quantityInput.closest('tr').querySelector('td[data-label="cart-Price"]');
+            if (priceCell) {
+                priceCell.textContent = `₹${result.newPrice}`;
+            }
+            
+            // Update the cart total
+            const cartTotalElements = document.querySelectorAll('.cart-summary-value');
+            if (cartTotalElements.length > 1) {
+                cartTotalElements[0].textContent = `₹${result.newSubtotal}`;
+                cartTotalElements[1].textContent = `₹${result.newTotal}`;
+            }
+            
+
+        } else {
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
-                text: 'Something went wrong!',
+                text: result.message || 'Failed to update quantity.',
             });
         }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong!',
+        });
     }
-
+}
     // Remove from Cart Function
     async function removeFromCart(itemId) {
     try {

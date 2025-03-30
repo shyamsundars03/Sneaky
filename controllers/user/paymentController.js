@@ -81,6 +81,37 @@ const processCOD = async (req, res) => {
         const { shippingAddress, shippingMethod, shippingCost, couponCode } = req.body;
         const userId = req.user._id;
 
+        // Get cart to calculate total
+        const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
+        if (!cart || cart.cartItems.length === 0) {
+            return res.status(400).json({ success: false, message: "Cart is empty" });
+        }
+
+        // Calculate total amount
+        const productsTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const totalAmount = productsTotal + Number(shippingCost || 0);
+        
+        // Apply coupon discount if exists
+        let discountAmount = 0;
+        if (couponCode) {
+            const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+            if (coupon && totalAmount >= coupon.minPurchase) {
+                discountAmount = (totalAmount * coupon.discountPercentage) / 100;
+            }
+        }
+
+        const finalAmount = totalAmount - discountAmount;
+
+        // Check COD limit (7000)
+        if (finalAmount > 7000) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Cash on Delivery available only for orders below ₹7000. Please choose another payment method.",
+                limitExceeded: true
+            });
+        }
+
+        // Proceed with order creation if within limit
         const order = await createOrder(userId, {
             shippingAddress,
             shippingMethod,
@@ -99,6 +130,8 @@ const processCOD = async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to place COD order" });
     }
 };
+
+
 
 // In paymentController.js - update processWallet function
 const processWallet = async (req, res) => {
@@ -223,53 +256,69 @@ const processRazorpay = async (req, res) => {
         const { shippingAddress, shippingMethod, shippingCost, couponCode } = req.body;
         const userId = req.user._id;
 
-        // Get cart with populated products
-        const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
-        if (!cart || cart.cartItems.length === 0) {
-            return res.status(400).json({ success: false, message: "Cart is empty" });
-        }
-
-        // Calculate amounts
-        const productsTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-        const totalAmount = productsTotal + Number(shippingCost || 0);
-        
-        // Apply coupon discount
-        let discountAmount = 0;
-        if (couponCode) {
-            const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
-            if (coupon && totalAmount >= coupon.minPurchase) {
-                discountAmount = (totalAmount * coupon.discountPercentage) / 100;
-            }
-        }
-
-        const finalAmount = totalAmount - discountAmount;
-
-        // Create the order FIRST with "Payment Processing" status
-        const order = new Order({
+        // Check for existing pending order
+        const existingOrder = await Order.findOne({
             user: userId,
-            items: cart.cartItems.map(item => ({
-                product: item.product._id,
-                quantity: item.quantity,
-                price: item.price,
-                size: item.size
-            })),
-            shippingAddress,
-            paymentMethod: 'Razorpay',
-            shippingMethod,
-            shippingCost,
-            totalAmount: finalAmount,
-            transactionId: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
-            paymentStatus: 'Pending',
-            status: 'Payment Processing'
-        });
-        await order.save();
+            status: 'Payment Processing',
+            paymentStatus: 'Pending'
+        }).sort({ createdAt: -1 });
+
+        let order;
+        
+        if (existingOrder) {
+            // Use existing order
+            order = existingOrder;
+        } else {
+            // Create new order
+            const cart = await Cart.findOne({ user: userId }).populate("cartItems.product");
+            if (!cart || cart.cartItems.length === 0) {
+                return res.status(400).json({ success: false, message: "Cart is empty" });
+            }
+
+            // Calculate amounts
+            const productsTotal = cart.cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+            const totalAmount = productsTotal + Number(shippingCost || 0);
+            
+            // Apply coupon discount
+            let discountAmount = 0;
+            if (couponCode) {
+                const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+                if (coupon && totalAmount >= coupon.minPurchase) {
+                    discountAmount = (totalAmount * coupon.discountPercentage) / 100;
+                }
+            }
+
+            const finalAmount = totalAmount - discountAmount;
+
+            order = new Order({
+                user: userId,
+                items: cart.cartItems.map(item => ({
+                    product: item.product._id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    size: item.size
+                })),
+                shippingAddress,
+                paymentMethod: 'Razorpay',
+                shippingMethod,
+                shippingCost: Number(shippingCost || 0),
+                totalAmount: finalAmount,
+                couponCode: couponCode || undefined,
+                discountAmount: discountAmount,
+                transactionId: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
+                paymentStatus: 'Pending',
+                status: 'Payment Processing'
+            });
+            await order.save();
+        }
 
         // Create Razorpay order
         const options = {
-            amount: finalAmount * 100,
+            amount: Math.round(order.totalAmount * 100),
             currency: 'INR',
             receipt: `order_${order._id}`
         };
+        
         const razorpayOrder = await razorpay.orders.create(options);
         
         // Store minimal data in session
@@ -281,11 +330,15 @@ const processRazorpay = async (req, res) => {
         res.json({ 
             success: true, 
             razorpayOrder,
-            orderId: order._id // Send back the order ID
+            orderId: order._id
         });
     } catch (error) {
         console.error("Error in Razorpay processing:", error);
-        res.status(500).json({ success: false, message: "Failed to create Razorpay order" });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to create Razorpay order",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
@@ -558,6 +611,28 @@ const verifyRetryPayment = async (req, res) => {
     }
 };
 
+
+const cleanupFailedOrders = async () => {
+    try {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+        
+        // Delete orders that are stuck in "Payment Processing"
+        const result = await Order.deleteMany({
+            status: 'Payment Processing',
+            paymentStatus: 'Pending',
+            createdAt: { $lt: oneHourAgo } // Older than 1 hour
+        });
+        
+        console.log(`🔄 Cleaned up ${result.deletedCount} stale orders`);
+    } catch (error) {
+        console.error('❌ Error cleaning up failed orders:', error);
+    }
+};
+
+
+
+
+
 module.exports = {
     processCOD,
     processWallet,
@@ -569,4 +644,5 @@ module.exports = {
     verifyRetryPayment,
     handlePaymentFailure ,
     handlePaymentSuccess,
+    cleanupFailedOrders
 };

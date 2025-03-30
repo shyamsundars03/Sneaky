@@ -274,6 +274,11 @@
             text-align: right;
             margin-left: 80px;
         }
+        .coupon-text-right {
+            text-align: right;
+            margin-left: 80px;
+            color: red;
+        }
         
         .total-row td {
             font-weight: bold;
@@ -676,12 +681,22 @@
                         <% }) %>
                         <tr>
                             <td colspan="6" class="text-right">Sub Total :</td>
-                            <td class="text-right">₹<%= order.totalAmount - (order.shippingCost || 0) %></td>
+                            <td class="text-right">₹<%= order.subtotal.toFixed(2) %></td>
                         </tr>
                         <tr>
                             <td colspan="6" class="text-right">Shipping Cost :</td>
                             <td class="text-right">₹<%= order.shippingCost || 0 %></td>
                         </tr>
+
+                        <% if (order.hasDiscount) { %>
+                            <tr>
+                                <td colspan="6" class="text-right">Coupon(<%= order.couponCode %>):</td>
+                                <td class="coupon-text-right">-₹<%= order.discountAmount.toFixed(2) %></td>
+                            </tr>
+                        <% } %>
+
+
+
                         <tr class="total-row">
                             <td colspan="6" class="text-right">Grand Total :</td>
                             <td class="text-right">₹<%= order.totalAmount  %></td>

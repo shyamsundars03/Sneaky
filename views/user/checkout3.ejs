@@ -405,7 +405,7 @@ ul {
     }
 
 
-    <style>
+
     .balance-info {
         background: #f8f9fa;
         padding: 10px;
@@ -439,6 +439,9 @@ ul {
     .payment-options .btn:nth-child(2) {
         background: #28a745;
         color: white;
+    }
+    #discountAmount{
+        color: red;
     }
 </style>
 
@@ -537,8 +540,8 @@ ul {
                         <span>₹<%= shippingCost %></span>
                     </div>
                     <div class="summary-item">
-                        <span>Discount</span>
-                        <span id="discountAmount">₹0</span>
+                        <span>Coupon</span>
+                        <span id="discountAmount">-₹0</span>
                     </div>
                     <div class="summary-item total-row">
                         <span>Total</span>
@@ -573,52 +576,60 @@ ul {
     
         // Apply coupon function
         async function applyCoupon() {
-            const code = document.getElementById('couponCode').value.trim();
-            if (!code) {
-                document.getElementById('couponMessage').textContent = 'Please enter a coupon code';
-                return;
-            }
+    const code = document.getElementById('couponCode').value.trim();
+    const messageElement = document.getElementById('couponMessage');
     
-            try {
-                const response = await fetch('/validate-coupon', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        couponCode: code,
-                        totalAmount: cartTotal + shippingCost
-                    }),
-                });
-    
-                const result = await response.json();
-                const messageElement = document.getElementById('couponMessage');
-                
-                if (result.valid) {
-                    messageElement.textContent = result.message;
-                    messageElement.style.color = 'green';
-                    discountAmount = result.discountAmount;
-                    couponCode = code;
-                    updateOrderSummary();
-                } else {
-                    messageElement.textContent = result.message;
-                    messageElement.style.color = 'red';
-                    discountAmount = 0;
-                    couponCode = '';
-                    updateOrderSummary();
-                }
-            } catch (error) {
-                console.error('Error applying coupon:', error);
-                document.getElementById('couponMessage').textContent = 'Error applying coupon';
-                document.getElementById('couponMessage').style.color = 'red';
-            }
+    if (!code) {
+        messageElement.textContent = 'Please enter a coupon code';
+        messageElement.style.color = 'red';
+        return;
+    }
+
+    try {
+        // Show loading state
+        messageElement.textContent = 'Validating coupon...';
+        messageElement.style.color = 'blue';
+
+        const response = await fetch('/validate-coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                couponCode: code,
+                totalAmount: cartTotal + shippingCost,
+                userId: '<%= user._id %>' // Pass user ID to check single-use
+            }),
+        });
+
+        const result = await response.json();
+        
+        if (result.valid) {
+            messageElement.textContent = result.message;
+            messageElement.style.color = 'green';
+            discountAmount = result.discountAmount;
+            couponCode = code;
+            updateOrderSummary();
+        } else {
+            messageElement.textContent = result.message;
+            messageElement.style.color = 'red';
+            discountAmount = 0;
+            couponCode = '';
+            updateOrderSummary();
         }
+    } catch (error) {
+        console.error('Error applying coupon:', error);
+        messageElement.textContent = 'Error applying coupon. Please try again.';
+        messageElement.style.color = 'red';
+    }
+}
     
         // Update order summary with discount
         function updateOrderSummary() {
-            document.getElementById('discountAmount').textContent = `₹${discountAmount.toFixed(2)}`;
-            document.getElementById('totalAmount').textContent = `₹${(cartTotal + shippingCost - discountAmount).toFixed(2)}`;
-        }
+    document.getElementById('discountAmount').textContent = `₹${discountAmount.toFixed(2)}`;
+    document.querySelector('.total-row span:last-child').textContent = 
+        `₹${(cartTotal + shippingCost - discountAmount).toFixed(2)}`;
+}
     
         // Place order function
         async function placeOrder() {
@@ -639,35 +650,128 @@ ul {
             didOpen: () => Swal.showLoading()
         });
 
-        let endpoint;
         if (paymentMethod === 'Razorpay') {
-            endpoint = '/process-razorpay';
+            // First create the order
+            const response = await fetch('/process-razorpay', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Payment failed');
+            }
+
+            // Then open Razorpay modal
+            const options = {
+                key: '<%= process.env.RAZORPAY_KEY_ID %>',
+                amount: result.razorpayOrder.amount,
+                currency: 'INR',
+                name: "SNEAKY",
+                description: "Order Payment",
+                order_id: result.razorpayOrder.id,
+                handler: async function(response) {
+                        try {
+                            const verifyResponse = await fetch('/verify-razorpay', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    orderId: result.orderId
+                                })
+                            });
+                            
+                            const verifyResult = await verifyResponse.json();
+                            
+                            if (verifyResult.success) {
+                                window.location.href = `/order-success/${result.orderId}`;
+                            } else {
+                                window.location.href = `/order-failed/${result.orderId}`;
+                            }
+                        } catch (error) {
+                            window.location.href = `/order-failed/${result.orderId}`;
+                        }
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            // Don't show "payment window closed" message
+                            // Just redirect to failure page
+                            window.location.href = `/order-failed/${result.orderId}`;
+                        }
+                    },
+                    prefill: {
+                        name: '<%= user.name %>',
+                        email: '<%= user.email %>',
+                        contact: '<%= user.phone || "" %>'
+                    },
+                    theme: {
+                        color: "#F37254"
+                    }
+                };
+                
+                const rzp = new Razorpay(options);
+                rzp.open();
+                return;
+            
         } else if (paymentMethod === 'Wallet') {
-            endpoint = '/process-wallet';
+            const response = await fetch('/process-wallet', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Payment failed');
+            }
+
+            window.location.href = result.redirectUrl || `/order-success/${result.orderId}`;
         } else {
-            endpoint = '/process-cod';
+            const response = await fetch('/process-cod', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                if (result.limitExceeded) {
+                    // Special handling for COD limit
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'COD Limit Exceeded',
+                        html: `
+                            <p>${result.message}</p>
+                            <div style="margin-top: 15px;">
+                                <button onclick="window.location.href='/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}'"
+                                        style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                                    Change Payment Method
+                                </button>
+                            </div>
+                        `,
+                        showConfirmButton: false
+                    });
+                    return;
+                }
+                throw new Error(result.message || 'Payment failed');
+            }
+
+            window.location.href = result.redirectUrl || `/order-success/${result.orderId}`;
         }
-
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderData)
-        });
-
-        if (!response.ok) {
-            const errorResult = await response.json();
-            throw new Error(errorResult.message || 'Payment failed');
-        }
-
-        const result = await response.json();
-        
-        if (!result.success) {
-            throw new Error(result.message || 'Payment failed');
-        }
-
-        window.location.href = result.redirectUrl || `/order-success/${result.orderId}`;
 
     } catch (error) {
         console.error('Order Error:', error);
@@ -680,19 +784,28 @@ ul {
         let errorHtml = `<p>${error.message}</p>`;
         
         if (error.message.includes('Insufficient wallet balance')) {
-            errorHtml += `
-                <div style="margin-top: 15px;">
-                    <button onclick="window.location.href='/wallet'" 
-                            style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
-                        Add Funds to Wallet
-                    </button>
-                    <button onclick="window.location.href='/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}'"
-                            style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; margin-left: 10px;">
-                        Change Payment Method
-                    </button>
-                </div>
-            `;
-        }
+    // Check if COD would be allowed
+    const codAllowed = (cartTotal + shippingCost - discountAmount) <= 7000;
+    
+    errorHtml += `
+        <div style="margin-top: 15px;">
+            <button onclick="window.location.href='/wallet'" 
+                    style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                Add Funds to Wallet
+            </button>
+            <button onclick="window.location.href='/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}'"
+                    style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; margin-left: 10px;">
+                Change Payment Method
+            </button>
+            ${codAllowed ? `
+            <button onclick="window.location.href='/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}&paymentMethod=CashOnDelivery'"
+                    style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; margin-left: 10px;">
+                Use Cash on Delivery
+            </button>
+            ` : ''}
+        </div>
+    `;
+}
         
         Swal.fire({
             icon: 'error',
