@@ -60,11 +60,14 @@ async function calculateSalesSummary(query) {
 
     return summary;
 }
-
 const loadSales = async (req, res) => {
     try {
+        // Get filters from query or session
         const { from, to, period = 'custom' } = req.query;
         let dateRange = {};
+        
+        // Store filters in session
+        req.session.salesFilters = { from, to, period };
         
         if (period !== 'custom') {
             dateRange = getDateRange(period);
@@ -84,19 +87,19 @@ const loadSales = async (req, res) => {
         const summary = await calculateSalesSummary(query);
 
         res.render("sales", {
-            filterFrom: dateRange.from || '',
-            filterTo: dateRange.to || '',
+            filterFrom: dateRange.from || from || '',
+            filterTo: dateRange.to || to || '',
             filterPeriod: period,
             initialOrders: orders.map((order, index) => ({
                 sNo: index + 1,
                 name: order.user?.name || 'Guest',
                 deliveryDate: formatDate(order.deliveredDate),
-                productsCount: order.items?.length || 0,
+                productsCount: order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0,
                 totalCost: order.totalAmount || 0,
                 paymentMethod: order.paymentMethod || 'Unknown',
                 couponCode: order.couponCode || 'None',
                 discountAmount: order.discountAmount || 0,
-                transactionID: order.transactionId || 'N/A' // Ensure correct field is used
+                transactionID: order.transactionId || 'N/A'
             })),
             summary: {
                 totalAmount: summary.totalAmount.toFixed(2),
@@ -124,10 +127,16 @@ const loadSales = async (req, res) => {
     }
 };
 
+
+
+
 const getSalesData = async (req, res) => {
     try {
         const { from, to, period = 'custom' } = req.query;
         let dateRange = {};
+        
+        // Store filters in session for persistence
+        req.session.salesFilters = { from, to, period };
         
         if (period !== 'custom') {
             dateRange = getDateRange(period);
@@ -135,40 +144,35 @@ const getSalesData = async (req, res) => {
             dateRange = { from, to };
         }
 
-        // Build query
         const query = { status: 'Delivered' };
         if (dateRange.from && dateRange.to) {
             const startDate = new Date(dateRange.from);
             const endDate = new Date(dateRange.to);
             endDate.setHours(23, 59, 59, 999);
-            
-            query.deliveredDate = {
-                $gte: startDate,
-                $lte: endDate
-            };
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
         }
 
-        // Get orders with pagination if needed
         const orders = await Order.find(query)
             .populate('user', 'name')
             .sort({ deliveredDate: -1 });
 
-        // Calculate summary
         const summary = await calculateSalesSummary(query);
 
         res.json({
             success: true,
             orders: orders.map((order, index) => ({
                 sNo: index + 1,
+                transactionID: order.transactionId || 'N/A',
                 name: order.user?.name || 'Guest',
                 deliveryDate: formatDate(order.deliveredDate),
-                productsCount: order.items?.length || 0,
+                productsCount: order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0,
                 totalCost: order.totalAmount || 0,
                 paymentMethod: order.paymentMethod || 'Unknown',
                 couponCode: order.couponCode || 'None',
                 discountAmount: order.discountAmount || 0
             })),
-            summary
+            summary,
+            filters: { from, to, period } // Return current filters
         });
     } catch (error) {
         console.error("Error getting sales data:", error);
@@ -179,7 +183,7 @@ const getSalesData = async (req, res) => {
     }
 };
 
-const generateExcelReport = async (orders, summary, filters) => {
+const generateExcelReport = async (reportData, summary, filters) => {
     try {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Sales Report');
@@ -227,11 +231,11 @@ const generateExcelReport = async (orders, summary, filters) => {
             cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
         
-        // Add Order Data
-        orders.forEach(order => {
+        // Add Order Data - Use the same property names as in PDF generation
+        reportData.forEach(order => {
             const row = worksheet.addRow([
-                order.transactionId ? `#${order.transactionId}` : 'N/A',
-                order.name || 'Guest',
+                order.transactionID || 'N/A', // Changed from transactionId to transactionID
+                order.name || 'Guest', // This is correct as reportData already has formatted name
                 order.deliveryDate || 'N/A',
                 order.productsCount || 0,
                 order.totalCost || 0,
@@ -279,58 +283,42 @@ const generateExcelReport = async (orders, summary, filters) => {
 };
 
 
-
 const downloadPDF = async (req, res) => {
     try {
         const { from, to, period = 'custom' } = req.query;
-        let dateRange = {};
         
-        if (period !== 'custom') {
-            dateRange = getDateRange(period);
-        } else if (from && to) {
-            dateRange = { from, to };
-        }
-
-        // Build query for delivered orders only
+        // Store filters in session
+        req.session.salesFilters = { from, to, period };
+        
+        // Build query
         const query = { status: 'Delivered' };
-        if (dateRange.from && dateRange.to) {
-            const startDate = new Date(dateRange.from);
-            const endDate = new Date(dateRange.to);
+        if (from && to) {
+            const startDate = new Date(from);
+            const endDate = new Date(to);
             endDate.setHours(23, 59, 59, 999);
-            
-            query.deliveredDate = {
-                $gte: startDate,
-                $lte: endDate
-            };
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
         }
 
-        // Get orders with transactionID and deliveredDate
         const orders = await Order.find(query)
             .populate('user', 'name')
             .sort({ deliveredDate: -1 });
 
-        // Calculate summary
         const summary = await calculateSalesSummary(query);
 
-        // Prepare data for PDF
         const pdfData = orders.map(order => ({
             transactionID: order.transactionId || 'N/A',
             name: order.user?.name || 'Guest',
             deliveryDate: order.deliveredDate ? formatDate(order.deliveredDate) : 'N/A',
-            productsCount: order.items?.length || 0,
+            productsCount: order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0,
             totalCost: order.totalAmount || 0,
             paymentMethod: order.paymentMethod || 'Unknown',
             couponCode: order.couponCode || 'None',
             discountAmount: order.discountAmount || 0
         }));
 
-        // Generate PDF
-        const filePath = await generateSalesReport(pdfData, summary, dateRange);
-        
-        // Send file
+        const filePath = await generateSalesReport(pdfData, summary, { from, to });
         res.download(filePath, 'sales-report.pdf', (err) => {
             if (err) console.error('Error sending PDF:', err);
-            // Clean up file after sending
             fs.unlink(filePath, () => {});
         });
     } catch (error) {
@@ -342,55 +330,40 @@ const downloadPDF = async (req, res) => {
 const downloadExcel = async (req, res) => {
     try {
         const { from, to, period = 'custom' } = req.query;
-        let dateRange = {};
         
-        if (period !== 'custom') {
-            dateRange = getDateRange(period);
-        } else if (from && to) {
-            dateRange = { from, to };
-        }
-
+        // Store filters in session
+        req.session.salesFilters = { from, to, period };
+        
         // Build query
         const query = { status: 'Delivered' };
-        if (dateRange.from && dateRange.to) {
-            const startDate = new Date(dateRange.from);
-            const endDate = new Date(dateRange.to);
+        if (from && to) {
+            const startDate = new Date(from);
+            const endDate = new Date(to);
             endDate.setHours(23, 59, 59, 999);
-            
-            query.deliveredDate = {
-                $gte: startDate,
-                $lte: endDate
-            };
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
         }
 
-        // Get orders
         const orders = await Order.find(query)
             .populate('user', 'name')
             .sort({ deliveredDate: -1 });
 
-        // Calculate summary
         const summary = await calculateSalesSummary(query);
 
-        // // Format data for report
         const reportData = orders.map((order, index) => ({
             sNo: index + 1,
             transactionID: order.transactionId || 'N/A',
             name: order.user?.name || 'Guest',
             deliveryDate: order.deliveredDate ? formatDate(order.deliveredDate) : 'N/A',
-            productsCount: order.items?.length || 0,
+            productsCount: order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0,
             totalCost: order.totalAmount || 0,
             paymentMethod: order.paymentMethod || 'Unknown',
             couponCode: order.couponCode || 'None',
             discountAmount: order.discountAmount || 0
         }));
 
-        // Generate Excel
-        const filePath = await generateExcelReport(reportData, summary, dateRange);
-        
-        // Send file
+        const filePath = await generateExcelReport(reportData, summary, { from, to });
         res.download(filePath, 'sales-report.xlsx', (err) => {
             if (err) console.error('Error sending Excel:', err);
-            // Clean up file after sending
             fs.unlink(filePath, () => {});
         });
     } catch (error) {

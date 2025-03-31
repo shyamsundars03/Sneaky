@@ -111,27 +111,22 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-
-        // Prepare update object
+        // Prepare update object with status and appropriate date field
         const updateObj = { status };
         
         // Add date fields based on status
+        const now = new Date();
         if (status === 'Delivered') {
-            updateObj.deliveredDate = new Date();
+            updateObj.deliveredDate = now;
         } else if (status === 'Cancelled') {
-            updateObj.cancelledDate = new Date();
+            updateObj.cancelledDate = now;
         } else if (status === 'Returned') {
-            updateObj.returnedDate = new Date();
+            updateObj.returnedDate = now;
         }
-
-
-
-
-
 
         const order = await Order.findByIdAndUpdate(
             orderId,
-            { status },
+            updateObj,
             { new: true }
         );
 
@@ -170,7 +165,6 @@ const cancelOrder = async (req, res) => {
             updateObj,
             { new: true }
         );
-
 
         if (!order) {
             return res.status(404).json({ 
@@ -350,7 +344,7 @@ const verifyReturn = async (req, res) => {
             order.inventoryRestoreScheduled = true;
         }
 
-        // Update order status
+        // Update order status and set returned date
         order.status = 'Returned';
         order.returnedDate = new Date();
         await order.save();
