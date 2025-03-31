@@ -139,6 +139,10 @@
             <div class="form-group">
                 <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password">
             </div>
+            <div class="form-group">
+                <input type="text" id="referralCode" name="referralCode" placeholder="Referral Code (optional)">
+                <div id="referralCodeError" class="field-error"></div>
+            </div>
             <button type="submit">Sign Up</button>
 
             <div class="divider">or</div>
@@ -155,9 +159,12 @@
             const validateField = (field, value) => {
                 const errorDiv = field.nextElementSibling;
                 let error = '';
-
+    
                 if (!value.trim()) {
-                    error = `${field.placeholder} is required`;
+                    // Only show error if field is required (not for optional referralCode)
+                    if (field.id !== 'referralCode') {
+                        error = `${field.placeholder} is required`;
+                    }
                 } else {
                     switch (field.id) {
                         case 'username':
@@ -197,9 +204,14 @@
                                 error = 'Password must be at least 6 characters';
                             }
                             break;
+                        case 'referralCode':
+                                if (value.trim() && !/^[A-Z0-9]{6,8}$/.test(value)) {
+                                    error = 'Referral code must be 6-8 uppercase letters/numbers';
+                                }
+                                break;
                     }
                 }
-
+    
                 if (error) {
                     if (errorDiv && errorDiv.classList.contains('field-error')) {
                         errorDiv.textContent = error;
@@ -211,43 +223,48 @@
                     }
                     return false;
                 }
-
+    
                 if (errorDiv && errorDiv.classList.contains('field-error')) {
                     errorDiv.remove();
                 }
                 return true;
             };
-
+    
             const googleSignUp = document.getElementById('googleSignUp');
             if (googleSignUp) {
                 googleSignUp.addEventListener('click', () => {
                     window.location.href = '/auth/google'; // Google OAuth route
                 });
             }
-
+    
             const signupForm = document.getElementById('signupForm');
             if (signupForm) {
-                const fields = ['username', 'email', 'phone', 'password', 'confirmPassword'];
-
+                // Add 'referralCode' to the fields array
+                const fields = ['username', 'email', 'phone', 'password', 'confirmPassword', 'referralCode'];
+    
                 fields.forEach(fieldId => {
                     const field = document.getElementById(fieldId);
-                    field.addEventListener('blur', () => validateField(field, field.value));
+                    if (field) {  // Check if field exists (for backward compatibility)
+                        field.addEventListener('blur', () => validateField(field, field.value));
+                    }
                 });
-
+    
                 signupForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-
+    
                     let isValid = true;
                     const formData = {};
-
+    
                     fields.forEach(fieldId => {
                         const field = document.getElementById(fieldId);
-                        formData[fieldId] = field.value;
-                        if (!validateField(field, field.value)) {
-                            isValid = false;
+                        if (field) {  // Check if field exists
+                            formData[fieldId] = field.value;
+                            if (!validateField(field, field.value)) {
+                                isValid = false;
+                            }
                         }
                     });
-
+    
                     // Additional validation for confirm password
                     const password = document.getElementById('password').value;
                     const confirmPassword = document.getElementById('confirmPassword').value;
@@ -255,18 +272,18 @@
                         isValid = false;
                         validateField(document.getElementById('confirmPassword'), confirmPassword);
                     }
-
+    
                     if (!isValid) return;
-
+    
                     try {
                         const response = await fetch('/signup', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(formData)
                         });
-
+    
                         const data = await response.json();
-
+    
                         if (response.ok) {
                             Swal.fire({
                                 icon: 'success',
@@ -295,4 +312,13 @@
             }
         });
     </script>
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', function() {
+            const submitButton = document.querySelector('button[type="submit"]');
+            const googlebtn =document.querySelector('button[type="button"]');
+            googlebtn.disabled = true
+            submitButton.disabled = true; // Disable the button
+            submitButton.textContent = 'Sending...'; // Change button text
+        }); 
+        </script>
 </body>

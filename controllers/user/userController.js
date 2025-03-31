@@ -6,7 +6,7 @@ const usercollection = require("../../models/userSchema");
 const otpCollection = require("../../models/otpSchema");
 const sendotp = require('../../helper/sendOtp')
 const passport = require('passport');
-
+const { generateReferralCode, applyReferralBonus } = require('../../services/referralService');
 
 
 async function encryptPassword(password) {
@@ -56,93 +56,156 @@ const loadSignin = async (req, res) => {
 
 
 const otpSend = async (req, res) => {
+    try {
+        if (!req.session.tempUser || !req.session.tempUser.isSignupFlow) {
+            return res.status(400).json({ error: "Invalid signup flow" });
+        }
 
-    if (!req.session.tempUser || !req.session.tempUser.email) {
-        return res.status(400).json({ error: "User data not found in session." });
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.session.otpTime = 75; 
+        req.session.otpStartTime = Date.now();
+        
+        console.log("otpSend used");
+        await sendotp(generatedOtp, req.session.tempUser.email);
+        
+        sendotp(generatedOtp, req.session.tempUser .email).catch(err => {
+            console.error("Error sending OTP:", err);
+        });
+
+
+        const hashedOtp = await encryptPassword(generatedOtp);
+        await otpCollection.updateOne(
+            { email: req.session.tempUser.email },
+            { 
+                $set: { 
+                    otp: hashedOtp, 
+                    expiresAt: new Date(Date.now() + 75 * 1000),
+                    purpose: 'signup'  // Track OTP purpose
+                } 
+            },
+            { upsert: true }
+        );
+
+        res.redirect("/otp");
+    } catch (error) {
+        console.error("Error in otpSend:", error);
+        res.status(500).json({ error: "Failed to send OTP" });
     }
-
-    req.session.otpSession = true;
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    req.session.otpError = null;
-    req.session.otpTime = 75; 
-    req.session.otpStartTime = Date.now(); 
-    // console.log(generatedOtp);
-    console.log("otpSend used");
-    // console.log(req.session.user);
-    sendotp(generatedOtp, req.session.tempUser.email);
-    const hashedOtp = await encryptPassword(generatedOtp);
-    await otpCollection.updateOne(
-        { email: req.session.tempUser.email },
-        { $set: { otp: hashedOtp, expiresAt: new Date(Date.now() + 75 * 1000) } }, 
-        { upsert: true }
-    );
-    res.redirect("/otp");
 };
-
 
 const otpPost = async (req, res) => {
     try {
         console.log("Session User:", req.session.user);
 
+        // Check if we have a temp user (signup flow)
         if (!req.session.tempUser || !req.session.tempUser.email) {
-            return res.status(400).json({ error: "Session expired or user not logged in" });
+            return res.status(400).json({ 
+                ok: false,
+                error: "Session expired or user not logged in" 
+            });
         }
 
-        const findOtp = await otpCollection.findOne({ email: req.session.tempUser.email });
-        // console.log(findOtp);
+        // Find the OTP record
+        const findOtp = await otpCollection.findOne({ 
+            email: req.session.tempUser.email 
+        });
 
         if (!findOtp) {
-            return res.status(400).json({ error: "OTP not found" });
-        }
-
-
-        if (findOtp.expiresAt < new Date()) {
-            return res.status(400).json({ error: "OTP has expired" });
-        }
-
-        // Check if OTP has expired
-        if (findOtp.expiresAt < new Date()) {
-            return res.status(400).json({ error: "OTP has expired. Please click the resend button." });
-        }
-        
-
-        const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
-        // console.log(isOtpValid);
-
-        if (isOtpValid) {
-            // console.log("Hii");
-
-
-            const userData = new usercollection({
-                name: req.session.tempUser.name,
-                email: req.session.tempUser.email,
-                phone: req.session.tempUser.phone,
-                password: req.session.tempUser.password,
-                isActive: true,
+            return res.status(400).json({ 
+                ok: false,
+                error: "OTP not found" 
             });
-
-
-            const user = new usercollection(userData);
-            console.log("otpPost used");
-            await user.save();
-            console.log("user saved");
-
-
-            req.session.user = {
-                _id: user._id, 
-                name: user.name,
-                email: user.email,
-            };
-            req.session.signupSession = true;
-            delete req.session.tempUser;
-
-            res.status(200).send({ ok: true });
-        } else {
-            res.status(200).send({ ok: false });
         }
+
+        // Check OTP expiration
+        if (findOtp.expiresAt < new Date()) {
+            return res.status(400).json({ 
+                ok: false,
+                error: "OTP has expired" 
+            });
+        }
+
+        // Validate OTP
+        const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
+        if (!isOtpValid) {
+            return res.status(400).json({ 
+                ok: false,
+                error: "Invalid OTP" 
+            });
+        }
+
+        // Final check if user already exists
+        const userExists = await usercollection.findOne({ 
+            email: req.session.tempUser.email 
+        });
+        if (userExists) {
+            return res.status(409).json({ 
+                ok: false,
+                error: "User already exists" 
+            });
+        }
+
+        // Create new user
+        const newUser = new usercollection({
+            name: req.session.tempUser.name,
+            email: req.session.tempUser.email,
+            phone: req.session.tempUser.phone,
+            password: req.session.tempUser.password,
+            referralCode: req.session.tempUser.referralCode,
+            referredBy: req.session.tempUser.referredBy,
+            isActive: true
+        });
+
+        await newUser.save();
+
+        // Handle referral bonus if applicable
+        if (req.session.tempUser.referredBy) {
+            const referrer = await usercollection.findOne({ 
+                referralCode: req.session.tempUser.referredBy 
+            });
+            if (referrer) {
+                referrer.wallet.balance += 50;
+                referrer.wallet.transactions.push({
+                    type: 'referral',
+                    amount: 50,
+                    description: `Referral bonus for ${req.session.tempUser.email}`,
+                    date: new Date()
+                });
+                referrer.referralCount += 1;
+                await referrer.save();
+            }
+        }
+
+        // Clean up
+        await otpCollection.deleteMany({ email: req.session.tempUser.email });
+        delete req.session.tempUser;
+
+        // Set user session
+        req.session.user = {
+            _id: newUser._id,
+            name: newUser.name,
+            email: newUser.email
+        };
+        req.session.loginSession = true;
+
+        return res.status(200).json({ 
+            ok: true 
+        });
+
     } catch (error) {
         console.error("Error in otpPost:", error);
-        res.status(500).json({ error: "An error occurred during OTP verification." });
+        
+        if (error.code === 11000) {
+            return res.status(409).json({ 
+                ok: false,
+                error: "User already exists" 
+            });
+        }
+        
+        return res.status(500).json({ 
+            ok: false,
+            error: "An error occurred during OTP verification" 
+        });
     }
 };
 
@@ -189,29 +252,49 @@ const signinPost = async (req, res) => {
 
 
 const signupPost = async (req, res) => {
-    try{
-
+    try {
+        // Check if user already exists
         const userExists = await usercollection.findOne({ email: req.body.email });
         if (userExists) {
-            return res.status(409).send({ success: false });
-        } else {
-            const hashedPassword = await encryptPassword(req.body.password)
-            const user = {
-                name: req.body.username,
-                email: req.body.email,
-                phone: req.body.phone,
-                password: hashedPassword,
-            };
-
-
-            req.session.tempUser=user
-            return res.status(200).send({ success: true });
+            return res.status(409).json({ 
+                success: false,
+                error: 'User already exists. Please sign in.'
+            });
         }
-    } catch (error){
+
+        // Hash password and generate referral code
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const referralCode = await generateReferralCode();
+
+        // Store ALL signup data in session
+        req.session.tempUser = {
+            name: req.body.username,
+            email: req.body.email,
+            phone: req.body.phone,
+            password: hashedPassword,
+            referralCode: referralCode,
+            referredBy: req.body.referralCode || null,
+            isSignupFlow: true  // Flag to identify signup flow
+        };
+
+        // Initialize OTP session
+        req.session.otpSession = true;
+        req.session.otpError = null;
+
+        return res.status(200).json({ 
+            success: true,
+            redirect: '/otpsend'
+        });
+
+    } catch (error) {
         console.error("Signup error:", error);
-        next(new AppError('Sorry...Something went wrong', 500));
+        return res.status(500).json({ 
+            success: false,
+            error: 'Something went wrong during signup'
+        });
     }
 };
+
 
 
 

@@ -81,6 +81,9 @@ const orderSchema = new mongoose.Schema({
         enum: ["Pending", "Completed", "Failed"],
         default: "Pending"
     },
+    deliveredDate: Date,
+    cancelledDate: Date,
+    returnedDate: Date,
     walletDetails: {
         amountDeducted: Number,
         transactionId: String,

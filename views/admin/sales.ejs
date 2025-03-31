@@ -361,19 +361,19 @@
         <div class="sales-summary">
             <div class="summary-card">
                 <h3>Overall Order Amount</h3>
-                <p id="totalAmount">₹0</p>
+                <p id="totalAmount">₹<%= summary.totalAmount %></p>
             </div>
             <div class="summary-card">
                 <h3>Total Discount</h3>
-                <p id="totalDiscount">₹0</p>
+                <p id="totalDiscount">₹<%= summary.totalDiscount %></p>
             </div>
             <div class="summary-card">
                 <h3>Total Orders</h3>
-                <p id="totalOrders">0</p>
+                <p id="totalOrders"><%= summary.totalOrders %></p>
             </div>
             <div class="summary-card">
                 <h3>Average Order Value</h3>
-                <p id="avgOrderValue">₹0</p>
+                <p id="avgOrderValue">₹<%= summary.avgOrderValue %></p>
             </div>
         </div>
 
@@ -414,10 +414,12 @@
                 <thead>
                     <tr>
                         <th>S.No</th>
+                        <th>Order ID</th>
                         <th>Name</th>
                         <th>Delivery Date</th>
                         <th>No of Products</th>
                         <th>Total Cost</th>
+                        <th>Coupon/Discount</th>
                         <th>Payment Method</th>
                     </tr>
                 </thead>
@@ -426,16 +428,18 @@
                         <% initialOrders.forEach(order => { %>
                             <tr>
                                 <td><%= order.sNo %></td>
+                                <td>#<%= order.transactionID %></td> <!-- Ensure this is correct -->
                                 <td><%= order.name %></td>
                                 <td><%= order.deliveryDate %></td>
                                 <td><%= order.productsCount %></td>
                                 <td>₹<%= order.totalCost %></td>
+                                <td><%= order.couponCode %> (₹<%= order.discountAmount %>)</td>
                                 <td><%= order.paymentMethod %></td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="6" style="text-align: center;">Loading sales data...</td>
+                            <td colspan="8" style="text-align: center;">No orders found for selected filters</td>
                         </tr>
                     <% } %>
                 </tbody>
@@ -579,6 +583,7 @@
                     <td>${order.deliveryDate}</td>
                     <td>${order.productsCount}</td>
                     <td>¥${order.totalCost}</td>
+                    <td>${order.couponCode} (₹${order.discountAmount.toFixed(2)})</td>
                     <td>${order.paymentMethod}</td>
                 `;
                 

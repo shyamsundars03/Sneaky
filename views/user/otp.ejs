@@ -116,133 +116,133 @@
     </div>
 
     <script>
-       document.addEventListener('DOMContentLoaded', () => {
-    const validateField = (field, value) => {
-        const errorDiv = field.nextElementSibling;
-        let error = '';
-
-        if (!value.trim()) {
-            error = `${field.placeholder} is required`;
-        } else if (field.id === 'otp' && !/^\d{6}$/.test(value)) {
-            error = 'OTP must be a 6-digit number';
-        }
-
-        if (error) {
-            if (errorDiv && errorDiv.classList.contains('field-error')) {
-                errorDiv.textContent = error;
-            } else {
-                const div = document.createElement('div');
-                div.className = 'field-error';
-                div.textContent = error;
-                field.parentNode.insertBefore(div, field.nextSibling);
-            }
-            return false;
-        }
-
-        if (errorDiv && errorDiv.classList.contains('field-error')) {
-            errorDiv.remove();
-        }
-        return true;
-    };
-
-    const otpForm = document.getElementById('otpForm');
-    const otpField = document.getElementById('otp');
-    const resendButton = document.getElementById('resendBtn');
-    const countdownElement = document.getElementById('countdown');
-
-    // Fetch the remaining time from the backend
-    fetch('/otp-time')
-        .then(response => response.json())
-        .then(data => {
-            let remainingTime = data.remainingTime;
-
-            const startTimer = () => {
-                let interval = setInterval(() => {
-                    remainingTime--;
-                    countdownElement.textContent = remainingTime;
-
-                    if (remainingTime <= 0) {
-                        clearInterval(interval);
-                        resendButton.removeAttribute("disabled");
-                        countdownElement.textContent = "Timer ended!";
+        document.addEventListener('DOMContentLoaded', () => {
+            const validateField = (field, value) => {
+                const errorDiv = field.nextElementSibling;
+                let error = '';
+        
+                if (!value.trim()) {
+                    error = `${field.placeholder} is required`;
+                } else if (field.id === 'otp' && !/^\d{6}$/.test(value)) {
+                    error = 'OTP must be a 6-digit number';
+                }
+        
+                if (error) {
+                    if (errorDiv && errorDiv.classList.contains('field-error')) {
+                        errorDiv.textContent = error;
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'field-error';
+                        div.textContent = error;
+                        field.parentNode.insertBefore(div, field.nextSibling);
                     }
-                }, 1000);
+                    return false;
+                }
+        
+                if (errorDiv && errorDiv.classList.contains('field-error')) {
+                    errorDiv.remove();
+                }
+                return true;
             };
-
-            startTimer();
-        });
-
-    otpForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (!validateField(otpField, otpField.value)) return;
-
-        // Fetch the remaining time again to ensure it's up-to-date
-        const timeResponse = await fetch('/otp-time');
-        const timeData = await timeResponse.json();
-        const remainingTime = timeData.remainingTime;
-
-        // Check if the timer has ended
-        if (remainingTime <= 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Timer Ended!',
-                text: 'Please click the resend button to generate a new OTP.',
-            });
-            return;
-        }
-
-        try {
-            const response = await fetch('/otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ otp: otpField.value })
-            });
-            const data = await response.json();
-            if (data.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Verified!',
-                    text: 'OTP verified successfully',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    window.location.href = '/';
+        
+            const otpForm = document.getElementById('otpForm');
+            const otpField = document.getElementById('otp');
+            const resendButton = document.getElementById('resendBtn');
+            const countdownElement = document.getElementById('countdown');
+        
+            // Fetch the remaining time from the backend
+            fetch('/otp-time')
+                .then(response => response.json())
+                .then(data => {
+                    let remainingTime = data.remainingTime;
+        
+                    const startTimer = () => {
+                        let interval = setInterval(() => {
+                            remainingTime--;
+                            countdownElement.textContent = remainingTime;
+        
+                            if (remainingTime <= 0) {
+                                clearInterval(interval);
+                                resendButton.removeAttribute("disabled");
+                                countdownElement.textContent = "Timer ended!";
+                            }
+                        }, 1000);
+                    };
+        
+                    startTimer();
                 });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Invalid OTP',
-                    text: data.error || 'Invalid OTP entered'
-                });
-            }
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: 'Server error, please try again'
-            });
-        }
-    });
-
-    resendButton.addEventListener("click", function () {
-        fetch("/otp-send", { method: "POST" })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+        
+            otpForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+        
+                if (!validateField(otpField, otpField.value)) return;
+        
+                // Fetch the remaining time again to ensure it's up-to-date
+                const timeResponse = await fetch('/otp-time');
+                const timeData = await timeResponse.json();
+                const remainingTime = timeData.remainingTime;
+        
+                // Check if the timer has ended
+                if (remainingTime <= 0) {
                     Swal.fire({
-                        icon: 'success',
-                        title: 'OTP Resent!',
-                        text: 'New OTP has been sent to your email.',
-                        showConfirmButton: false,
-                        timer: 1500
+                        icon: 'error',
+                        title: 'Timer Ended!',
+                        text: 'Please click the resend button to generate a new OTP.',
                     });
-                    window.location.reload(); // Reload to reset the timer
+                    return;
+                }
+        
+                try {
+                    const response = await fetch('/otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ otp: otpField.value })
+                    });
+                    const data = await response.json();
+                    if (data.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Verified!',
+                            text: 'OTP verified successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.href = '/';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid OTP',
+                            text: data.error || 'Invalid OTP entered'
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Server error, please try again'
+                    });
                 }
             });
-    });
-});
-    </script>
+        
+            resendButton.addEventListener("click", function () {
+                fetch("/otp-send", { method: "POST" })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'OTP Resent!',
+                                text: 'New OTP has been sent to your email.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                            window.location.reload(); // Reload to reset the timer
+                        }
+                    });
+            });
+        });
+        </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>

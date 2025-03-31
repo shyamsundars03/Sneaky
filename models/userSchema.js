@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const transactionSchema = new Schema({
     type: {
         type: String,
-        enum: ['credit', 'debit', 'refund'],  // Types of transactions
+        enum: ['credit', 'debit', 'refund','referral'],  // Types of transactions
         required: true,
     },
     amount: {
@@ -58,6 +58,20 @@ const userSchema = new Schema({
         },
         transactions: [transactionSchema], // Array of transactions
     },
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true // Allows null values but enforces uniqueness for non-null values
+    },
+    referredBy: {
+        type: String,
+        default: null
+    },
+    referralCount: {
+        type: Number,
+        default: 0
+    },
+
 }, {
     timestamps: true,
 });

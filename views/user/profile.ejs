@@ -558,7 +558,32 @@ input.error {
 }
 
 
-
+.referral-section {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+    
+    .referral-code-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    #referralCodeDisplay {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+    }
+    
+    .referral-count {
+        margin-top: 10px;
+        font-style: italic;
+        color: #666;
+    }
 
 
 
@@ -629,6 +654,26 @@ input.error {
                             <button type="button" id="changePasswordBtn" class="profile-btn">Change Password</button>
                         <% } %>
                     </div>
+
+                    <div class="referral-section">
+                        <h3>Your Referral Code</h3>
+                        <div class="referral-code-container">
+                            <input type="text" id="referralCodeDisplay" 
+                                   value="<%= user.referralCode %>" 
+                                   readonly
+                                   onclick="this.select()">
+                            <button id="copyReferralBtn" class="profile-btn" type="button">Copy Code</button>
+                        </div>
+                        <% if (user.referralCount > 0) { %>
+                            <p class="referral-count">
+                                You've referred <%= user.referralCount %> <%= user.referralCount === 1 ? 'person' : 'people' %>
+                            </p>
+                        <% } %>
+                    </div>
+
+
+
+
                 </form>
             </div>
         </div>
@@ -958,6 +1003,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
     </script>
+
+<script>
+    document.getElementById('copyReferralBtn').addEventListener('click', function(event) {
+        // Prevent the form submission
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const codeInput = document.getElementById('referralCodeDisplay');
+        codeInput.select();
+        document.execCommand('copy');
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Copied!',
+            text: 'Referral code copied to clipboard',
+            showConfirmButton: false,
+            timer: 1500
+        });
+        
+        return false;
+    });
+</script>
 
 <%- include("../../views/partials/user/footer") %>
 </body>

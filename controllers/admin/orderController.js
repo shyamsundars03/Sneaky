@@ -111,6 +111,24 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
+
+        // Prepare update object
+        const updateObj = { status };
+        
+        // Add date fields based on status
+        if (status === 'Delivered') {
+            updateObj.deliveredDate = new Date();
+        } else if (status === 'Cancelled') {
+            updateObj.cancelledDate = new Date();
+        } else if (status === 'Returned') {
+            updateObj.returnedDate = new Date();
+        }
+
+
+
+
+
+
         const order = await Order.findByIdAndUpdate(
             orderId,
             { status },
@@ -141,14 +159,18 @@ const updateOrderStatus = async (req, res) => {
 const cancelOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
+        const updateObj = { 
+            status: 'Cancelled',
+            cancellationReason: req.body.reason || 'Admin cancelled',
+            cancelledDate: new Date() // Add cancellation date
+        };
+
         const order = await Order.findByIdAndUpdate(
             orderId,
-            { 
-                status: 'Cancelled',
-                cancellationReason: req.body.reason || 'Admin cancelled' 
-            },
+            updateObj,
             { new: true }
         );
+
 
         if (!order) {
             return res.status(404).json({ 
@@ -330,6 +352,7 @@ const verifyReturn = async (req, res) => {
 
         // Update order status
         order.status = 'Returned';
+        order.returnedDate = new Date();
         await order.save();
 
         res.status(200).json({ 

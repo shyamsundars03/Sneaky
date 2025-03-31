@@ -195,6 +195,7 @@ const cancelOrder = async (req, res) => {
         order.status = 'Cancelled';
         order.cancellationReason = reason;
         order.stockRestored = true;
+        order.cancelledDate = new Date(); 
         await order.save();
 
         res.status(200).json({ 
