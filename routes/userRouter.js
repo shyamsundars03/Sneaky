@@ -77,6 +77,7 @@ router.get("/cart", userAuth, cartController.loadCart);
 router.post("/cart/add", userAuth, cartController.addToCart);
 router.post("/cart/update-quantity", userAuth, cartController.updateQuantity);
 router.post("/cart/remove", userAuth, cartController.removeFromCart);
+router.post("/cart/proceed-to-checkout", userAuth, cartController.proceedToCheckout);
 
 //wishlist
 router.get("/wishlist", userAuth, wishlistController.loadWishlist);
@@ -98,12 +99,16 @@ router.post('/orders/:orderId/retry', userAuth, paymentController.retryPayment);
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);
 
-//Checkout 
+// Checkout routes
 router.get("/checkout1", userAuth, checkoutController.loadCheckout1);
 router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
-router.post("/place-order", userAuth, checkoutController.placeOrder);
-router.post('/validate-coupon', userAuth, validateCoupon);
+router.post("/checkout1/save", userAuth, checkoutController.saveCheckout1);
+router.post("/checkout2/save", userAuth, checkoutController.saveCheckout2);
+router.post("/validate-coupon", userAuth, checkoutController.validateCoupon);
+router.post("/validate-and-place-order", userAuth, checkoutController.validateAndPlaceOrder);
+router.post('/remove-coupon', checkoutController.removeCoupon);
+
 
 // Payment routes
 router.post('/process-cod', userAuth, paymentController.processCOD);

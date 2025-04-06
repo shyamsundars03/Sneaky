@@ -49,7 +49,8 @@ const productSchema = new Schema({
     },
     offerPrice: {
         type: Number,
-        required: true
+        min:0
+        
     },
     sizes: [sizeDetailsSchema] 
 }, { timestamps: true });

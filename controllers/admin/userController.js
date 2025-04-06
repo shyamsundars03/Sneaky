@@ -184,5 +184,6 @@ module.exports = {
     toggleUserStatus,
     deleteUser,
     getUserById,
-    listUsers
+    listUsers,
+    validateUser,
 };

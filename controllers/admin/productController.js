@@ -17,12 +17,17 @@ const validateProduct = async (productData, productId = null) => {
         errors.push('Price is required and must be greater than 0');
     }
 
-    if (productData.discount && (productData.discount < 0 || productData.discount > 100)) {
-        errors.push('Discount must be between 0% and 100%');
+    if (productData.discount) {
+        if (productData.discount < 0 || productData.discount > 100) {
+            errors.push('Discount must be between 0% and 100%');
+        }
     }
 
-    if (productData.offerPrice && productData.offerPrice >= productData.price) {
-        errors.push('Offer price must be less than the regular price');
+    // Only validate offerPrice if discount is provided
+    if (productData.discount && productData.offerPrice) {
+        if (productData.offerPrice >= productData.price) {
+            errors.push('Offer price must be less than the regular price');
+        }
     }
 
     if (!productData.sizes || productData.sizes.length === 0) {
@@ -54,7 +59,8 @@ const loadProductManagement = async (req, res) => {
                 categories: [],
                 currentPage: 1,
                 totalPages: 0,
-                totalProducts: 0
+                totalProducts: 0,
+                product: null 
             });
         }
 
@@ -91,7 +97,8 @@ const loadProductManagement = async (req, res) => {
             totalPages,
             totalProducts,
             categories,
-            searchQuery: search
+            searchQuery: search,
+            product: null 
         });
     } catch (error) {
         console.error('Error in loadProductManagement:', error);
@@ -101,45 +108,101 @@ const loadProductManagement = async (req, res) => {
             categories: [],
             currentPage: 1,
             totalPages: 0,
-            totalProducts: 0
+            totalProducts: 0,
+            product: null 
         });
     }
 };
 
 const addProduct = async (req, res) => {
     try {
-        const { productName, description, category, isListed, price, discount, offerPrice } = req.body;
+        const { productName, description, category, isListed, price, discount } = req.body;
 
+        // Validate required fields
+        if (!productName || !description || !category || !price) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required fields' 
+            });
+        }
+
+        // Process sizes and stock
         const sizes = ['7', '8', '9', '10'].filter(size => req.body[`size_${size}_stock`]);
         const sizeDetails = sizes.map(size => ({
             size,
             stock: parseInt(req.body[`size_${size}_stock`])
         }));
 
+        // Validate at least one size is selected
+        if (sizeDetails.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'At least one size is required' 
+            });
+        }
+
+        // Process images - collect all 4 uploaded images
+        const productImages = [];
+        for (let i = 0; i < 4; i++) {
+            const fileField = `productImages_${i}`;
+            if (req.files[fileField] && req.files[fileField][0]) {
+                const file = req.files[fileField][0];
+                const relativePath = file.path.replace(/^public[\\/]/, '');
+                productImages.push('/' + relativePath.replace(/\\/g, '/'));
+            }
+        }
+
+        // Validate all 4 images are provided
+        if (productImages.length < 4) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'All 4 product images are required' 
+            });
+        }
+
+        // Prepare product data
         const productData = {
             productName,
             description,
             category,
             isListed: isListed === 'list',
-            productImage: req.files.map(file => file.path),
-            price: parseFloat(price), 
-            discount: parseFloat(discount) || 0, 
-            offerPrice: Math.round(parseFloat(offerPrice)),
+            productImage: productImages,
+            price: parseFloat(price),
+            discount: parseFloat(discount) || 0,
             sizes: sizeDetails
         };
 
-        const errors = await validateProduct(productData);
-        if (errors.length > 0) {
-            return res.status(400).json({ success: false, error: errors[0] });
+        // Calculate offer price if discount is provided
+        if (discount && !isNaN(discount) && discount > 0) {
+            productData.offerPrice = Math.round(parseFloat(price) * (1 - parseFloat(discount)/100));
         }
 
+        // Validate product data
+        const errors = await validateProduct(productData);
+        if (errors.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: errors[0] 
+            });
+        }
+
+        // Create and save new product
         const newProduct = new Product(productData);
         await newProduct.save();
 
-        res.status(201).json({ success: true, message: 'Product added successfully' });
+        res.status(201).json({ 
+            success: true, 
+            message: 'Product added successfully',
+            productId: newProduct._id 
+        });
+
     } catch (error) {
         console.error('Error in addProduct:', error);
-        res.status(500).json({ success: false, error: 'Failed to add product' });
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to add product',
+            details: error.message 
+        });
     }
 };
 
@@ -147,7 +210,7 @@ const addProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const productId = req.params.id;
-
+       
         if (!productId) {
             return res.status(400).json({
                 success: false,
@@ -166,11 +229,17 @@ const updateProduct = async (req, res) => {
             description: req.body.description,
             category: req.body.category,
             isListed: req.body.isListed === 'list',
-            price: parseFloat(req.body.price), // Common price
-            discount: parseFloat(req.body.discount) || 0, // Common discount
-            offerPrice: Math.round(parseFloat(req.body.offerPrice)), // Common offer price
+            price: parseFloat(req.body.price),
+            discount: parseFloat(req.body.discount) || 0,
             sizes: sizeDetails
         };
+
+        // Calculate offer price if discount is provided
+        if (req.body.discount && !isNaN(req.body.discount)) {
+            productData.offerPrice = Math.round(parseFloat(req.body.price) * (1 - parseFloat(req.body.discount)/100));
+        } else {
+            productData.offerPrice = undefined;
+        }
 
         const errors = await validateProduct(productData, productId);
         if (errors.length > 0) {
@@ -188,18 +257,33 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        if (req.files && req.files.length > 0) {
-            if (req.files.length < 4) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Exactly four product images are required'
-                });
-            } else {
-                productData.productImage = req.files.map(file => file.path);
+        // Handle image updates
+        const updatedImages = [...existingProduct.productImage];
+        
+        // Process new uploaded files
+        for (let i = 0; i < 4; i++) {
+            const fileField = `productImages_${i}`;
+            if (req.files && req.files[fileField] && req.files[fileField][0]) {
+                const file = req.files[fileField][0];
+                const relativePath = file.path.replace(/^public[\\/]/, '');
+                updatedImages[i] = '/' + relativePath.replace(/\\/g, '/');
             }
-        } else {
-            productData.productImage = existingProduct.productImage;
         }
+        
+        // Handle removed images
+        if (req.body.removedImages) {
+            const removedIndexes = Array.isArray(req.body.removedImages) 
+                ? req.body.removedImages.map(Number) 
+                : [Number(req.body.removedImages)];
+                
+            removedIndexes.forEach(index => {
+                if (index >= 0 && index < 4) {
+                    updatedImages[index] = '';
+                }
+            });
+        }
+
+        productData.productImage = updatedImages.filter(img => img !== '');
 
         const updatedProduct = await Product.findByIdAndUpdate(
             productId,

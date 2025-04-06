@@ -465,7 +465,7 @@ const loadShop = async (req, res) => {
         const searchTerm = req.query.search;
         const sortOption = req.query.sort || 'bestMatch';
 
-        // Build the search query
+        // Build the initial search query (without price filters)
         const searchQuery = {
             isDeleted: false,
             isListed: true
@@ -481,66 +481,64 @@ const loadShop = async (req, res) => {
             searchQuery['sizes.size'] = { $in: selectedSizes };
         }
 
-        // Add price filter
-        if (!isNaN(minPrice) && !isNaN(maxPrice)) {
-            searchQuery.price = { $gte: minPrice, $lte: maxPrice };
-        } else if (!isNaN(minPrice)) {
-            searchQuery.price = { $gte: minPrice };
-        } else if (!isNaN(maxPrice)) {
-            searchQuery.price = { $lte: maxPrice };
-        }
-
-
+        // Add search term filter
         if (searchTerm) {
             searchQuery.productName = { $regex: searchTerm, $options: 'i' };
         }
 
-        // Determine sorting
-        let sortCriteria = { createdAt: -1 }; // Default: newest first
-        switch (sortOption) {
-            case 'nameAsc':
-                sortCriteria = { productName: 1 };
-                break;
-            case 'nameDesc':
-                sortCriteria = { productName: -1 };
-                break;
-            case 'priceLow':
-                sortCriteria = { price: 1 };
-                break;
-            case 'priceHigh':
-                sortCriteria = { price: -1 };
-                break;
-            default:
-                sortCriteria = { createdAt: -1 }; // Best match (newest)
-        }
-
-        // Get active offers once
+        // Get active offers
         const currentDate = new Date();
         const activeOffers = await Offer.find({
             startDate: { $lte: currentDate },
             endDate: { $gte: currentDate }
         }).populate('category');
 
-        // Fetch products
+        // First get all products matching the non-price filters
         let products = await Product.find(searchQuery)
             .populate('category')
-            .skip(skip)
-            .limit(limit)
-            .sort(sortCriteria);
+            .lean();
 
-        // Calculate final prices - ensure we're working with plain objects
+        // Calculate final prices for all products
         products = products.map(product => 
             calculateFinalPrice(product, activeOffers)
         );
-        // Fetch all categories for the sidebar
-        const categories = await Category.find({ isDeleted: false });
 
-        // Count total products matching the search query
-        const totalProducts = await Product.countDocuments(searchQuery);
+        // Apply price filtering based on finalPrice
+        if (!isNaN(minPrice)) {
+            products = products.filter(p => p.finalPrice >= minPrice);
+        }
+        if (!isNaN(maxPrice)) {
+            products = products.filter(p => p.finalPrice <= maxPrice);
+        }
+
+        // Apply sorting based on the selected option
+        switch (sortOption) {
+            case 'nameAsc':
+                products.sort((a, b) => a.productName.localeCompare(b.productName));
+                break;
+            case 'nameDesc':
+                products.sort((a, b) => b.productName.localeCompare(a.productName));
+                break;
+            case 'priceLow':
+                products.sort((a, b) => a.finalPrice - b.finalPrice);
+                break;
+            case 'priceHigh':
+                products.sort((a, b) => b.finalPrice - a.finalPrice);
+                break;
+            default:
+                // Default: newest first
+                products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+
+        // Get total count after all filtering
+        const totalProducts = products.length;
         const totalPages = Math.ceil(totalProducts / limit);
 
+        // Apply pagination
+        const paginatedProducts = products.slice(skip, skip + limit);
+
         // Fix image paths for the products
-        const fixedProducts = products.map(product => {
+        const fixedProducts = paginatedProducts.map(product => {
             const fixedImages = product.productImage.map(img =>
                 img.replace(/\\/g, '/').replace(/^public\//, '/')
             );
@@ -549,6 +547,9 @@ const loadShop = async (req, res) => {
                 productImage: fixedImages
             };
         });
+
+        // Fetch all categories for the sidebar
+        const categories = await Category.find({ isDeleted: false });
 
         // Build query string for pagination
         const buildQueryString = (params) => {

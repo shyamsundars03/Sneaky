@@ -257,7 +257,7 @@
 
 .payment-content h4 {
     margin: 0 0 5px 0;
-    color: #333;
+    color: black;
     font-size: 16px;
 }
 
@@ -326,7 +326,8 @@
                     <h3>Shipping Address</h3>
                     <div class="address-cards">
                         <div class="address-card selected" id="selectedAddress">
-                            <!-- Address will be dynamically populated here -->
+                            <h4><%= selectedAddress.name %></h4>
+                            <p><%= selectedAddress.street %>, <%= selectedAddress.city %>, <%= selectedAddress.state %>, <%= selectedAddress.zip %>, <%= selectedAddress.country %></p>
                         </div>
                     </div>
                 </div>
@@ -335,158 +336,208 @@
                 <div class="shipping-methods">
                     <h3>Shipping Method</h3>
                     <div class="shipping-option" id="selectedShippingMethod">
-                        <!-- Shipping method will be dynamically populated here -->
+                        <h4><%= shippingMethod %> - <%= shippingCost %></h4>
                     </div>
                 </div>
 
+
                 <!-- Payment Method Section -->
-<!-- Payment Method Section -->
-<!-- Payment Method Section -->
-<div class="payment-methods">
-    <h3>Payment Method</h3>
-    
-    <!-- Cash on Delivery -->
-    <div class="payment-option">
-        <input type="radio" id="cod" name="payment" value="CashOnDelivery" 
-               <%= (walletBalance >= totalAmount) ? '' : 'checked' %>>
-        <label for="cod" class="payment-label">
-            <div class="payment-content">
-                <h4>Cash on Delivery</h4>
+                <div class="payment-methods">
+                    <h3>Payment Method</h3>
+                    
+                    <!-- Cash on Delivery -->
+                    <div class="payment-option">
+                        <input type="radio" id="cod" name="payment" value="CashOnDelivery" >
 
-                <% if (!isCODAllowed) { %>
-                    <p class="cod-error-message">Not available for orders above ₹7000</p>
-                <% } %>
-            </div>
-        </label>
-    </div>
-    
-    <!-- Razorpay -->
-    <div class="payment-option">
-        <input type="radio" id="razorpay" name="payment" value="Razorpay" 
-               <%= (walletBalance >= totalAmount) ? 'checked' : '' %>>
-        <label for="razorpay" class="payment-label">
-            <div class="payment-content">
-                <h4>Online Payment (Razorpay)</h4>
+                        <label for="cod" class="payment-label">
+                            <div class="payment-content">
+                                <h4>Cash on Delivery</h4>
+                                <% if (!isCODAllowed) { %>
+                                    <p class="cod-error-message">Not available for orders above ₹7000</p>
+                                <% } %>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <!-- Razorpay -->
+                    <div class="payment-option">
+                        <input type="radio" id="razorpay" name="payment" value="Razorpay" 
+                            <%= (walletBalance >= totalAmount) ? 'checked' : '' %>
+                            onchange="selectPaymentMethod('Razorpay')">
+                        <label for="razorpay" class="payment-label">
+                            <div class="payment-content">
+                                <h4>Online Payment (Razorpay)</h4>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <!-- Wallet -->
+                    <div class="payment-option">
+                        <input type="radio" id="wallet" name="payment" value="Wallet" 
+                            <%= (walletBalance >= totalAmount) ? 'checked' : '' %>
+                            onchange="selectPaymentMethod('Wallet')">
+                        <label for="wallet" class="payment-label">
+                            <div class="payment-content">
+                                <h4>Wallet Payment</h4>
+                                <p>Balance: ₹<%= walletBalance.toFixed(2) %></p>
+                                <% if (walletBalance >= totalAmount) { %>
+                                    <p class="balance-sufficient">Sufficient balance</p>
+                                <% } else { %>
+                                    <p class="balance-insufficient">Insufficient balance (needs ₹<%= (totalAmount - walletBalance).toFixed(2) %> more)</p>
+                                <% } %>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-            </div>
-        </label>
-    </div>
-    
-    <!-- Wallet -->
-    <div class="payment-option">
-        <input type="radio" id="wallet" name="payment" value="Wallet" 
-               <%= (walletBalance >= totalAmount) ? 'checked' : '' %>>
-        <label for="wallet" class="payment-label">
-            <div class="payment-content">
-                <h4>Wallet Payment</h4>
-                <p>Balance: ₹<%= walletBalance.toFixed(2) %></p>
-                <% if (walletBalance >= totalAmount) { %>
-                    <p class="balance-sufficient">Sufficient balance</p>
-                <% } else { %>
-                    <p class="balance-insufficient">Insufficient balance (needs ₹<%= (totalAmount - walletBalance).toFixed(2) %> more)</p>
-                <% } %>
-            </div>
-        </label>
-    </div>
-</div>
                 <button class="checkout-btn" onclick="window.location.href='/checkout1'">Back</button>
                 <button class="checkout-btn" onclick="proceedToCheckout3()">Continue</button>
+
+
+
+
             </div>
 
-            <!-- Order Summary -->
-            <div class="order-summary">
-                <h2>Your order</h2>
-                <div class="summary-item">
-                    <span>Subtotal</span>
-                    <span>₹<%= cartTotal %></span>
+                <!-- Order Summary -->
+                <div class="order-summary">
+                    <h2>Your order</h2>
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <span>₹<%= cartTotal %></span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Shipping & Handling</span>
+                        <span>₹<%= shippingCost %></span>
+                    </div>
+                    <% if (discountAmount > 0) { %>
+                        <div class="summary-item">
+                            <span style="color: red;">Coupon Discount</span>
+                            <span style="color: red;">-₹<%= discountAmount %></span>
+                        </div>
+                    <% } %>
+                    <div class="summary-item total-row">
+                        <span>Total</span>
+                        <span>₹<%= totalAmount %></span> <!-- Display total amount -->
+                    </div>
                 </div>
-                <div class="summary-item">
-                    <span>Shipping & Handling</span>
-                    <span id="shippingCost">₹<%= shippingCost %></span>
-                </div>
-                <div class="summary-item total-row">
-                    <span>Total</span>
-                    <span id="totalAmount">₹<%= cartTotal + shippingCost %></span>
-                </div>
-            </div>
         </div>
     </main>
 
     <%-include("../../views/partials/user/footer")%>
 <script>
 
-    // Retrieve data from query parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const shippingCost = Number(urlParams.get('shippingCost'));
-    const shippingMethod = urlParams.get('shippingMethod');
-    const selectedAddress = JSON.parse(decodeURIComponent(urlParams.get('selectedAddress')));
 
-
-console.log("Shipping Cost:", shippingCost);
-console.log("Shipping Method:", shippingMethod);
-console.log("Selected Address:", selectedAddress);
-
-
-
-
-    // Store data in sessionStorage for use in checkout3
-    sessionStorage.setItem('shippingCost', shippingCost);
-    sessionStorage.setItem('shippingMethod', shippingMethod);
-    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
-
-    // Populate the selected address
-    const selectedAddressElement = document.getElementById('selectedAddress');
-    if (selectedAddress) {
-        selectedAddressElement.innerHTML = `
-            <h4>${selectedAddress.name}</h4>
-            <p>${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.zip}, ${selectedAddress.country}</p>
-        `;
+    document.addEventListener('DOMContentLoaded', () => {
+    // Restore selected payment method from sessionStorage
+    const savedPaymentMethod = sessionStorage.getItem('selectedPaymentMethod');
+    if (savedPaymentMethod) {
+        const paymentInput = document.querySelector(`input[name="payment"][value="${savedPaymentMethod}"]`);
+        if (paymentInput) {
+            paymentInput.checked = true;
+        }
     }
-
-    // Populate the selected shipping method
-    const selectedShippingMethodElement = document.getElementById('selectedShippingMethod');
-    if (shippingMethod) {
-        selectedShippingMethodElement.innerHTML = `
-            <h4>${shippingMethod} - ₹${shippingCost}</h4>
-        `;
-    }
-
-    function proceedToCheckout3() {
-    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
-    const walletBalance = <%= walletBalance %>;
-    const cartTotal = <%= cartTotal %>;
-    const shippingCost = <%= shippingCost %>;
-    const totalAmount = cartTotal + shippingCost;
-    const isCODAllowed = <%= isCODAllowed %>;
-
-    // Validate payment method
-    if (paymentMethod === 'CashOnDelivery' && !isCODAllowed) {
-        document.getElementById('cod-error').style.display = 'block';
-        return;
-    }
-
-    if (paymentMethod === 'Wallet' && walletBalance < totalAmount) {
-        document.getElementById('wallet-error').style.display = 'block';
-        return;
-    }
-
-    // Proceed if validation passes
-    const shippingCostParam = sessionStorage.getItem('shippingCost');
-    const shippingMethod = sessionStorage.getItem('shippingMethod');
-    const selectedAddress = sessionStorage.getItem('selectedAddress');
-
-    window.location.href = `/checkout3?shippingCost=${shippingCostParam}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(selectedAddress)}&paymentMethod=${paymentMethod}`;
-}
+});
 
 function selectPaymentMethod(method) {
-    document.querySelector(`input[value="${method}"]`).checked = true;
-    Swal.close();
+    // Store in sessionStorage
+    sessionStorage.setItem('selectedPaymentMethod', method);
 }
 
-    function selectPaymentMethod(method) {
-        document.querySelector(`input[value="${method}"]`).checked = true;
-        Swal.close();
+async function savePaymentMethod(paymentMethod) {
+    try {
+        // Store in sessionStorage
+        sessionStorage.setItem('selectedPaymentMethod', paymentMethod);
+        
+        const response = await fetch('/checkout2/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ paymentMethod }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            window.location.href = '/checkout3';
+        } else {
+            throw new Error(result.message || 'Failed to save payment method');
+        }
+    } catch (error) {
+        console.error('Error saving payment method:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message,
+        });
     }
+}
+
+
+// In checkout2.ejs, update the proceedToCheckout3 function:
+
+async function proceedToCheckout3() {
+    const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value;
+    
+    if (!paymentMethod) {
+        await Swal.fire({
+            icon: 'error',
+            title: 'Payment Method Required',
+            text: 'Please select a payment method to continue.',
+        });
+        return;
+    }
+
+    // Special validation for Wallet
+    if (paymentMethod === 'Wallet' && <%= walletBalance %> < <%= totalAmount %>) {
+        await Swal.fire({
+            icon: 'error',
+            title: 'Insufficient Balance',
+            text: 'Your wallet balance is insufficient for this purchase',
+        });
+        return;
+    }
+
+    // Special validation for COD
+    if (paymentMethod === 'CashOnDelivery' && !<%= isCODAllowed %>) {
+        await Swal.fire({
+            icon: 'error',
+            title: 'COD Not Available',
+            text: 'Cash on Delivery is not available for orders above ₹7000',
+        });
+        return;
+    }
+
+    try {
+        const response = await fetch('/checkout2/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ paymentMethod }),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/checkout3';
+        } else {
+            throw new Error(result.message || 'Failed to save payment method');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to proceed to checkout',
+        });
+    }
+}
+
+
+
+
+
 
 </script>
     

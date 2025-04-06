@@ -135,28 +135,23 @@
 .shipping-option-card {
     display: block;
     padding: 15px;
-    border: 2px solid #ddd; /* Grey border */
+    border: 2px solid #ddd;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .shipping-option-card:hover {
-    border-color: #aaa; /* Darker grey on hover */
+    border-color: #aaa;
+}
+
+.shipping-option-card.selected {
+    border-color: red;
+    background-color: #f8f9fa;
 }
 
 .shipping-option-card input[type="radio"] {
-    display: none; /* Hide default radio */
-}
-
-.shipping-option-card input[type="radio"]:checked + .shipping-option-content {
-    color: #333; /* Keep text color consistent */
-}
-
-/* Selected state - red border */
-.shipping-option-card input[type="radio"]:checked ~ .shipping-option-content,
-.shipping-option-card input[type="radio"]:checked {
-    border-color: #ff0000; /* Red border when selected */
+    display: none;
 }
 
 .shipping-option-content {
@@ -165,7 +160,7 @@
 
 .shipping-option-content h4 {
     margin: 0 0 5px 0;
-    color: inherit;
+    color: black;
     font-size: 16px;
 }
 
@@ -174,9 +169,205 @@
     color: #666;
     font-size: 14px;
 }
+
+.coupon-section {
+    margin: 20px 0;
+    width: 40%;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.coupon-input-group {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.coupon-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.apply-coupon-btn {
+    padding: 8px 15px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.apply-coupon-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.coupon-message {
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+.coupon-success {
+    margin-top: 10px;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+
+
+
+
+
+
     </style>
 
+<style>
+    .address-cards {
+       display: flex;
+       flex-direction: column;
+       gap: 15px;
+   }
+   
+   .address-card {
+       display: flex;
+       align-items: flex-start;
+       gap: 15px;
+       padding: 15px;
+       border: 2px solid #ddd;
+       border-radius: 8px;
+       cursor: pointer;
+       transition: all 0.3s ease;
+   }
+   
+   .address-card:hover {
+       border-color: #aaa;
+   }
+   
+   .address-card.selected {
+       border-color: red;
+       background-color: #f8f9fa;
+   }
+   
+   .address-card input[type="radio"] {
+       margin-top: 5px;
+   }
+   
+   .address-content {
+       flex: 1;
+   }
+   
+   .address-content h4 {
+       margin: 0 0 5px 0;
+       color: black;
+   }
+   
+   .address-content p {
+       margin: 3px 0;
+       color: #666;
+       font-size: 14px;
+   }
+   
+   .modal-overlay {
+       position: fixed;
+       top: 0;
+       left: 0;
+       right: 0;
+       bottom: 0;
+       background-color: rgba(0, 0, 0, 0.5);
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       z-index: 1000;
+   }
+   
+   .modal {
+       background: white;
+       border-radius: 8px;
+       width: 90%;
+       max-width: 500px;
+       max-height: 90vh;
+       overflow-y: auto;
+   }
+   
+   .modal-header {
+       padding: 15px 20px;
+       border-bottom: 1px solid #eee;
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+   }
+   
+   .modal-body {
+       padding: 20px;
+   }
+   
+   .form-group {
+       margin-bottom: 15px;
+   }
+   
+   .form-group label {
+       display: block;
+       margin-bottom: 5px;
+       font-weight: 500;
+   }
+   
+   .form-group input {
+       width: 100%;
+       padding: 8px 10px;
+       border: 1px solid #ddd;
+       border-radius: 4px;
+   }
+   
+   .modal-footer {
+       display: flex;
+       justify-content: flex-end;
+       gap: 10px;
+       padding-top: 15px;
+       border-top: 1px solid #eee;
+   }
+   
+   .btn-btn {
+       padding: 8px 15px;
+       border: none;
+       border-radius: 4px;
+       cursor: pointer;
+   }
+   
+   .btn-btn[type="submit"] {
+       background-color: red;
+       color: white;
+   }
 
+   .remove-coupon-btn {
+    padding: 8px 15px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.remove-coupon-btn-small {
+    padding: 4px 8px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 12px;
+}
+
+.remove-coupon-btn:hover, .remove-coupon-btn-small:hover {
+    background-color: red;
+}
+
+
+
+</style>
 
 
 <%-include("../../views/partials/user/header")%>
@@ -189,6 +380,12 @@
     <div class="checkout-container">
         <div class="checkout-form">
             <h2>Bill details</h2>
+                        <!-- Display error message if it exists -->
+                        <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+                            <div class="error-message" style="color: red;">
+                                <%= errorMessage %>
+                            </div>
+                        <% } %>
             <div class="checkout-progress-bar">
                 <div class="checkout-progress-item active">Shipping Method</div>
                 <div class="checkout-progress-item">Payment Method</div>
@@ -224,20 +421,23 @@
                 <button class="checkout-btn" onclick="openAddressModal()">Add Address</button>
             </div>
     
-            <!-- Shipping Method Section -->
-            <!-- Shipping Method Section -->
+           <!-- Shipping Method Section -->
 <div class="shipping-methods">
     <h3>Select a Shipping Method</h3>
     <div class="shipping-options-container">
-        <label class="shipping-option-card" onclick="updateShippingCost(100)">
-            <input type="radio" name="shipping" value="Standard" checked>
+        <label class="shipping-option-card <%= (shippingMethod === 'Standard' || !shippingMethod) ? 'selected' : '' %>">
+            <input type="radio" name="shipping" value="Standard" 
+                   <%= (shippingMethod === 'Standard' || !shippingMethod) ? 'checked' : '' %>
+                   onchange="updateShippingCost(100)">
             <div class="shipping-option-content">
                 <h4>Standard - ₹100</h4>
                 <p>Delivered in 8-12 business days</p>
             </div>
         </label>
-        <label class="shipping-option-card" onclick="updateShippingCost(500)">
-            <input type="radio" name="shipping" value="Premium">
+        <label class="shipping-option-card <%= shippingMethod === 'Premium' ? 'selected' : '' %>">
+            <input type="radio" name="shipping" value="Premium" 
+                   <%= shippingMethod === 'Premium' ? 'checked' : '' %>
+                   onchange="updateShippingCost(500)">
             <div class="shipping-option-content">
                 <h4>Premium Ground - ₹500</h4>
                 <p>Delivered in 4-7 business days</p>
@@ -245,7 +445,32 @@
         </label>
     </div>
 </div>
-    
+
+
+<!-- Coupon Section -->
+<div class="coupon-section">
+    <h3>Apply Coupon</h3>
+    <div class="coupon-input-group">
+        <input type="text" id="couponCode" placeholder="Enter coupon code" 
+               value="<%= couponCode %>" <%= couponApplied ? 'disabled' : '' %>>
+        <% if (couponApplied) { %>
+            <button class="remove-coupon-btn" onclick="removeCoupon()">Remove</button>
+        <% } else { %>
+            <button class="apply-coupon-btn" onclick="applyCoupon()">Apply</button>
+        <% } %>
+    </div>
+    <div id="couponMessage" class="coupon-message"></div>
+    <% if (couponApplied) { %>
+        <div class="coupon-success">
+            Coupon applied! Discount: ₹<%= discountAmount %>
+            
+        </div>
+    <% } %>
+</div>
+
+
+
+            <button class="checkout-btn" onclick="window.location.href='/cart'">Back</button>
             <button class="checkout-btn" onclick="proceedToCheckout2()">Continue</button>
         </div>
     
@@ -260,9 +485,15 @@
                 <span>Shipping & Handling</span>
                 <span id="shippingCost">₹100</span>
             </div>
+            <% if (couponApplied) { %>
+                <div class="summary-item">
+                    <span style="color: red;">Coupon Discount</span>
+                    <span style="color: red;">-₹<%= discountAmount %></span>
+                </div>
+            <% } %>
             <div class="summary-item total-row">
                 <span>Total</span>
-                <span id="totalAmount">₹<%= cartTotal + Number(shippingCost) %></span>
+                <span id="totalAmount">₹<%= cartTotal + (100 - (couponApplied ? discountAmount : 0)) %></span>
             </div>
         </div>
     </div>
@@ -312,123 +543,7 @@
 
 <%-include("../../views/partials/user/footer")%>
 
-<style>
-     .address-cards {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .address-card {
-        display: flex;
-        align-items: flex-start;
-        gap: 15px;
-        padding: 15px;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .address-card:hover {
-        border-color: #aaa;
-    }
-    
-    .address-card.selected {
-        border-color: red;
-        background-color: #f8f9fa;
-    }
-    
-    .address-card input[type="radio"] {
-        margin-top: 5px;
-    }
-    
-    .address-content {
-        flex: 1;
-    }
-    
-    .address-content h4 {
-        margin: 0 0 5px 0;
-        color: #333;
-    }
-    
-    .address-content p {
-        margin: 3px 0;
-        color: #666;
-        font-size: 14px;
-    }
-    
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-    
-    .modal {
-        background: white;
-        border-radius: 8px;
-        width: 90%;
-        max-width: 500px;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    
-    .modal-header {
-        padding: 15px 20px;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .modal-body {
-        padding: 20px;
-    }
-    
-    .form-group {
-        margin-bottom: 15px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-    }
-    
-    .form-group input {
-        width: 100%;
-        padding: 8px 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-    
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding-top: 15px;
-        border-top: 1px solid #eee;
-    }
-    
-    .btn-btn {
-        padding: 8px 15px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    
-    .btn-btn[type="submit"] {
-        background-color: #4CAF50;
-        color: white;
-    }
-</style>
+
 
 
 <script>
@@ -438,38 +553,37 @@
 
     // Function to select an address
     function selectAddress(addressId, addressDetails) {
-        selectedAddressId = addressId;
-        
-        // Update radio button state
-        document.querySelectorAll('.address-card').forEach(card => {
-            card.classList.remove('selected');
-        });
-        
-        // Add selected class to the clicked card
-        const selectedCard = document.querySelector(`.address-card input[value="${addressId}"]`).parentElement;
-        selectedCard.classList.add('selected');
-
-        // Store selected address in sessionStorage
-        sessionStorage.setItem('selectedAddress', JSON.stringify(addressDetails));
-    }
+    // Store selected address in sessionStorage
+    sessionStorage.setItem('selectedAddress', JSON.stringify(addressDetails));
+    
+    // Update the UI to reflect the selected address
+    document.querySelectorAll('.address-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    const selectedCard = document.querySelector(`input[name="selectedAddress"][value="${addressId}"]`).parentElement;
+    selectedCard.classList.add('selected');
+}
 
     // Function to update shipping cost
     function updateShippingCost(cost) {
-    shippingCost = cost;
+    const selectedShippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+    
+    // Update UI
     document.getElementById('shippingCost').textContent = `₹${cost}`;
-    
-    // Update selected visual state
-    document.querySelectorAll('.shipping-option-card').forEach(card => {
-        card.style.borderColor = '#ddd'; // Reset all to grey
-    });
-    
-    // Set current selection to red
-    const selectedCard = event.currentTarget;
-    selectedCard.style.borderColor = '#ff0000';
-    
-    // Update total
-    const totalAmount = cartTotal + cost;
+    const cartTotal = <%= cartTotal %>;
+    const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
+    const totalAmount = cartTotal + cost - discountAmount;
     document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+
+    // Update selected state
+    document.querySelectorAll('.shipping-option-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`input[name="shipping"]:checked`).parentElement.classList.add('selected');
+
+    // Store in sessionStorage
+    sessionStorage.setItem('selectedShippingMethod', selectedShippingMethod);
     sessionStorage.setItem('shippingCost', cost);
 }
 
@@ -532,35 +646,195 @@
 }
 
     // Function to proceed to checkout step 2
-    async function proceedToCheckout2() {
-        // Check if address is selected
-        const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
-        
-        if (!selectedRadio) {
-            await Swal.fire({
-                icon: 'warning',
-                title: 'Address Required',
-                text: 'Please select a shipping address to continue.',
-                confirmButtonColor: '#4CAF50',
-            });
-            return;
-        }
+    // In checkout1.ejs, update the proceedToCheckout2 function:
 
-        // Get the selected address and shipping method
-        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
-        const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-
-        // Redirect to checkout2 with query parameters
-        window.location.href = `/checkout2?shippingCost=${shippingCost}&shippingMethod=${shippingMethod}&selectedAddress=${encodeURIComponent(JSON.stringify(selectedAddress))}`;
+async function proceedToCheckout2() {
+    const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
+    const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+    const shippingCost = Number(sessionStorage.getItem('shippingCost')) || 100;
+    
+    if (!selectedRadio) {
+        await Swal.fire({
+            icon: 'warning',
+            title: 'Address Required',
+            text: 'Please select a shipping address to continue.',
+            confirmButtonColor: '#4CAF50',
+        });
+        return;
     }
 
-    // Initialize default selected address if exists
-    document.addEventListener('DOMContentLoaded', () => {
-        const defaultAddress = document.querySelector('.address-card.selected');
-        if (defaultAddress) {
-            const addressId = defaultAddress.querySelector('input').value;
-            const addressDetails = JSON.parse(defaultAddress.querySelector('input').getAttribute('data-address'));
-            selectAddress(addressId, addressDetails);
+    try {
+        const response = await fetch('/checkout1/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                selectedAddress: selectedRadio.value,
+                shippingMethod,
+                shippingCost,
+                couponCode: document.getElementById('couponCode').value || null,
+                discountAmount: <%= couponApplied ? discountAmount : 0 %>
+            }),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/checkout2';
+        } else {
+            throw new Error(result.message || 'Failed to proceed to checkout');
         }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to proceed to checkout',
+        });
+    }
+}
+
+// Apply Coupon Function
+async function applyCoupon() {
+    const couponCode = document.getElementById('couponCode').value.trim();
+    const messageElement = document.getElementById('couponMessage');
+    const cartTotal = <%= cartTotal %>;
+    const shippingCost = 100; // Assuming a default shipping cost
+    const totalAmount = cartTotal + shippingCost;
+
+    if (!couponCode) {
+        messageElement.textContent = 'Please enter a coupon code';
+        messageElement.style.color = 'red';
+        return;
+    }
+
+    try {
+        messageElement.textContent = 'Validating coupon...';
+        messageElement.style.color = 'blue';
+
+        const response = await fetch('/validate-coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                couponCode,
+                totalAmount
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.valid) {
+            messageElement.textContent = result.message;
+            messageElement.style.color = 'green';
+            
+            // Update total display
+            const newTotal = totalAmount - result.discountAmount;
+            document.getElementById('totalAmount').textContent = `₹${newTotal}`;
+            
+            // Reload to show applied coupon
+            window.location.reload();
+        } else {
+            messageElement.textContent = result.message;
+            messageElement.style.color = 'red';
+        }
+    } catch (error) {
+        console.error('Error applying coupon:', error);
+        messageElement.textContent = error.message || 'Failed to apply coupon';
+        messageElement.style.color = 'red';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Restore selected address
+    const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+    if (selectedAddress) {
+        const addressInput = document.querySelector(`input[name="selectedAddress"][value="${selectedAddress._id}"]`);
+        if (addressInput) {
+            addressInput.checked = true;
+            selectAddress(selectedAddress._id, selectedAddress);
+        }
+    }
+
+    // Restore shipping method with proper initialization
+    const savedShippingMethod = sessionStorage.getItem('selectedShippingMethod') || 'Standard';
+    const savedShippingCost = sessionStorage.getItem('shippingCost') || 100;
+    
+    // Set the radio button and UI
+    const radio = document.querySelector(`input[name="shipping"][value="${savedShippingMethod}"]`);
+    if (radio) {
+        radio.checked = true;
+        radio.parentElement.classList.add('selected');
+        
+        // Update cost display
+        document.getElementById('shippingCost').textContent = `₹${savedShippingCost}`;
+        
+        // Update total amount
+        const cartTotal = <%= cartTotal %>;
+        const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
+        const totalAmount = cartTotal + Number(savedShippingCost) - discountAmount;
+        document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+    }
+
+    // Ensure only one shipping method is selected
+    document.querySelectorAll('.shipping-option-card').forEach(card => {
+        card.classList.remove('selected');
     });
+    if (radio) {
+        radio.parentElement.classList.add('selected');
+    }
+});
+    
+
+async function removeCoupon() {
+    try {
+        const response = await fetch('/remove-coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Clear coupon from UI
+            document.getElementById('couponCode').value = '';
+            document.getElementById('couponCode').disabled = false;
+            document.getElementById('couponMessage').textContent = '';
+            
+            // Remove coupon success message
+            const couponSuccess = document.querySelector('.coupon-success');
+            if (couponSuccess) couponSuccess.remove();
+            
+            // Update total amount
+            const cartTotal = <%= cartTotal %>;
+            const shippingCost = <%= shippingCost %> || 100;
+            const totalAmount = cartTotal + shippingCost;
+            document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+            
+            // Reload to ensure clean state
+            window.location.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: result.message || 'Failed to remove coupon',
+            });
+        }
+    } catch (error) {
+        console.error('Error removing coupon:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to remove coupon. Please try again.',
+        });
+    }
+}
+
+
 </script>

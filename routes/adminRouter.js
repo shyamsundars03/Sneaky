@@ -27,8 +27,8 @@ router.patch("/category/:id/toggle", adminAuth, categoryController.toggleCategor
 
 // Product management
 router.get('/productManagement', adminAuth, productController.loadProductManagement);
-router.post('/product/add', adminAuth, upload.array('productImages', 4), productController.addProduct);
-router.put('/product/:id', adminAuth, upload.array('productImages', 4), productController.updateProduct);
+router.post('/product/add', adminAuth, upload.fields([{ name: 'productImages_0', maxCount: 1 },{ name: 'productImages_1', maxCount: 1 },{ name: 'productImages_2', maxCount: 1 },{ name: 'productImages_3', maxCount: 1 }]), productController.addProduct);
+router.put('/product/:id', adminAuth, upload.fields([{ name: 'productImages_0', maxCount: 1 },{ name: 'productImages_1', maxCount: 1 },{ name: 'productImages_2', maxCount: 1 },{ name: 'productImages_3', maxCount: 1 }]), productController.updateProduct);
 router.get('/product/:id', adminAuth, productController.getProductById);
 router.delete('/product/:id', adminAuth, productController.deleteProduct);
 router.patch('/product/toggle-status/:id', adminAuth, productController.toggleProductStatus);

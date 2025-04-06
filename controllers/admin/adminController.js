@@ -57,7 +57,7 @@ const loadDashboard = (req, res) => {
 const logoutAdmin = (req, res) => {
 
         try {
-            req.session.destroy();
+            req.session.admin = false;
             res.redirect('/admin');
         } catch (error) {
             console.log(error.message);

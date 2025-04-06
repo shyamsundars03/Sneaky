@@ -7,6 +7,8 @@
     <link rel="icon" href="/images/sneaky.png" type="image/png">
     <title>Sneaky - Product Management</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -470,6 +472,21 @@
             gap: 0.5rem;
         }
 
+        .crop-container {
+    width: 100%;
+    max-height: 400px;
+    overflow: hidden;
+    position: relative;
+}
+
+.crop-container img {
+    max-width: 100%;
+    display: block;
+}
+
+
+
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .nav-links {
@@ -698,12 +715,12 @@
                             <div class="form-error" id="priceError"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Discount (%)</label>
+                            <label class="form-label">Discount (%) Optional  </label>
                             <input type="number" name="discount" id="discount" class="form-input" min="0" max="100" oninput="calculateOfferPrice()">
                             <div class="form-error" id="discountError"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Offer Price</label>
+                            <label class="form-label">Offer Price (Optional)  </label>
                             <input type="number" name="offerPrice" id="offerPrice" class="form-input" min="0" readonly>
                             <div class="form-error" id="offerPriceError"></div>
                         </div>
@@ -736,20 +753,18 @@
                             <div class="form-error" id="imagesError"></div>
                             <div class="image-upload-grid">
                                 <% for(let i=0; i < 4; i++) { %>
-                                    <div class="image-upload" data-index="<%= i %>">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                        <p>Image <%= i + 1 %>
-                                        </p>
-                                        <input type="file" name="productImages" class="product-image-input"
-                                            accept="image/*" hidden>
-                                        <input type="hidden" name="existingImages[]" class="existing-image-input">
-                                        <button type="button" class="image-remove"
-                                            onclick="removeImage(event, <%= i %>)">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <% } %>
-                            </div>
+                                  <div class="image-upload" data-index="<%= i %>">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Image <%= i + 1 %></p>
+                                    <input type="file" name="productImages_<%= i %>" class="product-image-input" accept="image/*" hidden>
+                                    <input type="hidden" name="existingImages[<%= i %>]" class="existing-image-input" 
+                                           value="<%= (product && product.productImage && product.productImage[i]) ? product.productImage[i] : '' %>">
+                                    <button type="button" class="image-remove" onclick="removeImage(event, <%= i %>)">
+                                      <i class="fas fa-times"></i>
+                                    </button>
+                                  </div>
+                                <% } %>
+                              </div>
                         </div>
                         <div class="form-group full-width">
                             <label class="form-label">Status</label>
@@ -792,6 +807,31 @@
             </div>
         </div>
     </div>
+
+
+<!-- Image Crop Modal -->
+<div class="modal-overlay" id="cropModal" style="display: none; z-index: 1000;">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Crop Image</h2>
+            <button class="close-btn" onclick="closeCropModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="crop-container">
+                <img id="cropImage" src="" alt="Image to crop">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeCropModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="cropAndSaveImage()">Crop & Save</button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
 
     <script>
         let currentProductId = null;
@@ -911,8 +951,8 @@
             form.elements.category.value = product.category._id;
             form.elements.description.value = product.description;
             form.elements.price.value = product.price; // Set common price
-            form.elements.discount.value = product.discount; // Set common discount
-            form.elements.offerPrice.value = product.offerPrice; // Set common offer price
+            form.elements.discount.value = product.discount > 0 ? product.discount : '';// Set common discount
+            form.elements.offerPrice.value = product.discount > 0 ? product.offerPrice : ''; // Set common offer price
 
             // Reset size checkboxes
             const sizeCheckboxes = form.querySelectorAll('input[name="size"]');
@@ -1001,6 +1041,9 @@
             // Validate discount
             if (discount && (discount < 0 || discount > 100)) {
                 showFormError('discountError', 'Discount must be between 0% and 100%');
+                isValid = false;
+            } else if (discount && discount > 0 && discount < 1) {
+                showFormError('discountError', 'Discount must be at least 1% if provided');
                 isValid = false;
             }
 
@@ -1124,36 +1167,109 @@
     }
 }
 
-        // Setup image upload functionality
-        function setupImageUploads() {
-            const imageUploads = document.querySelectorAll('.image-upload');
+let cropper;
+let currentCropIndex;
+let currentFile;
 
-            imageUploads.forEach(upload => {
-                upload.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('image-remove') || e.target.closest('.image-remove')) {
-                        return; // Let the remove button handle its own click
-                    }
+// Modified setupImageUploads function
+function setupImageUploads() {
+    document.querySelectorAll('.image-upload').forEach((upload) => {
+        const fileInput = upload.querySelector('.product-image-input');
+        const index = parseInt(upload.getAttribute('data-index'));
+        
+        upload.addEventListener('click', function(e) {
+            if (!e.target.closest('.image-remove')) {
+                fileInput.click();
+            }
+        });
 
-                    const fileInput = this.querySelector('.product-image-input');
-                    fileInput.click();
-                });
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                currentFile = this.files[0];
+                currentCropIndex = index;
+                openCropModal(this.files[0]);
+            }
+        });
+    });
+}
 
-                const fileInput = upload.querySelector('.product-image-input');
-                fileInput.addEventListener('change', function () {
-                    if (this.files && this.files[0]) {
-                        const reader = new FileReader();
-
-                        reader.onload = function (e) {
-                            setImagePreview(upload, e.target.result);
-                            // Clear existing image reference since we're replacing it
-                            upload.querySelector('.existing-image-input').value = '';
-                        };
-
-                        reader.readAsDataURL(this.files[0]);
-                    }
-                });
-            });
+function openCropModal(file) {
+    const modal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        cropImage.src = e.target.result;
+        
+        // Initialize cropper
+        if (cropper) {
+            cropper.destroy();
         }
+        
+        modal.style.display = 'block';
+        
+        setTimeout(() => {
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 3 / 4,
+                viewMode: 1,
+                autoCropArea: 1,
+                responsive: true,
+                guides: false
+            });
+        }, 100);
+    };
+    reader.readAsDataURL(file);
+}
+
+function closeCropModal() {
+    document.getElementById('cropModal').style.display = 'none';
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+}
+
+function cropAndSaveImage() {
+    if (!cropper) return;
+
+    const canvas = cropper.getCroppedCanvas({
+        width: 600,
+        height: 800,
+        minWidth: 300,
+        minHeight: 400,
+        maxWidth: 1200,
+        maxHeight: 1600,
+        fillColor: '#fff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+    });
+
+    if (!canvas) return;
+
+    canvas.toBlob((blob) => {
+        const file = new File([blob], currentFile.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+        });
+
+        // Create a new FileList with our cropped image
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        
+        // Find the original file input and update it
+        const fileInput = document.querySelector(`.image-upload[data-index="${currentCropIndex}"] .product-image-input`);
+        fileInput.files = dataTransfer.files;
+
+        // Set the preview
+        const url = URL.createObjectURL(blob);
+        const upload = document.querySelector(`.image-upload[data-index="${currentCropIndex}"]`);
+        setImagePreview(upload, url);
+
+        closeCropModal();
+    }, 'image/jpeg', 0.9);
+}
+
+
 
         // Set image preview
         function setImagePreview(container, imageUrl) {
@@ -1318,21 +1434,6 @@
         });
 
 
-        function calculateOfferPrice() {
-    const price = parseFloat(document.getElementById('price').value) || 0;
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
-
-    if (discount < 0 || discount > 100) {
-        document.getElementById('discountError').textContent = 'Discount must be between 0% and 100%';
-        document.getElementById('offerPrice').value = '';
-        return;
-    } else {
-        document.getElementById('discountError').textContent = '';
-    }
-
-    const offerPrice = price - (price * (discount / 100));
-    document.getElementById('offerPrice').value = offerPrice.toFixed(2);
-}
 
 function toggleSizeFields(size) {
     const container = document.getElementById('sizeFieldsContainer');
@@ -1355,21 +1456,26 @@ function toggleSizeFields(size) {
         container.appendChild(sizeFields);
     }
 }
-
 function calculateOfferPrice() {
     const price = parseFloat(document.getElementById('price').value) || 0;
     const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const offerPriceInput = document.getElementById('offerPrice');
 
     if (discount < 0 || discount > 100) {
         document.getElementById('discountError').textContent = 'Discount must be between 0% and 100%';
-        document.getElementById('offerPrice').value = '';
+        offerPriceInput.value = '';
         return;
     } else {
         document.getElementById('discountError').textContent = '';
     }
 
-    const offerPrice = price - (price * (discount / 100));
-    document.getElementById('offerPrice').value = offerPrice.toFixed(2);
+    if (discount === 0) {
+        // Clear offer price if discount is 0 or empty
+        offerPriceInput.value = '';
+    } else {
+        const offerPrice = price - (price * (discount / 100));
+        offerPriceInput.value = offerPrice.toFixed(2);
+    }
 }
 
 

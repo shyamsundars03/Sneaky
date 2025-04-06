@@ -14,16 +14,15 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    size: {  // Add size field for variant tracking
+    size: {
         type: String,
         required: true
     },
-
     status: {
         type: String,
         enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
-        default: "Pending",
-    },
+        default: "Pending"
+    }
 });
 
 const orderSchema = new mongoose.Schema({
@@ -61,16 +60,14 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["Payment Processing","Processing", "Pending", "Shipped", "Delivered", "Cancelled", "Return Requested", "Returned"],
+        enum: ["Payment Processing", "Ordered", "Processing", "Shipped", "Delivered", "Cancelled", "Return Requested", "Failed","Returned"],
         default: "Payment Processing"
     },
     transactionId: {
         type: String,
         unique: true, 
     },
-    couponCode: {
-        type: String
-    },
+    couponCode: String,
     discountAmount: {
         type: Number,
         default: 0
@@ -78,7 +75,7 @@ const orderSchema = new mongoose.Schema({
     paymentId: String,
     paymentStatus: {
         type: String,
-        enum: ["Pending", "Completed", "Failed"],
+        enum: ["Pending", "Completed", "Failed", "Refunded"],
         default: "Pending"
     },
     deliveredDate: Date,
@@ -101,10 +98,6 @@ const orderSchema = new mongoose.Schema({
         default: false
     },
     stockRestored: {
-        type: Boolean,
-        default: false
-    },
-    inventoryRestoreScheduled: {
         type: Boolean,
         default: false
     }

@@ -78,9 +78,12 @@
                             </td>
                             <td data-label="cart-Quantity">
                                 <div class="cart-quantity-control">
-                                    <div class="cart-quantity-btn" onclick="updateQuantity('<%= item.product._id %>', 'decrease')">-</div>
-                                    <input type="text" value="<%= item.quantity %>" class="cart-quantity-input" id="quantity-<%= item.product._id %>">
-                                    <div class="cart-quantity-btn" onclick="updateQuantity('<%= item.product._id %>', 'increase')">+</div>
+                                    <div class="cart-quantity-btn" 
+                                         onclick="updateQuantity('<%= item.product._id %>', '<%= item.size %>', 'decrease')">-</div>
+                                    <input type="text" value="<%= item.quantity %>" class="cart-quantity-input" 
+                                           id="quantity-<%= item.product._id %>-<%= item.size %>">
+                                    <div class="cart-quantity-btn" 
+                                         onclick="updateQuantity('<%= item.product._id %>', '<%= item.size %>', 'increase')">+</div>
                                 </div>
                             </td>
                             <td data-label="cart-Price">₹<%= item.price * item.quantity %></td>
@@ -123,13 +126,54 @@
 <script>
  
     // Function to proceed to checkout
-    function proceedToCheckout() {
-        window.location.href = "/checkout1";
+    async function proceedToCheckout() {
+    try {
+        const response = await fetch('/cart/proceed-to-checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = result.redirect;
+        } else {
+            if (result.needsAttention) {
+                // Show detailed alert about cart changes
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cart Updated',
+                    html: result.message.replace(/\n/g, '<br>'),
+                    confirmButtonText: 'Review Cart',
+                    allowOutsideClick: false
+                }).then(() => {
+                    // Reload the cart to show updated quantities
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message || 'Cannot proceed to checkout'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong while processing your checkout!',
+        });
     }
+}
 
 
  // Update Quantity Function with AJAX
-async function updateQuantity(productId, action) {
+ async function updateQuantity(productId, size, action) {
     try {
         const response = await fetch('/cart/update-quantity', {
             method: 'POST',
@@ -137,7 +181,8 @@ async function updateQuantity(productId, action) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ 
-                productId: productId, 
+                productId: productId,
+                size: size,
                 action: action 
             }),
         });
@@ -145,26 +190,23 @@ async function updateQuantity(productId, action) {
         const result = await response.json();
 
         if (result.success) {
-            // Update the quantity display without page reload
-            const quantityInput = document.getElementById(`quantity-${productId}`);
+            // Update the specific quantity input
+            const quantityInput = document.getElementById(`quantity-${productId}-${size}`);
             if (quantityInput) {
                 quantityInput.value = result.newQuantity;
             }
             
-            // Update the price display for this item
-            const priceCell = quantityInput.closest('tr').querySelector('td[data-label="cart-Price"]');
+            // Update the price display for this specific item
+            const row = quantityInput.closest('tr');
+            const priceCell = row.querySelector('td[data-label="cart-Price"]');
             if (priceCell) {
                 priceCell.textContent = `₹${result.newPrice}`;
             }
             
-            // Update the cart total
-            const cartTotalElements = document.querySelectorAll('.cart-summary-value');
-            if (cartTotalElements.length > 1) {
-                cartTotalElements[0].textContent = `₹${result.newSubtotal}`;
-                cartTotalElements[1].textContent = `₹${result.newTotal}`;
-            }
-            
-
+            // Update all cart totals
+            document.querySelectorAll('.cart-summary-value').forEach(el => {
+                el.textContent = `₹${result.newTotal}`;
+            });
         } else {
             Swal.fire({
                 icon: 'error',

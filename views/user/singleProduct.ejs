@@ -196,23 +196,37 @@ function updateStockDisplay(stock) {
     }
 
     // Add to Cart Function
-    async function addToCart(productId, size, quantity) {
-        try {
-            const response = await fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productId, size, quantity }),
+// In your singleProduct.ejs, modify the addToCart function:
+async function addToCart(productId, size, quantity) {
+    
+    try {
+        const response = await fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                productId, 
+                size, 
+                quantity 
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added to Cart!',
+                text: 'The product has been added to your cart.',
             });
-
-            const result = await response.json();
-
-            if (result.success) {
+        } else {
+            // Handle specific cases
+            if (result.error === 'PRODUCT_NOT_FOUND' || result.error === 'PRODUCT_UNLISTED') {
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Added to Cart!',
-                    text: 'The product has been added to your cart.',
+                    icon: 'error',
+                    title: 'Product Unavailable',
+                    text: 'This product cannot be added to cart because it is not available.',
                 });
             } else {
                 Swal.fire({
@@ -221,15 +235,16 @@ function updateStockDisplay(stock) {
                     text: result.message || 'Failed to add to cart.',
                 });
             }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
         }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Something went wrong!',
+        });
     }
+}
     // Function to change the main image when a thumbnail is clicked
     function changeMainImage(imageSrc) {
         const mainImage = document.getElementById('main-image');

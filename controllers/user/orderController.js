@@ -108,31 +108,32 @@ const loadSingleOrder = async (req, res) => {
     }
 };
 
+
 const loadOrderSuccess = async (req, res) => {
     try {
         const order = await Order.findById(req.params.orderId);
-        if (!order) return res.status(404).render("page-404");
-        res.render("orderSuccess", {
+        if (!order) return res.redirect('/orders');
+        
+        res.render('orderSuccess', {
             orderId: order._id,
             transactionId: order.transactionId
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).render("page-404");
+        res.redirect('/orders');
     }
 };
 
 const loadOrderFailed = async (req, res) => {
     try {
         const order = await Order.findById(req.params.orderId);
-        if (!order) return res.status(404).render("page-404");
-        res.render("orderFailed", {
+        if (!order) return res.redirect('/orders');
+        
+        res.render('orderFailed', {
             orderId: order._id,
             transactionId: order.transactionId
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).render("page-404");
+        res.redirect('/orders');
     }
 };
 
@@ -140,13 +141,18 @@ const loadOrderFailed = async (req, res) => {
 
 // Cancel Order
 const cancelOrder = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
         const { orderId, reason } = req.body;
         const order = await Order.findById(orderId)
             .populate('user')
-            .populate('items.product');
+            .populate('items.product')
+            .session(session);
 
         if (!order) {
+            await session.abortTransaction();
             return res.status(404).json({ 
                 success: false, 
                 message: "Order not found." 
@@ -154,14 +160,16 @@ const cancelOrder = async (req, res) => {
         }
 
         // Validate order can be cancelled
-        if (!['Pending', 'Shipped', 'Processing'].includes(order.status)) {
+        const cancellableStatuses = ['Ordered', 'Processing', 'Shipped'];
+        if (!cancellableStatuses.includes(order.status)) {
+            await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
                 message: "Order cannot be cancelled at this stage." 
             });
         }
 
-        // 1. Update stock for each item (size-specific)
+        // 1. Restore product stock (size-specific)
         const bulkOps = order.items.map(item => ({
             updateOne: {
                 filter: { 
@@ -169,15 +177,15 @@ const cancelOrder = async (req, res) => {
                     "sizes.size": item.size
                 },
                 update: { 
-                    $inc: { "sizes.$.stock": item.quantity } 
+                    $inc: { "sizes.$.stock": item.quantity }
                 }
             }
         }));
-        await mongoose.model('Product').bulkWrite(bulkOps);
+        await Product.bulkWrite(bulkOps, { session });
 
-        // 2. Process refund to wallet regardless of payment method
-        if (!order.refundProcessed) {
-            const user = await User.findById(order.user._id);
+        // 2. Process refund to wallet if not already processed
+        if (!order.refundProcessed && order.paymentStatus === 'Completed') {
+            const user = await User.findById(order.user._id).session(session);
             if (user) {
                 user.wallet.balance += order.totalAmount;
                 user.wallet.transactions.push({
@@ -186,8 +194,9 @@ const cancelOrder = async (req, res) => {
                     description: `Refund for cancelled order #${order.transactionId}`,
                     date: new Date()
                 });
-                await user.save();
+                await user.save({ session });
                 order.refundProcessed = true;
+                order.paymentStatus = 'Refunded';
             }
         }
 
@@ -195,22 +204,28 @@ const cancelOrder = async (req, res) => {
         order.status = 'Cancelled';
         order.cancellationReason = reason;
         order.stockRestored = true;
-        order.cancelledDate = new Date(); 
-        await order.save();
+        order.cancelledDate = new Date();
+        await order.save({ session });
 
-        res.status(200).json({ 
+        await session.commitTransaction();
+
+        return res.status(200).json({ 
             success: true, 
             message: "Order cancelled successfully. Amount refunded to wallet." 
         });
 
     } catch (error) {
+        await session.abortTransaction();
         console.error("Error cancelling order:", error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             success: false, 
             message: "Failed to cancel order." 
         });
+    } finally {
+        session.endSession();
     }
 };
+
 
 // Return Order
 const returnOrder = async (req, res) => {
