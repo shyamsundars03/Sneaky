@@ -162,6 +162,40 @@
             color: white;
             border: none;
         }
+
+        .cancel-item-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+        .return-item-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+        .item-action-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
         
         /* .singleorder-btn primary {
             background-color: #ff0000;
@@ -305,15 +339,74 @@
             margin-bottom: 10px;
             color: #555;
 }
+.cancelled-item {
+    opacity: 0.7;
+    background-color: #ffeeee;
+}
+.cancelled-item td {
+    text-decoration: line-through;
+    color: #ff4444;
+}
+.returned-item {
+    opacity: 0.7;
+    background-color: #eeffee;
+}
+.returned-item td {
+    color: #44aa44;
+}
+.return-requested-item td {
+    color: #fb8c00;
+}
+
+.order-summary {
+    width: 100%;
+    max-width: 400px;
+    margin: 20px 0 20px auto;
+    border-collapse: collapse;
+}
+
+.order-summary td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+}
+
+.order-summary tr:last-child td {
+    border-bottom: none;
+}
+
+.deduction {
+    color: #e53935;
+}
+
+.grand-total {
+    font-weight: bold;
+    font-size: 1.1em;
+    border-top: 2px solid #333;
+}
 
 
-
+.status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+    .status-ordered { background-color: #fff3cd; color: #856404; }
+    .status-processing { background-color: #cce5ff; color: #004085; }
+    .status-shipped { background-color: #d4edda; color: #155724; }
+    .status-delivered { background-color: #d1ecf1; color: #0c5460; }
+    .status-cancelled { background-color: #f8d7da; color: #721c24; }
+    .status-return-requested { background-color: #fff3cd; color: #856404; }
+    .status-returned { background-color: #f8d7da; color: #721c24; }
 
 
         
         .bottom-actions {
             display: flex;
-            gap: 10px;
+        gap: 15px;
+        margin-top: 30px;
         }
         
         /* Footer styles */
@@ -594,6 +687,25 @@
     .swal2-popup {
         max-width: 500px !important;
     }
+    tfoot tr {
+    border-top: 2px solid #ddd;
+}
+
+tfoot .deduction {
+    color: #e53935;
+}
+
+tfoot .total-row {
+    font-weight: bold;
+    font-size: 1.1em;
+    border-top: 2px solid #333;
+
+}
+
+tfoot td {
+    padding: 8px 0;
+}
+
 
     </style>
 
@@ -663,61 +775,101 @@
                 </div>
                 
                 <!-- Products Table -->
-                <table class="products-table">
-                    <thead>
-                        <tr>
-                            <th>Image</th>
-                            <th>Product Name</th>
-                            <th>Price</th>
-                            <th>Quantity</th>
-                            <th>Order Status</th>
-                            <th >Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% order.items.forEach(item => { %>
-                            <tr>
-                                <td>
-                                    <div class="product-row">
-                                        <% if (item.product.productImage && item.product.productImage[0]) { %>
-                                            <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img" />
-                                        <% } else { %>
-                                            <img src="/images/placeholder.jpg" alt="No image available" class="product-img" />
-                                        <% } %>
-
-                                    </div>
-                                </td>
-                                <td><%= item.product.productName %></td>
-                                <td>₹<%= item.price %></td>
-                                <td><%= item.quantity %></td>
-                                <td><span class="status <%= order.status.toLowerCase() %>"><%= order.status %></span></td>
-                                <td >₹<%= item.price * item.quantity %></td>
-                            </tr>
-                        <% }) %>
-                        <tr>
-                            <td colspan="6" class="text-right">Sub Total :</td>
-                            <td class="text-right">₹<%= order.subtotal.toFixed(2) %></td>
-                        </tr>
-                        <tr>
-                            <td colspan="6" class="text-right">Shipping Cost :</td>
-                            <td class="text-right">₹<%= order.shippingCost || 0 %></td>
-                        </tr>
-
-                        <% if (order.hasDiscount) { %>
-                            <tr>
-                                <td colspan="6" class="text-right">Coupon(<%= order.couponCode %>):</td>
-                                <td class="coupon-text-right">-₹<%= order.discountAmount.toFixed(2) %></td>
-                            </tr>
+<!-- Products Table (updated with item actions) -->
+<table class="products-table">
+    <thead>
+        <tr>
+            <th>Image</th>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% order.items.forEach((item, index) => { %>
+            <tr class="<%= item.cancelled ? 'cancelled-item' : '' %> <%= item.returned ? 'returned-item' : '' %>">
+                <td>
+                    <% if (item.product.productImage && item.product.productImage[0]) { %>
+                        <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img" />
+                    <% } else { %>
+                        <img src="/images/placeholder.jpg" alt="No image available" class="product-img" />
+                    <% } %>
+                </td>
+                <td><%= item.product.productName %></td>
+                <td>₹<%= item.price %></td>
+                <td><%= item.quantity %></td>
+                <td>
+                    <span class="status <%= item.status.toLowerCase().replace(' ', '-') %>">
+                        <%= item.status %>
+                    </span>
+                </td>
+                <td class="item-total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
+                <td>
+                    <% if (!item.cancelled && !item.returned) { %>
+                        <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+                            <button class="item-action-btn cancel-item-btn" 
+                                    data-item-id="<%= item._id %>"
+                                    data-product-name="<%= item.product.productName %>">
+                                Cancel Item
+                            </button>
                         <% } %>
+                    <% } else if (item.returnRequested && !item.returned) { %>
+                        <button class="item-action-btn verify-return-btn" 
+                                data-item-id="<%= item._id %>"
+                                data-product-name="<%= item.product.productName %>">
+                            Verify Return
+                        </button>
+                    <% } %>
+                </td>
+            </tr>
+        <% }) %>
+
+        <tfoot>
+            <tr>
+                <td colspan="6" class="text-right">Sub Total:</td>
+                <td class="text-right">₹<%= order.subtotal %></td>
+            </tr>
+            
+            <% if (order.cancelledAmount > 0) { %>
+            <tr class="deduction">
+                <td colspan="6" class="text-right">Cancelled Items:</td>
+                <td class="text-right">-₹<%= order.cancelledAmount %></td>
+            </tr>
+            <% } %>
+            
+            <% if (order.returnedAmount > 0) { %>
+            <tr class="deduction">
+                <td colspan="6" class="text-right">Returned Items:</td>
+                <td class="text-right">-₹<%= order.returnedAmount %></td>
+            </tr>
+            <% } %>
+            
+            <% if (order.hasDiscount) { %>
+            <tr class="deduction">
+                <td colspan="6" class="text-right">Coupon Discount (<%= order.couponCode %>):</td>
+                <td class="text-right">-₹<%= order.discountAmount %></td>
+            </tr>
+            <% } %>
+            
+            <tr>
+                <td colspan="6" class="text-right">Shipping Cost:</td>
+                <td class="text-right">₹<%= order.shippingCost %></td>
+            </tr>
+            
+            <tr class="total-row">
+                <td colspan="6" class="text-right">Grand Total:</td>
+                <td class="text-right">₹<%= order.grandTotal %></td>
+            </tr>
+        </tfoot>
+    </tbody>
+</table>
 
 
 
-                        <tr class="total-row">
-                            <td colspan="6" class="text-right">Grand Total :</td>
-                            <td class="text-right">₹<%= order.totalAmount  %></td>
-                        </tr>
-                    </tbody>
-                </table>
+
                 
                 <!-- Payment Info -->
                 <div class="payment-info">
@@ -748,14 +900,20 @@
                 <!-- Bottom Actions -->
                 <div class="bottom-actions">
                     <a href="/orders" class="singleorder-btn">Back</a>
-                    <% if (order.status === 'Payment Processing') { %>
-                        <!-- Only retry payment button shows -->
-                    <% } else if (order.status === 'Pending' || order.status === 'Shipped') { %>
-                        <button class="singleorder-btn" id="cancelOrderBtn">Cancel Order</button>
+                    
+                    <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+                        <button class="singleorder-btn cancel-btn" id="cancelOrderBtn">Cancel Order</button>
                     <% } else if (order.status === 'Delivered') { %>
-                        <button class="singleorder-btn" id="returnOrderBtn">Return Order</button>
+                        <button class="singleorder-btn return-btn" id="returnOrderBtn">Return Order</button>
                     <% } %>
                 </div>
+
+
+
+
+
+
+                
             </div>
         </div>
     </section>
@@ -981,6 +1139,140 @@ document.getElementById('returnOrderBtn').addEventListener('click', function () 
             console.error('Verification Error:', error);
         });
     }
+</script>
+
+
+<!-- Add this script -->
+<script>
+   // Update your event listener script
+   document.addEventListener('DOMContentLoaded', function() {
+    // Cancel Item Button
+    document.querySelectorAll('.cancel-item-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const productName = this.getAttribute('data-product-name');
+            
+            Swal.fire({
+                title: `Cancel ${productName}`,
+                html: `
+                    <p>You are about to cancel this item from your order.</p>
+                    <textarea id="cancelReason" class="swal2-textarea" 
+                        placeholder="Please enter reason for cancellation (required)" required></textarea>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Submit Cancellation',
+                preConfirm: () => {
+                    const reason = document.getElementById('cancelReason').value;
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required');
+                        return false;
+                    }
+                    return { reason };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/cancel-order-item', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            orderId: '<%= order._id %>',
+                            itemId: itemId,
+                            reason: result.value.reason
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Item Cancelled',
+                                html: `
+                                    <p>${data.message}</p>
+                                    ${data.refundAmount ? 
+                                        `<p>₹${data.refundAmount} will be refunded to your wallet.</p>` : ''}
+                                `,
+                                willClose: () => location.reload()
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error', error.message, 'error');
+                    });
+                }
+            });
+        });
+    });
+});
+
+        // Return Item
+        document.querySelectorAll('.return-item-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemIndex = this.getAttribute('data-item-index');
+                const productName = this.getAttribute('data-product-name');
+                
+                Swal.fire({
+                    title: `Return ${productName}`,
+                    html: `
+                        <p>You are about to request return for this item.</p>
+                        <textarea id="returnReason" class="swal2-textarea" 
+                            placeholder="Please enter reason for return (required)" required></textarea>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit Return Request',
+                    preConfirm: () => {
+                        const reason = document.getElementById('returnReason').value;
+                        if (!reason) {
+                            Swal.showValidationMessage('Reason is required');
+                            return false;
+                        }
+                        return { reason };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/return-order-item', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                orderId: '<%= order._id %>',
+                                itemIndex: itemIndex,
+                                reason: result.value.reason
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Return Requested',
+                                    html: `
+                                        <p>${data.message}</p>
+                                        <p>Admin will verify your request.</p>
+                                    `,
+                                    willClose: () => location.reload()
+                                });
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Error', error.message, 'error');
+                        });
+                    }
+                });
+            });
+        });
+    });
+
+
+
 </script>
 </body>
 </html>

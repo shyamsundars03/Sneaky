@@ -95,6 +95,9 @@ router.get('/order-failed/:orderId', userAuth, orderController.loadOrderFailed);
 router.post('/orders/:orderId/retry', userAuth, paymentController.retryPayment);
 
 
+// User routes
+router.post('/cancel-order-item', userAuth, orderController.cancelOrderItem);
+router.post('/return-order-item', userAuth, orderController.returnOrderItem);
 
 // Error page
 router.get("/pageNotFound", userController.pageNotFound);

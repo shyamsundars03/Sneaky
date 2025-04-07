@@ -78,6 +78,9 @@ const orderSchema = new mongoose.Schema({
         enum: ["Pending", "Completed", "Failed", "Refunded"],
         default: "Pending"
     },
+    orderedDate: Date,
+    processedDate: Date,
+    shippedDate: Date,
     deliveredDate: Date,
     cancelledDate: Date,
     returnedDate: Date,
@@ -100,7 +103,8 @@ const orderSchema = new mongoose.Schema({
     stockRestored: {
         type: Boolean,
         default: false
-    }
+    },
+    inventoryRestoreScheduled: { type: Boolean, default: false },
 
 }, { timestamps: true });
 

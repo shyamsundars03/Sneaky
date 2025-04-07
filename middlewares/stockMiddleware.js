@@ -2,6 +2,14 @@ const Order = require('../models/orderSchema');
 const mongoose = require('mongoose');
 
 const checkPendingStockRestorations = async () => {
+    // Wait for connection if not ready
+    if (mongoose.connection.readyState !== 1) {
+        console.log('Waiting for DB connection...');
+        await new Promise(resolve => {
+            mongoose.connection.on('connected', resolve);
+        });
+    }
+
     try {
         const orders = await Order.find({
             $or: [
@@ -12,7 +20,6 @@ const checkPendingStockRestorations = async () => {
 
         for (const order of orders) {
             try {
-                // For cancelled orders, restore immediately if not done
                 if (order.status === 'Cancelled' && !order.stockRestored) {
                     const bulkOps = order.items.map(item => ({
                         updateOne: {
@@ -28,9 +35,8 @@ const checkPendingStockRestorations = async () => {
                     await mongoose.model('Product').bulkWrite(bulkOps);
                     order.stockRestored = true;
                     await order.save();
+                    console.log(`Restored stock for cancelled order ${order._id}`);
                 }
-                
-                // For returned orders, rely on the timeout in verifyReturn
             } catch (error) {
                 console.error(`Error processing order ${order._id}:`, error);
             }
@@ -40,10 +46,10 @@ const checkPendingStockRestorations = async () => {
     }
 };
 
-// Run every hour
-setInterval(checkPendingStockRestorations, 60 * 60 * 1000);
-
-// Initial run when server starts
-checkPendingStockRestorations();
+// Self-initializing pattern
+(async () => {
+    await checkPendingStockRestorations(); // Initial run
+    setInterval(checkPendingStockRestorations, 60 * 60 * 1000); // Hourly checks
+})();
 
 module.exports = { checkPendingStockRestorations };

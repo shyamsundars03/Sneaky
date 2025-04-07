@@ -482,9 +482,10 @@ const validateAndPlaceOrder = async (req, res) => {
                 .populate('category')
                 .session(session);
                 
-            if (!product || !product.isListed || product.isDeleted) {
-                throw new Error(`Product ${item.product} is no longer available`);
-            }
+                if (!product || !product.isListed || product.isDeleted) {
+                    const productName = product?.productName || 'a product';
+                    throw new Error(`"${productName}" is no longer available`);
+                }
 
             const sizeObj = product.sizes.find(s => s.size === item.size);
             if (!sizeObj || sizeObj.stock < item.quantity) {

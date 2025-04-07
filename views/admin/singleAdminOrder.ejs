@@ -450,8 +450,9 @@
         
         .status-actions {
             display: flex;
-            align-items: center;
-            gap: 10px;
+        gap: 10px;
+        align-items: center;
+        margin-top: 15px;
         }
         
         .status-select {
@@ -460,6 +461,17 @@
             border: 1px solid #ddd;
             min-width: 120px;
         }
+        .verify-return-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .verify-return-btn:hover {
+        background-color: #218838;
+    }
         
         /* Order Details Grid */
         .order-details-grid {
@@ -472,7 +484,7 @@
         .details-box h3 {
             font-size: 16px;
             margin-bottom: 10px;
-            color: #555;
+            color: black;
         }
         
         .details-box p {
@@ -498,9 +510,9 @@
             background-color: #f2f2f2;
             text-align: left;
             padding: 12px 15px;
-            font-size: 14px;
-            font-weight: normal;
-            color: #555;
+            font-size: 18px;
+            font-weight:bolder;
+            color: black;
         }
         
         .products-table td {
@@ -563,6 +575,28 @@
         }
         
         .singleadminorder-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+        .item-action-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+        .btn-save-status{
             display: inline-block;
             padding: 8px 16px;
             border-radius: 5px;
@@ -652,27 +686,30 @@
         <div class="order-header">
             <div class="order-id">
                 Order ID: #<%= order.transactionId %>
-                <span class="status-badge <%= order.status.toLowerCase() %>">
+                <span class="status-badge ">
                     <%= order.status %>
                 </span>
             </div>
-            <div class="status-actions">
-                <% if (order.status !== 'Delivered' && order.status !== 'Returned') { %>
-                    <select class="status-select" id="statusSelect">
-                        <% if (order.status === 'Payment Processing' || order.status === 'Processing' || order.status === 'Pending' || order.status === 'Shipped') { %>
-                            <option value="Pending" <%= order.status === 'Pending' ? 'selected' : '' %>>Pending</option>
-                            <option value="Shipped" <%= order.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
-                            <option value="Delivered" <%= order.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
-                        <% } %>
-                        <% if (order.status === 'Return Requested') { %>
-                            <option value="Return Requested" selected>Return Requested</option>
-                            <option value="Returned">Returned</option>
-                        <% } %>
-                        <option value="Cancelled" <%= order.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
-                    </select>
-                    <button class="singleadminorder-btn" id="saveStatusBtn">Save</button>
-                <% } %>
-            </div>
+<!-- status-actions.ejs or directly in singleAdminOrder.ejs -->
+<div class="status-actions">
+    <select id="statusSelect" class="status-select">
+        <% if (order.status === 'Ordered') { %>
+            <option value="Ordered" selected>Ordered</option>
+            <option value="Processing">Processing</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Delivered">Delivered</option>
+        <% } else if (order.status === 'Processing') { %>
+            <option value="Processing" selected>Processing</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Delivered">Delivered</option>
+        <% } else if (order.status === 'Shipped') { %>
+            <option value="Shipped" selected>Shipped</option>
+            <option value="Delivered">Delivered</option>
+        <% } %>
+        <option value="Cancelled">Cancel Order</option>
+    </select>
+    <button id="saveStatusBtn" class="btn-save-status" disabled>Save</button>
+</div>
         </div>
 
         <!-- Order Details -->
@@ -706,6 +743,7 @@
                     <th>Price</th>
                     <th>Quantity</th>
                     <th>Total</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -724,14 +762,23 @@
                         <td data-label="Price">₹<%= item.price.toFixed(2) %></td>
                         <td data-label="Quantity"><%= item.quantity %></td>
                         <td data-label="Total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
+                        <td>
+                            <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+                                <button class="item-action-btn" 
+                                        data-action="cancel" 
+                                        data-item-id="<%= item._id %>"
+                                        data-product-name="<%= item.product.productName %>">
+                                    Cancel Item
+                                </button>
+                            <% } %>
+                        </td>
                     </tr>
                 <% }) %>
             </tbody>
         </table>
 
         <!-- Order Totals -->
-<!-- Order Totals -->
-<!-- Order Totals -->
+
 <table class="totals" align="right">
     <tr>
         <td>Sub Total :</td>
@@ -796,164 +843,296 @@
 </body>
 
 <script>
-    // Wait for DOM to be fully loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Debug check - verify button exists
-        console.log('DOM loaded - checking for verify button');
-        const verifyBtn = document.getElementById('verifyReturnBtn');
-        console.log('Verify button:', verifyBtn);
+        // Debugging logs (can be removed in production)
+        console.log('Admin Order Management initialized');
 
-        // 1. Save Status Functionality
+        // 1. Status Dropdown Management
+        const statusSelect = document.getElementById('statusSelect');
         const saveStatusBtn = document.getElementById('saveStatusBtn');
-        if (saveStatusBtn) {
-            saveStatusBtn.addEventListener('click', function() {
-                const status = document.getElementById('statusSelect').value;
-                const orderId = '<%= order._id %>';
+        
+        if (statusSelect && saveStatusBtn) {
+            // Initialize dropdown based on current status
+            const currentStatus = '<%= order.status %>';
+            const statusHierarchy = {
+                'Ordered': ['Processing', 'Shipped', 'Delivered', 'Cancelled'],
+                'Processing': ['Shipped', 'Delivered', 'Cancelled'],
+                'Shipped': ['Delivered', 'Cancelled'],
+                'Delivered': ['Returned'],
+                'Return Requested': ['Returned']
+            };
 
-                fetch('/admin/update-order-status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ orderId, status }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'Order status updated successfully.',
-                            confirmButtonText: 'OK',
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Failed!',
-                            text: 'Failed to update order status.',
-                            confirmButtonText: 'OK',
+            // Enable/disable save button based on selection
+            statusSelect.addEventListener('change', function() {
+                saveStatusBtn.disabled = this.value === currentStatus;
+            });
+
+            // Save status handler
+            saveStatusBtn.addEventListener('click', function() {
+                const newStatus = statusSelect.value;
+                
+                Swal.fire({
+                    title: 'Confirm Status Update',
+                    html: `Change status from <strong>${currentStatus}</strong> to <strong>${newStatus}</strong>?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Update',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch('/admin/update-order-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                orderId: '<%= order._id %>',
+                                status: newStatus
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Status update failed');
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
                         });
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Oops...',
-                        text: 'An error occurred. Please try again.',
-                        confirmButtonText: 'OK',
-                    });
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Status Updated!',
+                            text: result.value.message,
+                            willClose: () => window.location.reload()
+                        });
+                    }
                 });
             });
         }
 
-        // 2. Verify Return Functionality (Fixed version)
-        if (verifyBtn) {
-            verifyBtn.addEventListener('click', function() {
+        // 2. Return Verification
+        const verifyReturnBtn = document.getElementById('verifyReturnBtn');
+        if (verifyReturnBtn) {
+            verifyReturnBtn.addEventListener('click', function() {
                 Swal.fire({
-                    title: 'Verify Return Request',
-                    text: 'Are you sure you want to verify this return? This will refund the amount to the user.',
-                    icon: 'question',
+                    title: 'Verify Return',
+                    html: `
+                        <p>This will:</p>
+                        <ol>
+                            <li>Process refund to customer's wallet</li>
+                            <li>Restore product stock quantities</li>
+                            <li>Mark order as Returned</li>
+                        </ol>
+                        <p>Total refund amount: ₹<%= order.totalAmount %></p>
+                    `,
+                    icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, verify it!',
-                    cancelButtonText: 'No, cancel'
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'Verify Return',
+                    cancelButtonText: 'Cancel',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch('/admin/verify-return', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                orderId: '<%= order._id %>'
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Return verification failed');
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        fetch('/admin/verify-return', {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Return Verified!',
+                            html: `
+                                <p>${result.value.message}</p>
+                                <p>₹<%= order.totalAmount %> refunded to customer.</p>
+                            `,
+                            willClose: () => window.location.reload()
+                        });
+                    }
+                });
+            });
+        }
+
+       
+
+        // 4. Search Functionality
+        const searchBox = document.querySelector('.search-box');
+        if (searchBox) {
+            searchBox.addEventListener('input', debounce(function(e) {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.order-row').forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(term) ? '' : 'none';
+                });
+            }, 300));
+        }
+
+        // 5. Download Invoice
+        window.downloadInvoice = function(orderId) {
+            Swal.fire({
+                title: 'Generating Invoice',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
+            fetch(`/admin/download-invoice/${orderId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Invoice generation failed');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Invoice_${'<%= order.transactionId %>'}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    Swal.close();
+                }, 100);
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Download Failed',
+                    text: error.message
+                });
+            });
+        };
+
+        // Helper Functions
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this, args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cancel Order Button
+        document.getElementById('cancelOrderBtn')?.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Cancel Entire Order',
+                html: `
+                    <p>You are about to cancel this entire order.</p>
+                    <textarea id="cancelReason" class="swal2-textarea" 
+                        placeholder="Please enter reason for cancellation (required)" required></textarea>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Confirm Cancellation',
+                preConfirm: () => {
+                    const reason = document.getElementById('cancelReason').value;
+                    if (!reason) {
+                        Swal.showValidationMessage('Reason is required');
+                        return false;
+                    }
+                    return { reason };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/cancel-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            orderId: '<%= order._id %>',
+                            reason: result.value.reason
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Order Cancelled',
+                                text: data.message,
+                                willClose: () => location.reload()
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error', error.message, 'error');
+                    });
+                }
+            });
+        });
+    
+        // Cancel Item Button (Admin)
+        document.querySelectorAll('.item-action-btn[data-action="cancel"]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-item-id');
+                const productName = this.getAttribute('data-product-name');
+                
+                Swal.fire({
+                    title: `Cancel ${productName}`,
+                    html: `
+                        <p>You are about to cancel this item from the order.</p>
+                        <textarea id="cancelReason" class="swal2-textarea" 
+                            placeholder="Please enter reason for cancellation (required)" required></textarea>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit Cancellation',
+                    preConfirm: () => {
+                        const reason = document.getElementById('cancelReason').value;
+                        if (!reason) {
+                            Swal.showValidationMessage('Reason is required');
+                            return false;
+                        }
+                        return { reason };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/admin/cancel-order-item', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ 
-                                orderId: '<%= order._id %>' 
-                            }),
+                            body: JSON.stringify({
+                                orderId: '<%= order._id %>',
+                                itemId: itemId,
+                                reason: result.value.reason
+                            })
                         })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
+                        .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire(
-                                    'Verified!',
-                                    'Return has been verified and amount refunded.',
-                                    'success'
-                                ).then(() => {
-                                    window.location.reload();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Item Cancelled',
+                                    text: data.message,
+                                    willClose: () => window.location.reload()
                                 });
                             } else {
-                                throw new Error(data.message || 'Failed to verify return');
+                                throw new Error(data.message);
                             }
                         })
                         .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire(
-                                'Error!',
-                                error.message || 'An error occurred while verifying return.',
-                                'error'
-                            );
+                            Swal.fire('Error', error.message, 'error');
                         });
                     }
                 });
             });
-        } else {
-            console.log('Verify return button not found on page');
-        }
-
-        // 3. Search functionality (existing)
-        const searchBox = document.createElement('input');
-        searchBox.type = 'text';
-        searchBox.className = 'search-box';
-        searchBox.placeholder = 'Search Orders...';
-        
-        const container = document.querySelector('.order-title');
-        if (container) {
-            container.parentNode.insertBefore(searchBox, container);
-            
-            searchBox.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('tbody tr');
-                
-                rows.forEach(row => {
-                    const orderNumber = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                    const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                    const paymentMethod = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                    const orderDate = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-                    
-                    if (orderNumber.includes(searchTerm) || 
-                        productName.includes(searchTerm) || 
-                        paymentMethod.includes(searchTerm) || 
-                        orderDate.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-
-        // 4. Pagination functionality (existing)
-        const paginationBtns = document.querySelectorAll('.pagination-btn');
-        paginationBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                paginationBtns.forEach(b => b.classList.remove('active'));
-                if (!isNaN(btn.textContent) && btn.textContent.trim() !== '') {
-                    btn.classList.add('active');
-                }
-            });
         });
-
-        // 5. Download Invoice function
-        window.downloadInvoice = function(orderId) {
-            window.location.href = `/admin/download-invoice/${orderId}`;
-        }
     });
-</script>
+    </script>
 
 </html>

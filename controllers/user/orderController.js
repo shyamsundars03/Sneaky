@@ -53,7 +53,6 @@ const loadOrder = async (req, res) => {
     }
 };
 
-// Load single order page
 const loadSingleOrder = async (req, res) => {
     try {
         if (!req.user) return res.redirect('/signin');
@@ -63,7 +62,10 @@ const loadSingleOrder = async (req, res) => {
             return res.status(400).render("page-404", { message: "Invalid order ID." });
         }
 
-        const order = await Order.findById(orderId).populate({
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id 
+        }).populate({
             path: 'items.product',
             select: 'productName productImage price sizes category',
             populate: {
@@ -76,29 +78,52 @@ const loadSingleOrder = async (req, res) => {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
 
-        // Calculate subtotal and transform data
-        const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const hasDiscount = order.discountAmount > 0;
-        const discountPercentage = hasDiscount ? 
-            Math.round((order.discountAmount / (subtotal + order.shippingCost)) * 100) : 0;
-
-        // Transform image paths
-        order.items = order.items.map(item => {
+        // Calculate totals
+        let subTotal = 0;
+        let cancelledAmount = 0;
+        let returnedAmount = 0;
+        
+        // Transform items and calculate amounts
+        const items = order.items.map(item => {
+            const itemTotal = item.price * item.quantity;
+            
+            if (item.cancelled) {
+                cancelledAmount += itemTotal;
+            } else if (item.returned) {
+                returnedAmount += itemTotal;
+            } else {
+                subTotal += itemTotal;
+            }
+            
+            // Fix image path if needed
             if (item.product?.productImage?.[0]) {
                 item.product.productImage[0] = item.product.productImage[0]
                     .replace(/\\/g, '/')
                     .replace('public/', '/');
             }
-            return item;
+            
+            return {
+                ...item.toObject(),
+                itemTotal: itemTotal.toFixed(2)
+            };
         });
+
+        // Calculate final totals
+        const shippingCost = order.shippingCost || 0;
+        const discountAmount = order.discountAmount || 0;
+        const grandTotal = order.totalAmount || (subTotal + shippingCost - discountAmount);
 
         res.render("singleOrder", { 
             order: {
                 ...order.toObject(),
-                subtotal: subtotal,
-                hasDiscount: hasDiscount,
-                discountPercentage: discountPercentage,
-                grandTotal: order.totalAmount
+                items,
+                subtotal: subTotal.toFixed(2),
+                cancelledAmount: cancelledAmount.toFixed(2),
+                returnedAmount: returnedAmount.toFixed(2),
+                shippingCost: shippingCost.toFixed(2),
+                discountAmount: discountAmount.toFixed(2),
+                grandTotal: grandTotal.toFixed(2),
+                hasDiscount: discountAmount > 0
             },
             user: req.user
         });
@@ -107,7 +132,6 @@ const loadSingleOrder = async (req, res) => {
         res.status(500).render("page-404", { message: "Failed to load order details." });
     }
 };
-
 
 const loadOrderSuccess = async (req, res) => {
     try {
@@ -146,16 +170,23 @@ const cancelOrder = async (req, res) => {
     
     try {
         const { orderId, reason } = req.body;
-        const order = await Order.findById(orderId)
-            .populate('user')
-            .populate('items.product')
-            .session(session);
+        
+        // Verify order belongs to user
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id 
+        })
+        .populate({
+            path: 'items.product',
+            select: '_id sizes'
+        })
+        .session(session);
 
         if (!order) {
             await session.abortTransaction();
             return res.status(404).json({ 
                 success: false, 
-                message: "Order not found." 
+                message: "Order not found or unauthorized." 
             });
         }
 
@@ -169,7 +200,7 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // 1. Restore product stock (size-specific)
+        // Restore product stock (size-specific)
         const bulkOps = order.items.map(item => ({
             updateOne: {
                 filter: { 
@@ -183,9 +214,9 @@ const cancelOrder = async (req, res) => {
         }));
         await Product.bulkWrite(bulkOps, { session });
 
-        // 2. Process refund to wallet if not already processed
-        if (!order.refundProcessed && order.paymentStatus === 'Completed') {
-            const user = await User.findById(order.user._id).session(session);
+        // Process refund if payment was completed
+        if (!order.refundProcessed && order.paymentStatus === 'COD') {
+            const user = await User.findById(req.user._id).session(session);
             if (user) {
                 user.wallet.balance += order.totalAmount;
                 user.wallet.transactions.push({
@@ -211,7 +242,8 @@ const cancelOrder = async (req, res) => {
 
         return res.status(200).json({ 
             success: true, 
-            message: "Order cancelled successfully. Amount refunded to wallet." 
+            message: "Order cancelled successfully." + 
+                    (order.refundProcessed ? " Amount refunded to wallet." : "")
         });
 
     } catch (error) {
@@ -227,49 +259,69 @@ const cancelOrder = async (req, res) => {
 };
 
 
+
+
 // Return Order
 const returnOrder = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
         const { orderId, reason } = req.body;
 
-        const order = await Order.findById(orderId);
+        // Verify order belongs to user
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id 
+        }).session(session);
+
         if (!order) {
+            await session.abortTransaction();
             return res.status(404).json({ 
                 success: false, 
-                message: 'Order not found.' 
+                message: "Order not found or unauthorized." 
             });
         }
 
         if (order.status !== 'Delivered') {
+            await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
-                message: 'Only delivered orders can be returned.' 
+                message: "Only delivered orders can be returned." 
             });
         }
 
-        if (!reason) {
+        if (!reason || reason.trim().length < 10) {
+            await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
-                message: 'Return reason is required.' 
+                message: "Valid return reason (min 10 chars) is required." 
             });
         }
 
+        // Update order status
         order.status = 'Return Requested';
-        order.returnReason = reason;
-        await order.save();
+        order.returnReason = reason.trim();
+        await order.save({ session });
+
+        await session.commitTransaction();
 
         res.status(200).json({ 
             success: true, 
-            message: 'Return request submitted successfully.' 
+            message: 'Return request submitted for admin verification.' 
         });
     } catch (error) {
+        await session.abortTransaction();
         console.error('Error returning order:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Failed to submit return request.' 
         });
+    } finally {
+        session.endSession();
     }
 };
+
 
 
 const downloadInvoice = async (req, res) => {
@@ -286,6 +338,186 @@ const downloadInvoice = async (req, res) => {
 };
 
 
+// Cancel single item
+const cancelOrderItem = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { orderId, itemId, reason } = req.body;
+        
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id 
+        })
+        .populate({
+            path: 'items.product',
+            select: '_id sizes'
+        })
+        .session(session);
+
+        if (!order) {
+            await session.abortTransaction();
+            return res.status(404).json({ 
+                success: false, 
+                message: "Order not found." 
+            });
+        }
+
+        // Find the item by its _id
+        const item = order.items.find(i => i._id.toString() === itemId);
+        if (!item) {
+            await session.abortTransaction();
+            return res.status(404).json({ 
+                success: false, 
+                message: "Item not found in order." 
+            });
+        }
+
+        // Validate item can be cancelled
+        if (item.cancelled) {
+            await session.abortTransaction();
+            return res.status(400).json({ 
+                success: false, 
+                message: "Item already cancelled." 
+            });
+        }
+
+        // Restore stock for this item
+        await Product.updateOne(
+            { 
+                _id: item.product._id,
+                "sizes.size": item.size
+            },
+            { $inc: { "sizes.$.stock": item.quantity } },
+            { session }
+        );
+
+        // Calculate amount to refund
+        const refundAmount = item.price * item.quantity;
+        
+        // Process refund if payment was completed
+        if (order.paymentStatus === 'Completed' || order.paymentStatus === 'Paid') {
+            const user = await User.findById(req.user._id).session(session);
+            if (user) {
+                user.wallet.balance += refundAmount;
+                user.wallet.transactions.push({
+                    type: 'refund',
+                    amount: refundAmount,
+                    description: `Refund for cancelled item in order #${order.transactionId}`,
+                    date: new Date()
+                });
+                await user.save({ session });
+            }
+        }
+
+        // Update item status
+        item.cancelled = true;
+        item.status = "Cancelled";
+        item.cancellationReason = reason;
+        item.cancelledDate = new Date();
+        
+        // Update order totals
+        order.totalAmount -= refundAmount;
+        order.cancelledAmount = (order.cancelledAmount || 0) + refundAmount;
+        
+        // Check if all items are cancelled
+        const allCancelled = order.items.every(i => i.cancelled);
+        if (allCancelled) {
+            order.status = 'Cancelled';
+            order.cancellationReason = 'All items cancelled';
+        }
+        
+        await order.save({ session });
+        await session.commitTransaction();
+
+        res.json({ 
+            success: true, 
+            message: 'Item cancelled successfully',
+            refundAmount: refundAmount
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error cancelling item:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    } finally {
+        session.endSession();
+    }
+};
+
+
+
+
+// Enhanced returnOrderItem function
+const returnOrderItem = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+        const { orderId, itemIndex, reason } = req.body;
+        
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id,
+            status: 'Delivered'
+        })
+        .populate({
+            path: 'items.product',
+            select: '_id sizes productName'
+        })
+        .session(session);
+
+        if (!order || itemIndex >= order.items.length) {
+            await session.abortTransaction();
+            return res.status(404).json({ 
+                success: false, 
+                message: "Order or item not found." 
+            });
+        }
+
+        const item = order.items[itemIndex];
+        
+        // Validate item can be returned
+        if (item.returnRequested || item.returned) {
+            await session.abortTransaction();
+            return res.status(400).json({ 
+                success: false, 
+                message: "Item already has return request." 
+            });
+        }
+
+        // Update item status
+        order.items[itemIndex].returnRequested = true;
+        order.items[itemIndex].returnReason = `${item.product.productName}: ${reason}`;
+        order.items[itemIndex].status = "Return Requested";
+        
+        // Update order status if not already
+        if (order.status !== 'Return Requested') {
+            order.status = 'Return Requested';
+        }
+        
+        await order.save({ session });
+        await session.commitTransaction();
+
+        res.json({ 
+            success: true, 
+            message: 'Return request submitted for admin approval',
+            returnedItem: order.items[itemIndex]
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    } finally {
+        session.endSession();
+    }
+};
+
 module.exports = {
     loadOrder,
     loadSingleOrder,
@@ -294,6 +526,8 @@ module.exports = {
     returnOrder,
     downloadInvoice,
     loadOrderFailed,
+    returnOrderItem,
+    cancelOrderItem
 
 
 };

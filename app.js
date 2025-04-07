@@ -8,7 +8,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const userRouter = require("./routes/userRouter")
 const adminRouter = require("./routes/adminRouter")
-const { checkPendingStockRestorations } = require('./middlewares/stockMiddleware');
+// const { checkPendingStockRestorations } = require('./middlewares/stockMiddleware');
 db()
 const passport = require('passport'); 
 require('./config/passport'); 
@@ -49,7 +49,7 @@ app.use((req, res, next) => {
     next();
 });
 
-checkPendingStockRestorations();
+// checkPendingStockRestorations();
 
 app.listen(process.env.PORT,()=>{
     console.log("server running")
