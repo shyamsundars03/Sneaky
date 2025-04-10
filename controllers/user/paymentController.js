@@ -204,7 +204,8 @@ const processWallet = async (req, res) => {
             type: 'debit',
             amount: checkoutData.totalAmount,
             description: `Payment for order ${order.transactionId}`,
-            date: new Date()
+            date: new Date(),
+            orderId: order._id 
         });
         await user.save({ session });
 

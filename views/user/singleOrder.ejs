@@ -1147,67 +1147,67 @@ document.getElementById('returnOrderBtn').addEventListener('click', function () 
    // Update your event listener script
    document.addEventListener('DOMContentLoaded', function() {
     // Cancel Item Button
-    document.querySelectorAll('.cancel-item-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.getAttribute('data-item-id');
-            const productName = this.getAttribute('data-product-name');
-            
-            Swal.fire({
-                title: `Cancel ${productName}`,
-                html: `
-                    <p>You are about to cancel this item from your order.</p>
-                    <textarea id="cancelReason" class="swal2-textarea" 
-                        placeholder="Please enter reason for cancellation (required)" required></textarea>
-                `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Submit Cancellation',
-                preConfirm: () => {
-                    const reason = document.getElementById('cancelReason').value;
-                    if (!reason) {
-                        Swal.showValidationMessage('Reason is required');
-                        return false;
-                    }
-                    return { reason };
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch('/cancel-order-item', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            orderId: '<%= order._id %>',
-                            itemId: itemId,
-                            reason: result.value.reason
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Item Cancelled',
-                                html: `
-                                    <p>${data.message}</p>
-                                    ${data.refundAmount ? 
-                                        `<p>₹${data.refundAmount} will be refunded to your wallet.</p>` : ''}
-                                `,
-                                willClose: () => location.reload()
-                            });
-                        } else {
-                            throw new Error(data.message);
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire('Error', error.message, 'error');
+                document.querySelectorAll('.cancel-item-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const itemId = this.getAttribute('data-item-id');
+                        const productName = this.getAttribute('data-product-name');
+                        
+                        Swal.fire({
+                            title: `Cancel ${productName}`,
+                            html: `
+                                <p>You are about to cancel this item from your order.</p>
+                                <textarea id="cancelReason" class="swal2-textarea" 
+                                    placeholder="Please enter reason for cancellation (required)" required></textarea>
+                            `,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Submit Cancellation',
+                            preConfirm: () => {
+                                const reason = document.getElementById('cancelReason').value;
+                                if (!reason) {
+                                    Swal.showValidationMessage('Reason is required');
+                                    return false;
+                                }
+                                return { reason };
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                fetch('/cancel-order-item', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        orderId: '<%= order._id %>',
+                                        itemId: itemId,
+                                        reason: result.value.reason
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Item Cancelled',
+                                            html: `
+                                                <p>${data.message}</p>
+                                                ${data.refundAmount ? 
+                                                    `<p>₹${data.refundAmount} will be refunded to your wallet.</p>` : ''}
+                                            `,
+                                            willClose: () => location.reload()
+                                        });
+                                    } else {
+                                        throw new Error(data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    Swal.fire('Error', error.message, 'error');
+                                });
+                            }
+                        });
                     });
-                }
+                });
             });
-        });
-    });
-});
 
         // Return Item
         document.querySelectorAll('.return-item-btn').forEach(btn => {
@@ -1269,7 +1269,7 @@ document.getElementById('returnOrderBtn').addEventListener('click', function () 
                 });
             });
         });
-    });
+
 
 
 

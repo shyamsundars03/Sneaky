@@ -90,7 +90,7 @@ const loadCouponManagement = async (req, res) => {
 const addCoupon = async (req, res) => {
     try {
         const { code, discountPercentage, minPurchase, startDate, endDate, description } = req.body;
-
+        console.log(startDate)
         const couponData = {
             code: code.toUpperCase(),
             discountPercentage: parseFloat(discountPercentage),
@@ -103,8 +103,14 @@ const addCoupon = async (req, res) => {
         // Additional validation for dates - use different variable names here
         const startDateObj = new Date(couponData.startDate);
         const endDateObj = new Date(couponData.endDate);
-        
-        if (startDateObj < new Date()) {
+        const today = new Date();
+
+        startDateObj.setHours(0, 0, 0, 0);
+        endDateObj.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (startDateObj < today) {
+            
             return res.status(400).json({ 
                 success: false, 
                 error: 'Start date cannot be in the past' 

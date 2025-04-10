@@ -10,7 +10,8 @@ const { generateSalesReport } = require('../../services/pdfGenerator');
 function formatDate(date) {
     if (!date) return '';
     const d = new Date(date);
-    return d.toISOString().split('T')[0];
+    const pad = num => num.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function getDateRange(period) {
@@ -66,9 +67,7 @@ const loadSales = async (req, res) => {
         const { from, to, period = 'custom' } = req.query;
         let dateRange = {};
         
-        // Store filters in session
-        req.session.salesFilters = { from, to, period };
-        
+
         if (period !== 'custom') {
             dateRange = getDateRange(period);
         } else if (from && to) {
@@ -135,8 +134,8 @@ const getSalesData = async (req, res) => {
         const { from, to, period = 'custom' } = req.query;
         let dateRange = {};
         
-        // Store filters in session for persistence
-        req.session.salesFilters = { from, to, period };
+        // // Store filters in session for persistence
+        // req.session.salesFilters = { from, to, period };
         
         if (period !== 'custom') {
             dateRange = getDateRange(period);
@@ -171,8 +170,12 @@ const getSalesData = async (req, res) => {
                 couponCode: order.couponCode || 'None',
                 discountAmount: order.discountAmount || 0
             })),
-            summary,
-            filters: { from, to, period } // Return current filters
+            summary: {
+                totalAmount: summary.totalAmount,
+                totalDiscount: summary.totalDiscount,
+                totalOrders: summary.totalOrders,
+                avgOrderValue: summary.avgOrderValue
+            }
         });
     } catch (error) {
         console.error("Error getting sales data:", error);

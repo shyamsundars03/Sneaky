@@ -223,14 +223,15 @@ const cancelOrder = async (req, res) => {
                     type: 'refund',
                     amount: order.totalAmount,
                     description: `Refund for cancelled order #${order.transactionId}`,
-                    date: new Date()
+                    date: new Date(),
+                    orderId: order._id  
                 });
                 await user.save({ session });
                 order.refundProcessed = true;
                 order.paymentStatus = 'Refunded';
             }
         }
-
+        console.log(user.wallet.transactions);
         // Update order status
         order.status = 'Cancelled';
         order.cancellationReason = reason;
@@ -405,12 +406,13 @@ const cancelOrderItem = async (req, res) => {
                     type: 'refund',
                     amount: refundAmount,
                     description: `Refund for cancelled item in order #${order.transactionId}`,
-                    date: new Date()
+                    date: new Date(),
+                    orderId: order._id 
                 });
                 await user.save({ session });
             }
         }
-
+        console.log(user.wallet.transactions);
         // Update item status
         item.cancelled = true;
         item.status = "Cancelled";

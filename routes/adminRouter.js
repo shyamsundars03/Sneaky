@@ -9,13 +9,14 @@ const orderController = require("../controllers/admin/orderController");
 const couponController = require("../controllers/admin/couponController");
 const offerController = require("../controllers/admin/offerController");
 const salesController = require("../controllers/admin/salesController");
+const dashboardController = require('../controllers/admin/dashboardController');
 const adminAuth = require('../middlewares/adminAuth');
 const upload = require('../middlewares/multerConfig');
 const router = express.Router();
 
 router.get("/", adminController.loadLogin);
 router.post("/login", adminController.verifyLogin);
-router.get("/dashboard", adminAuth, adminController.loadDashboard);
+router.get("/dashboard", adminAuth,dashboardController.loadDashboard );
 router.get("/logout", adminController.logoutAdmin);
 
 // Category management

@@ -67,6 +67,12 @@
                                     <%= transaction.type === 'credit' || transaction.type === 'refund' || transaction.type === 'referral' ? '+' : '-' %>
                                     ₹<%= transaction.amount %>
                                 </div>
+                              
+                                
+                                    <a href="/orders/<%= transaction.orderId %>" class="view-btn">View Order</a>
+                               
+
+
                             </div>
                         <% }) %>
                     <% } else { %>
@@ -111,6 +117,18 @@
     color: white;
     padding: 50px 0;
     text-align: center;
+}
+.view-btn{
+    display: inline-block;
+            padding: 5px 20px;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            text-align: center;
 }
 
 .wallet-banner h1 {
