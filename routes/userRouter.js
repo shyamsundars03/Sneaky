@@ -126,16 +126,9 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 
 
 
-
-
-
-
-
-
-
 // Google authentication
 router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'], prompt: "select_account" }));
-router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/signin' }), userController.googleCallback  );
+router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: 'https://www.thesneaky.club/signin' }), userController.googleCallback  );
 
 // Wallet routes
 router.get('/wallet',userAuth, walletController.loadWallet); 
