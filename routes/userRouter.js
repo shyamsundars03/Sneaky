@@ -92,7 +92,7 @@ router.post('/cancel-order', orderController.cancelOrder);
 router.post('/return-order', userAuth, orderController.returnOrder);
 router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 router.get('/order-failed/:orderId', userAuth, orderController.loadOrderFailed);
-router.post('/orders/:orderId/retry', userAuth, paymentController.retryPayment);
+router.post('/retry-payment/:orderId', userAuth, paymentController.retryPayment);
 
 
 // User routes
@@ -108,7 +108,7 @@ router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
 router.post("/checkout1/save", userAuth, checkoutController.saveCheckout1);
 router.post("/checkout2/save", userAuth, checkoutController.saveCheckout2);
-router.post("/validate-coupon", userAuth, checkoutController.validateCoupon);
+// router.post("/validate-coupon", userAuth, checkoutController.validateCoupon);
 router.post("/validate-and-place-order", userAuth, checkoutController.validateAndPlaceOrder);
 router.post('/remove-coupon', checkoutController.removeCoupon);
 

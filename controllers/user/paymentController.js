@@ -162,6 +162,8 @@ const processCOD = async (req, res) => {
     }
 };
 
+
+
 const processWallet = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -477,7 +479,7 @@ const saveFailedOrder = async (req, res) => {
 
 const handlePaymentSuccess = async (order, res) => {
     order.paymentStatus = 'Completed';
-    order.status = 'Pending'; // Change from 'Payment Processing' to 'Pending'
+    order.status = 'Pending'; 
     await order.save();
     
     // Clear cart if exists
@@ -503,44 +505,54 @@ const handlePaymentFailure = async (order, res) => {
     });
 };
 
+// paymentController.js - Update these functions
+
 const retryPayment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
         const orderId = req.params.orderId;
         const order = await Order.findById(orderId).session(session);
         
         if (!order) throw new Error("Order not found");
-        if (order.status !== "Payment Processing") throw new Error("Cannot retry this order");
+        if (order.status !== "Payment Processing") {
+            throw new Error("This order cannot be retried");
+        }
 
+        // Convert amount to paise
+        const amount = Math.round(order.totalAmount * 100);
+        
         // Create Razorpay order
-        const options = {
-            amount: Math.round(order.totalAmount * 100),
+        const razorpayOrder = await razorpay.orders.create({
+            amount: amount,
             currency: 'INR',
-            receipt: `retry_${order._id}`
-        };
-        
-        const razorpayOrder = await razorpay.orders.create(options);
-        
-        // Update order with retry info
+            receipt: order.transactionId,
+            payment_capture: 1
+        });
+
+        // Update order
         order.paymentAttempts = (order.paymentAttempts || 0) + 1;
         order.razorpayOrderId = razorpayOrder.id;
         await order.save({ session });
 
         await session.commitTransaction();
 
+        console.log("retry payment before json")
+
+        // Return response in the same format as initial payment
         res.json({
             success: true,
-            razorpayOrder,
-            key: process.env.RAZORPAY_KEY_ID,
-            orderId: order._id
+            orderId: order._id,
+            razorpayOrderId: razorpayOrder.id,
+            totalAmount: order.totalAmount,
+            key: process.env.RAZORPAY_KEY_ID
         });
 
     } catch (error) {
         await session.abortTransaction();
         console.error("Retry Payment Error:", error);
-        res.status(400).json({ 
+        res.status(400).json({
             success: false,
             message: error.message
         });
@@ -549,54 +561,84 @@ const retryPayment = async (req, res) => {
     }
 };
 
-
-
-
 const verifyRetryPayment = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
         
         // 1. Verify signature
-        const generated_signature = crypto
+        const generatedSignature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
             .update(`${razorpay_order_id}|${razorpay_payment_id}`)
             .digest('hex');
 
-        if (generated_signature !== razorpay_signature) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid payment signature" 
-            });
+        if (generatedSignature !== razorpay_signature) {
+            throw new Error("Payment verification failed - signature mismatch");
         }
 
         // 2. Update order status
         const order = await Order.findByIdAndUpdate(orderId, {
-            status: 'Pending',
+            status: 'Ordered',
             paymentStatus: 'Completed',
             paymentId: razorpay_payment_id,
-            $unset: { paymentAttempts: 1 }
-        }, { new: true });
+            $unset: { paymentAttempts: 1, razorpayOrderId: 1 }
+        }, { new: true, session });
 
         if (!order) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Order not found" 
-            });
+            throw new Error("Order not found");
         }
+
+        // 3. Reduce stock if not already done
+        if (!order.stockReduced) {
+            const bulkOps = order.items.map(item => ({
+                updateOne: {
+                    filter: { 
+                        _id: item.product,
+                        "sizes.size": item.size
+                    },
+                    update: { 
+                        $inc: { "sizes.$.stock": -item.quantity }
+                    }
+                }
+            }));
+            await Product.bulkWrite(bulkOps, { session });
+            order.stockReduced = true;
+            await order.save({ session });
+        }
+
+        await session.commitTransaction();
 
         res.json({ 
             success: true,
-            orderId: order._id
+            orderId: order._id,
+            redirectUrl: `/order-success/${order._id}`
         });
 
     } catch (error) {
-        console.error("Verify Payment Error:", error);
-        res.status(500).json({ 
+        await session.abortTransaction();
+        console.error("Retry Payment Verification Error:", error);
+        
+        // Update order status to failed
+        if (orderId) {
+            await Order.findByIdAndUpdate(orderId, {
+                status: 'Payment Processing',
+                paymentStatus: 'Failed',
+                errorDetails: error.message
+            });
+        }
+
+        res.status(400).json({ 
             success: false,
-            message: "Payment verification failed"
+            message: error.message || "Payment verification failed",
+            orderId: orderId
         });
+    } finally {
+        session.endSession();
     }
 };
+
 
 
 const cleanupFailedOrders = async () => {

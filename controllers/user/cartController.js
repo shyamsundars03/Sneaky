@@ -236,7 +236,7 @@ const addToCart = async (req, res) => {
                 return res.status(400).json({ 
                     success: false,
                     error: "EXCEEDS_STOCK",
-                    message: `Cannot add more than available stock` 
+                    message: `Cannot add more than available stock. kindly check Cart` 
                 });
             }
             existingItem.quantity += quantity;

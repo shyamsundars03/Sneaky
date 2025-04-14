@@ -196,7 +196,7 @@ function updateStockDisplay(stock) {
     }
 
     // Add to Cart Function
-// In your singleProduct.ejs, modify the addToCart function:
+
 async function addToCart(productId, size, quantity) {
     
     try {
@@ -241,7 +241,9 @@ async function addToCart(productId, size, quantity) {
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
-            text: 'Something went wrong!',
+            text: 'User needs to Sign in!',
+        }).then(() => {
+            window.location.href = '/signin';
         });
     }
 }
@@ -307,10 +309,12 @@ async function addToCart(productId, size, quantity) {
         } catch (error) {
             console.error('Error:', error);
             Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            });
+            icon: 'error',
+            title: 'Oops...',
+            text: 'User needs to Sign in!',
+        }).then(() => {
+            window.location.href = '/signin';
+        });
         }
     }
 
@@ -326,7 +330,8 @@ async function addToCart(productId, size, quantity) {
 <style>
     .zoom-container {
         position: relative;
-    width: 500px; 
+        width: 100%; /* Make it responsive */
+        max-width: 500px;
     height: 500px; 
     overflow: hidden;
     margin: 0 auto; 
@@ -337,6 +342,7 @@ async function addToCart(productId, size, quantity) {
         width: 100%;
         height: auto;
         display: block;
+        object-fit: contain;
     }
 
     .zoom-overlay {

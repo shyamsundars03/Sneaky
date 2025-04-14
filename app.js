@@ -3,6 +3,7 @@ const app = express()
 const env = require("dotenv") 
 env.config();
 const path = require("path")
+const morgan = require('morgan')
 const db = require("./config/db")
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
@@ -37,7 +38,7 @@ app.use(session({
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
-
+app.use(morgan('dev'))
 
 
 

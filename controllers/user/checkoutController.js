@@ -282,6 +282,10 @@ const loadCheckout3 = async (req, res) => {
         const cartTotal = populatedItems.reduce((sum, item) => sum + item.itemTotal, 0);
         const totalAmount = cartTotal + shippingCost - discountAmount;
 
+
+       
+
+
         res.render("checkout3", {
             orderItems: populatedItems,
             user: req.user,
@@ -293,7 +297,9 @@ const loadCheckout3 = async (req, res) => {
             discountAmount: discountAmount,
             totalAmount: totalAmount,
             cartTotal: cartTotal,
-            checkoutData: checkoutData // Make sure to pass checkoutData to the view
+            checkoutData: checkoutData ,
+  
+        
         });
 
     } catch (error) {

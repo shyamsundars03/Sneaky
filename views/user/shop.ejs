@@ -321,7 +321,9 @@
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
-            text: 'Something went wrong!',
+            text: 'User needs to Sign in!',
+        }).then(() => {
+            window.location.href = '/signin';
         });
     }
 }
@@ -373,7 +375,9 @@
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
-            text: 'Something went wrong!',
+            text: 'User needs to Sign in!',
+        }).then(() => {
+            window.location.href = '/signin';
         });
     }
 }
