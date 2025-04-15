@@ -633,7 +633,11 @@
         }
 
         .reason-section{
-    margin-bottom: 30px;
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0; 
+            border-left: 4px solid #dc3545;
 }
 .reason-section h3 {
     font-size: 16px;
@@ -654,6 +658,38 @@
         .total-row td {
             font-weight: bold;
             border-top: 2px solid #eee;
+        }
+
+        .item-status-select {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+
+.cancelled-item { color: #dc3545; text-decoration: line-through; }
+        .returned-item { color: #fd7e14; }
+        .reason-section { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0; 
+            border-left: 4px solid #dc3545;
+        }
+
+        .status-badge.ordered { background-color: #17a2b8; }
+        .status-badge.processing { background-color: #ffc107; color: #212529; }
+        .status-badge.shipped { background-color: #6f42c1; }
+        .status-badge.delivered { background-color: #28a745; }
+        .status-badge.cancelled { background-color: #dc3545; }
+        .status-badge.return-requested { background-color: #fd7e14; }
+        .status-badge.returned { background-color: #6c757d; }
+
+        .deduction {
+            color: #dc3545;
+            font-weight: bold;
         }
 
     </style>
@@ -686,30 +722,37 @@
         <div class="order-header">
             <div class="order-id">
                 Order ID: #<%= order.transactionId %>
-                <span class="status-badge ">
+                <span class="status-badge <%= order.status.toLowerCase().replace(' ', '-') %>">
                     <%= order.status %>
                 </span>
             </div>
-<!-- status-actions.ejs or directly in singleAdminOrder.ejs -->
-<div class="status-actions">
-    <select id="statusSelect" class="status-select">
-        <% if (order.status === 'Ordered') { %>
-            <option value="Ordered" selected>Ordered</option>
-            <option value="Processing">Processing</option>
-            <option value="Shipped">Shipped</option>
-            <option value="Delivered">Delivered</option>
-        <% } else if (order.status === 'Processing') { %>
-            <option value="Processing" selected>Processing</option>
-            <option value="Shipped">Shipped</option>
-            <option value="Delivered">Delivered</option>
-        <% } else if (order.status === 'Shipped') { %>
-            <option value="Shipped" selected>Shipped</option>
-            <option value="Delivered">Delivered</option>
-        <% } %>
-        <option value="Cancelled">Cancel Order</option>
-    </select>
-    <button id="saveStatusBtn" class="btn-save-status" disabled>Save</button>
-</div>
+            <!-- Overall Order Status Dropdown -->
+            <div class="status-actions">
+                <select id="statusSelect" class="status-select">
+                    <% if (order.status === 'Ordered') { %>
+                        <option value="Ordered" selected>Ordered</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Cancelled">Cancel</option>
+                    <% } else if (order.status === 'Processing') { %>
+                        <option value="Processing" selected>Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Cancelled">Cancel</option>
+                    <% } else if (order.status === 'Shipped') { %>
+                        <option value="Shipped" selected>Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancel</option>
+                    <% } else if (order.status === 'Delivered') { %>
+                        <option value="Delivered" selected>Delivered</option>
+                    <% } else if (order.status === 'Return Requested') { %>
+                        <option value="Return Requested" selected>Return Requested</option>
+                        <option value="Returned">Verify Return</option>
+                    <% } else { %>
+                        <option value="<%= order.status %>" selected><%= order.status %></option>
+                    <% } %>
+                </select>
+                <button id="saveStatusBtn" class="btn-save-status" disabled>Save</button>
+            </div>
         </div>
 
         <!-- Order Details -->
@@ -731,7 +774,7 @@
                 <h3>Order Details</h3>
                 <p>Order ID: #<%= order.transactionId %></p>
                 <p>Order Date: <%= order.createdAt.toLocaleDateString() %></p>
-                <p>Order Total: ₹<%= order.totalAmount.toFixed(2) %></p>
+                <p>Order Total: ₹<%= order.totalAmount %></p>
             </div>
         </div>
 
@@ -742,71 +785,118 @@
                     <th>Products</th>
                     <th>Price</th>
                     <th>Quantity</th>
+                    <th>Status</th>
                     <th>Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <% order.items.forEach(item => { %>
-                    <tr>
+                <% order.items.forEach((item, index) => { %>
+                    <tr class="<%= item.status === 'Cancelled' ? 'cancelled-item' : '' %> <%= item.status === 'Returned' ? 'returned-item' : '' %>">
                         <td data-label="Products">
                             <div class="product-cell">
-                                <% if (item.product.productImage && item.product.productImage[0]) { %>
+                                <% if (item.product && item.product.productImage && item.product.productImage[0]) { %>
                                     <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-image">
                                 <% } else { %>
                                     <img src="/images/placeholder.jpg" alt="No image available" class="product-image">
                                 <% } %>
-                                <span><%= item.product.productName %></span>
+                                <span><%= item.product ? item.product.productName : 'Product Unavailable' %></span>
                             </div>
                         </td>
                         <td data-label="Price">₹<%= item.price.toFixed(2) %></td>
                         <td data-label="Quantity"><%= item.quantity %></td>
+                        <td data-label="Status">
+                            <% if (!item.cancelled && !item.returned && ['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+                                <select class="item-status-select" data-item-id="<%= item._id %>">
+                                    <option value="Ordered" <%= item.status === 'Ordered' ? 'selected' : '' %>>Ordered</option>
+                                    <option value="Processing" <%= item.status === 'Processing' ? 'selected' : '' %>>Processing</option>
+                                    <option value="Shipped" <%= item.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                                    <option value="Delivered" <%= item.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                                </select>
+                                <button class="save-item-status-btn" data-item-id="<%= item._id %>">Save</button>
+                            <% } else if (item.status === 'Return Requested') { %>
+                                <span class="status-badge return-requested">Return Requested</span>
+                                <button class="verify-item-return-btn" data-item-id="<%= item._id %>">Verify Return</button>
+                            <% } else { %>
+                                <span class="status-badge <%= item.status.toLowerCase().replace(' ', '-') %>"><%= item.status %></span>
+                            <% } %>
+                        </td>
                         <td data-label="Total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
                         <td>
-                            <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+                            <% if (!item.cancelled && !item.returned && ['Ordered', 'Processing', 'Shipped'].includes(item.status)) { %>
                                 <button class="item-action-btn" 
                                         data-action="cancel" 
                                         data-item-id="<%= item._id %>"
-                                        data-product-name="<%= item.product.productName %>">
+                                        data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
                                     Cancel Item
                                 </button>
                             <% } %>
                         </td>
                     </tr>
+                    <% if (item.cancellationReason) { %>
+                        <tr>
+                            <td colspan="6" class="item-reason">
+                                <strong>Cancellation Reason:</strong> <%= item.cancellationReason %>
+                            </td>
+                        </tr>
+                    <% } %>
+                    <% if (item.returnReason) { %>
+                        <tr>
+                            <td colspan="6" class="item-reason">
+                                <strong>Return Reason:</strong> <%= item.returnReason %>
+                                <% if (item.status === 'Return Requested' && !item.returnVerified) { %>
+                                    <button class="verify-return-btn" data-item-id="<%= item._id %>">Verify Return</button>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% } %>
                 <% }) %>
             </tbody>
         </table>
 
         <!-- Order Totals -->
-
-<table class="totals" align="right">
-    <tr>
-        <td>Sub Total :</td>
-        <td>₹<%= order.subTotal.toFixed(2) %></td>
-    </tr>
-    <tr>
-        <td>Shipping Cost :</td>
-        <td>₹<%= order.shippingCost%></td>
-    </tr>
-
-
-    <tr>
-        <td>Coupon(<%= order.couponCode %>):</td>
-        <td>-₹<%= order.discountAmount.toFixed(2) %></td>
-    </tr>
-
-
-    <tr class="grand-total">
-        <td>Grand Total :</td>
-        <td>₹<%= order.totalAmount %></td>
-    </tr>
-</table>
+        <table class="totals" align="right">
+            <tr>
+                <td>Sub Total:</td>
+                <td>₹<%= order.subTotal %></td>
+            </tr>
+            
+            <% if (order.cancelledAmount > 0) { %>
+                <tr class="deduction">
+                    <td>Cancelled Items:</td>
+                    <td>-₹<%= order.cancelledAmount %></td>
+                </tr>
+            <% } %>
+            
+            <% if (order.returnedAmount > 0) { %>
+                <tr class="deduction">
+                    <td>Returned Items:</td>
+                    <td>-₹<%= order.returnedAmount %></td>
+                </tr>
+            <% } %>
+            
+            <tr>
+                <td>Shipping Cost:</td>
+                <td>₹<%= order.shippingCost %></td>
+            </tr>
+            
+            <% if (order.discountAmount > 0) { %>
+                <tr>
+                    <td>Coupon (<%= order.couponCode || 'Applied' %>):</td>
+                    <td>-₹<%= order.discountAmount %></td>
+                </tr>
+            <% } %>
+            
+            <tr class="grand-total">
+                <td>Grand Total:</td>
+                <td>₹<%= order.totalAmount %></td>
+            </tr>
+        </table>
 
         <!-- Payment Info -->
         <div class="payment-info">
             <h3>Payment Info</h3>
             <p class="payment-method"><%= order.paymentMethod %></p>
-
 
             <% if (order.cancellationReason) { %>
                 <div class="reason-section">
@@ -819,20 +909,17 @@
                 <div class="reason-section">
                     <h3>Return Reason</h3>
                     <p><%= order.returnReason %></p>
-                    <% if (order.status === 'Return Requested') { %>
+                    <!-- <% if (order.status === 'Return Requested' && !order.returnVerified) { %>
                         <button class="singleadminorder-reason-btn" id="verifyReturnBtn">Verify Return</button>
-                    <% } %>
+                    <% } %> -->
                 </div>
             <% } %>
 
-
-
-
-
-
-
             <div class="action-buttons">
                 <a href="/admin/orderManagement" class="singleadminorder-btn">Back</a>
+                <% if (['Return Requested'].includes(order.status)) { %>
+                    <button id="verifyReturnBtn" class="singleadminorder-btn verify-btn">Verify Return</button>
+                <% } %>
             </div>
         </div>
     </section>
@@ -844,24 +931,13 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Debugging logs (can be removed in production)
-        console.log('Admin Order Management initialized');
-
-        // 1. Status Dropdown Management
+        // Overall Status Management
         const statusSelect = document.getElementById('statusSelect');
         const saveStatusBtn = document.getElementById('saveStatusBtn');
         
         if (statusSelect && saveStatusBtn) {
-            // Initialize dropdown based on current status
             const currentStatus = '<%= order.status %>';
-            const statusHierarchy = {
-                'Ordered': ['Processing', 'Shipped', 'Delivered', 'Cancelled'],
-                'Processing': ['Shipped', 'Delivered', 'Cancelled'],
-                'Shipped': ['Delivered', 'Cancelled'],
-                'Delivered': ['Returned'],
-                'Return Requested': ['Returned']
-            };
-
+            
             // Enable/disable save button based on selection
             statusSelect.addEventListener('change', function() {
                 saveStatusBtn.disabled = this.value === currentStatus;
@@ -908,7 +984,52 @@
             });
         }
 
-        // 2. Return Verification
+        // Item Status Management
+        document.querySelectorAll('.save-item-status-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-item-id');
+                const select = document.querySelector(`.item-status-select[data-item-id="${itemId}"]`);
+                const newStatus = select.value;
+                
+                Swal.fire({
+                    title: 'Update Item Status',
+                    text: `Change item status to ${newStatus}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Update',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch('/admin/update-item-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                orderId: '<%= order._id %>',
+                                itemId: itemId,
+                                status: newStatus
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Item status update failed');
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Status Updated!',
+                            text: result.value.message,
+                            willClose: () => window.location.reload()
+                        });
+                    }
+                });
+            });
+        });
+
+        // Return Verification
         const verifyReturnBtn = document.getElementById('verifyReturnBtn');
         if (verifyReturnBtn) {
             verifyReturnBtn.addEventListener('click', function() {
@@ -961,68 +1082,57 @@
             });
         }
 
-       
-
-        // 4. Search Functionality
-        const searchBox = document.querySelector('.search-box');
-        if (searchBox) {
-            searchBox.addEventListener('input', debounce(function(e) {
-                const term = e.target.value.toLowerCase();
-                document.querySelectorAll('.order-row').forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(term) ? '' : 'none';
-                });
-            }, 300));
-        }
-
-        // 5. Download Invoice
-        window.downloadInvoice = function(orderId) {
-            Swal.fire({
-                title: 'Generating Invoice',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            
-            fetch(`/admin/download-invoice/${orderId}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Invoice generation failed');
-                return response.blob();
-            })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Invoice_${'<%= order.transactionId %>'}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    Swal.close();
-                }, 100);
-            })
-            .catch(error => {
+        // Item Return Verification
+        document.querySelectorAll('.verify-item-return-btn, .verify-return-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-item-id');
+                
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Download Failed',
-                    text: error.message
+                    title: 'Verify Item Return',
+                    html: `
+                        <p>This will:</p>
+                        <ol>
+                            <li>Process refund for this item to customer's wallet</li>
+                            <li>Restore product stock quantity</li>
+                            <li>Mark item as Returned</li>
+                        </ol>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'Verify Return',
+                    cancelButtonText: 'Cancel',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch('/admin/verify-item-return', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                orderId: '<%= order._id %>',
+                                itemId: itemId
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Item return verification failed');
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Return Verified!',
+                            text: result.value.message,
+                            willClose: () => window.location.reload()
+                        });
+                    }
                 });
             });
-        };
+        });
 
-        // Helper Functions
-        function debounce(func, wait) {
-            let timeout;
-            return function() {
-                const context = this, args = arguments;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(context, args), wait);
-            };
-        }
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
         // Cancel Order Button
         document.getElementById('cancelOrderBtn')?.addEventListener('click', function() {
             Swal.fire({
@@ -1133,6 +1243,7 @@
             });
         });
     });
-    </script>
+</script>
+
 
 </html>

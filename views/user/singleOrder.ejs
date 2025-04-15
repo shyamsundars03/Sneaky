@@ -332,7 +332,11 @@
 
 
 .reason-section{
-    margin-bottom: 30px;
+    background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0; 
+            border-left: 4px solid #dc3545;
 }
 .reason-section h3 {
     font-size: 1.1rem;
@@ -401,7 +405,13 @@
     .status-return-requested { background-color: #fff3cd; color: #856404; }
     .status-returned { background-color: #f8d7da; color: #721c24; }
 
-
+    .status.ordered{ background-color: #17a2b8; }
+        .status.processing { background-color: #ffc107; }
+        .status.shipped { background-color: #6f42c1; }
+        .status.delivered { background-color: #28a745; }
+        .status.cancelled { background-color: #dc3545; }
+        .status.return-requested { background-color: #fd7e14; }
+        .status.returned { background-color: #6c757d; }
         
         .bottom-actions {
             display: flex;
@@ -705,6 +715,42 @@ tfoot .total-row {
 tfoot td {
     padding: 8px 0;
 }
+.cancelled-row {
+    background-color: #ffeeee;
+}
+.cancelled-text {
+    color: #d32f2f;
+    font-weight: 500;
+}
+.cancelled-amount {
+    color: #d32f2f;
+    font-weight: bold;
+}
+/* In your CSS file */
+.deduction {            
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.deduction span:last-child::before {
+    content: "-";
+}
+
+.cancelled-item {
+    opacity: 0.6;
+    background-color: #ffeeee;
+}
+.returned-item {
+    opacity: 0.7;
+    background-color: #eff5ff; /* Light blue background */
+}
+
+.item-reason {
+            font-style: italic;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
 
 
     </style>
@@ -770,7 +816,7 @@ tfoot td {
                         <h3>Order Details</h3>
                         <p>Order ID: <%= order.transactionId %></p>
                         <p>Order Date: <%= order.createdAt.toLocaleDateString() %></p>
-                        <p>Order Total: ₹<%= order.totalAmount %></p>
+                        <p>Order Total: ₹<%= order.grandTotal %></p>
                     </div>
                 </div>
                 
@@ -790,16 +836,16 @@ tfoot td {
     </thead>
     <tbody>
         <% order.items.forEach((item, index) => { %>
-            <tr class="<%= item.cancelled ? 'cancelled-item' : '' %> <%= item.returned ? 'returned-item' : '' %>">
+            <tr class="<%= item.status === 'Cancelled' ? 'cancelled-item' : '' %> <%= item.status === 'Returned' ? 'returned-item' : '' %>">
                 <td>
-                    <% if (item.product.productImage && item.product.productImage[0]) { %>
+                    <% if (item.product && item.product.productImage && item.product.productImage[0]) { %>
                         <img src="<%= item.product.productImage[0] %>" alt="<%= item.product.productName %>" class="product-img" />
                     <% } else { %>
                         <img src="/images/placeholder.jpg" alt="No image available" class="product-img" />
                     <% } %>
                 </td>
-                <td><%= item.product.productName %></td>
-                <td>₹<%= item.price %></td>
+                <td><%= item.product ? item.product.productName : 'Product Unavailable' %></td>
+                <td>₹<%= item.price.toFixed(2) %></td>
                 <td><%= item.quantity %></td>
                 <td>
                     <span class="status <%= item.status.toLowerCase().replace(' ', '-') %>">
@@ -808,405 +854,286 @@ tfoot td {
                 </td>
                 <td class="item-total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
                 <td>
-                    <% if (!item.cancelled && !item.returned) { %>
-                        <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
-                            <button class="item-action-btn cancel-item-btn" 
-                                    data-item-id="<%= item._id %>"
-                                    data-product-name="<%= item.product.productName %>">
-                                Cancel Item
-                            </button>
-                        <% } %>
-                    <% } else if (item.returnRequested && !item.returned) { %>
-                        <button class="item-action-btn verify-return-btn" 
-                                data-item-id="<%= item._id %>"
-                                data-product-name="<%= item.product.productName %>">
-                            Verify Return
+                    <% if (item.status !== 'Cancelled' && item.status !== 'Returned' && 
+                          item.status !== 'Return Requested' && 
+                          ['Ordered', 'Processing', 'Shipped'].includes(item.status)) { %>
+                        <button class="cancel-item-btn" 
+                                data-item-id="<%= item._id %>" 
+                                data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
+                            Cancel
+                        </button>
+                    <% } else if (item.status === 'Delivered') { %>
+                        <button class="return-item-btn" 
+                                data-item-index="<%= index %>" 
+                                data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
+                            Return
                         </button>
                     <% } %>
                 </td>
             </tr>
+            <% if (item.cancellationReason) { %>
+                <tr>
+                    <td colspan="7" class="item-reason">
+                        <strong>Cancellation Reason:</strong> <%= item.cancellationReason %>
+                    </td>
+                </tr>
+            <% } %>
+            <% if (item.returnReason) { %>
+                <tr>
+                    <td colspan="7" class="item-reason">
+                        <strong>Return Reason:</strong> <%= item.returnReason %>
+                    </td>
+                </tr>
+            <% } %>
         <% }) %>
-
-        <tfoot>
-            <tr>
-                <td colspan="6" class="text-right">Sub Total:</td>
-                <td class="text-right">₹<%= order.subtotal %></td>
-            </tr>
-            
-            <% if (order.cancelledAmount > 0) { %>
+    </tbody>
+    <tfoot>
+        <% let cancelledAmount = 0; %>
+        <% let returnedAmount = 0; %>
+        
+        <% order.items.forEach(item => { %>
+            <% if (item.status === 'Cancelled') { %>
+                <% cancelledAmount += (item.price * item.quantity); %>
+            <% } else if (item.status === 'Returned') { %>
+                <% returnedAmount += (item.price * item.quantity); %>
+            <% } %>
+        <% }); %>
+        
+        <tr>
+            <td colspan="6" class="text-right">Sub Total:</td>
+            <td class="text-right">₹<%= order.subtotal %></td>
+        </tr>
+        
+        <% if (cancelledAmount > 0) { %>
             <tr class="deduction">
                 <td colspan="6" class="text-right">Cancelled Items:</td>
-                <td class="text-right">-₹<%= order.cancelledAmount %></td>
+                <td class="text-right">-₹<%= cancelledAmount.toFixed(2) %></td>
             </tr>
-            <% } %>
-            
-            <% if (order.returnedAmount > 0) { %>
+        <% } %>
+        
+        <% if (returnedAmount > 0) { %>
             <tr class="deduction">
                 <td colspan="6" class="text-right">Returned Items:</td>
-                <td class="text-right">-₹<%= order.returnedAmount %></td>
+                <td class="text-right">-₹<%= returnedAmount.toFixed(2) %></td>
             </tr>
-            <% } %>
-            
-            <% if (order.hasDiscount) { %>
-            <tr class="deduction">
-                <td colspan="6" class="text-right">Coupon Discount (<%= order.couponCode %>):</td>
-                <td class="text-right">-₹<%= order.discountAmount %></td>
-            </tr>
-            <% } %>
-            
+        <% } %>
+        
+        <tr>
+            <td colspan="6" class="text-right">Shipping Cost:</td>
+            <td class="text-right">₹<%= order.shippingCost %></td>
+        </tr>
+        
+        <% if (order.discountAmount > 0) { %>
             <tr>
-                <td colspan="6" class="text-right">Shipping Cost:</td>
-                <td class="text-right">₹<%= order.shippingCost %></td>
+                <td colspan="6" class="text-right">Discount (<%= order.couponCode %>):</td>
+                <td class="text-right">-₹<%= order.discountAmount.toFixed(2) %></td>
             </tr>
-            
-            <tr class="total-row">
-                <td colspan="6" class="text-right">Grand Total:</td>
-                <td class="text-right">₹<%= order.grandTotal %></td>
-            </tr>
-        </tfoot>
-    </tbody>
+        <% } %>
+        
+        <tr class="total-row">
+            <td colspan="6" class="text-right">Grand Total:</td>
+            <td class="text-right">₹<%= order.grandTotal %></td>
+        </tr>
+    </tfoot>
 </table>
 
 
 
+<!-- Payment Info -->
+<div class="payment-info">
+    <h3>Payment Info</h3>
+    <p><%= order.paymentMethod %></p>
+</div>
 
-                
-                <!-- Payment Info -->
-                <div class="payment-info">
-                    <h3>Payment Info</h3>
-                    <p><%= order.paymentMethod %></p>
-                </div>
-                
+<!-- Cancellation/Return Reason Section -->
+<% if (order.status === 'Cancelled' && order.cancellationReason) { %>
+    <div class="reason-section">
+        <h3>Cancellation Reason</h3>
+        <p><%= order.cancellationReason %></p>
+    </div>
+<% } %>
 
-                    <!-- Cancellation/Return Reason Section -->
-                    <% if (order.status === 'Cancelled' && order.cancellationReason) { %>
-                        <div class="reason-section">
-                            <h3>Cancellation Reason</h3>
-                            <p><%= order.cancellationReason %></p>
-                        </div>
-                    <% } %>
+<% if ((order.status === 'Return Requested' || order.status === 'Returned') && order.returnReason) { %>
+    <div class="reason-section">
+        <h3>Return Reason</h3>
+        <p><%= order.returnReason %></p>
+    </div>
+<% } %>
 
-                    <% if ((order.status === 'Return Requested' || order.status === 'Returned') && order.returnReason) { %>
-                        <div class="reason-section">
-                            <h3>Return Reason</h3>
-                            <p><%= order.returnReason %></p>
-                        </div>
-                    <% } %>
-
-
-
-
-
-                <!-- Bottom Actions -->
-                <div class="bottom-actions">
-                    <a href="/orders" class="singleorder-btn">Back</a>
-                    
-                    <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
-                        <button class="singleorder-btn cancel-btn" id="cancelOrderBtn">Cancel Order</button>
-                    <% } else if (order.status === 'Delivered') { %>
-                        <button class="singleorder-btn return-btn" id="returnOrderBtn">Return Order</button>
-                    <% } %>
-                </div>
-
-
-
-
-
-
-                
-            </div>
-        </div>
-    </section>
+<!-- Bottom Actions -->
+<div class="bottom-actions">
+    <a href="/orders" class="singleorder-btn">Back</a>
+    
+    <% if (['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
+        <button class="singleorder-btn cancel-btn" id="cancelOrderBtn">Cancel Order</button>
+    <% } else if (order.status === 'Delivered') { %>
+        <button class="singleorder-btn return-btn" id="returnOrderBtn">Return Order</button>
+    <% } %>
+</div>
+</div>
+</div>
+</section>
     
     <%-include("../../views/partials/user/footer")%>
     
     <script>
         // Cancel Order Functionality
-        document.getElementById('cancelOrderBtn').addEventListener('click', function () {
-        Swal.fire({
-            title: 'Cancel Order',
-            input: 'text',
-            inputLabel: 'Reason for cancellation (optional):',
-            inputPlaceholder: 'Enter your reason here...',
-            showCancelButton: true,
-            confirmButtonText: 'Submit',
-            cancelButtonText: 'Cancel',
-            preConfirm: (reason) => {
-                return fetch(`/cancel-order`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.success) {
-                        throw new Error(data.message || 'Failed to cancel order.');
+        document.getElementById('cancelOrderBtn')?.addEventListener('click', function () {
+            Swal.fire({
+                title: 'Cancel Order',
+                input: 'text',
+                inputLabel: 'Reason for cancellation (required):',
+                inputPlaceholder: 'Enter your reason here...',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Reason for cancellation is required.';
                     }
-                    return data;
-                })
-                .catch(error => {
-                    Swal.showValidationMessage(`Request failed: ${error.message}`);
-                });
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Order Cancelled',
-                    text: 'Your order has been cancelled successfully.',
-                }).then(() => {
-                    window.location.reload();
-                });
-            }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Submit',
+                cancelButtonText: 'Cancel',
+                preConfirm: (reason) => {
+                    return fetch(`/cancel-order`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || 'Failed to cancel order.');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
+                    });
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Cancelled',
+                        text: result.value.message || 'Your order has been cancelled successfully.',
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
         });
-    });
-
-
-    </script>
-
-
-<script>
 
         // Return Order Functionality
-document.getElementById('returnOrderBtn').addEventListener('click', function () {
-    Swal.fire({
-        title: 'Return Order',
-        input: 'text',
-        inputLabel: 'Reason for return (mandatory):',
-        inputPlaceholder: 'Enter your reason here...',
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Reason for return is mandatory.';
-            }
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Submit',
-        cancelButtonText: 'Cancel',
-        preConfirm: (reason) => {
-            return fetch('/return-order', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to submit return request.');
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(`Request failed: ${error.message}`);
-            });
-        },
-    }).then((result) => {
-        if (result.isConfirmed) {
+        document.getElementById('returnOrderBtn')?.addEventListener('click', function () {
             Swal.fire({
-                icon: 'success',
-                title: 'Return Request Submitted',
-                text: 'Your return request has been submitted successfully.',
-            }).then(() => {
-                window.location.reload();
-            });
-        }
-    });
-});
-</script>
-
-
-
-
-
-    <script>
-    function downloadInvoice(orderId) {
-        window.location.href = `/download-invoice/${orderId}`;
-    }
-    </script>
-
-<script>
-    // Unified payment handler for both initial and retry payments
-    async function retryPayment(orderId) {
-    try {
-        const swalInstance = Swal.fire({
-            title: 'Processing Payment',
-            html: 'Please wait...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        // Call retry endpoint
-        const response = await fetch(`/retry-payment/${orderId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include'
-        });
-
-        const data = await response.json();
-
-        console.log("retry payement data:",data)
-
-        if (!data.success) {
-            throw new Error(data.message || 'Payment failed');
-        }
-
-        swalInstance.close();
-
-  
-        const options = {
-            key: data.key,
-            amount: Math.round(data.totalAmount * 100),
-            currency: 'INR',
-            name: "SNEAKY",
-            description: `Order #${orderId}`,
-            order_id: data.razorpayOrderId,
-            handler: function(response) {
-                verifyRetryPayment(response, orderId);
-            },
-            modal: {
-                ondismiss: function() {
-                    window.location.href = `/order-failed/${orderId}`;
-                }
-            },
-            prefill: {
-                name: '<%= user.name %>',
-                email: '<%= user.email %>',
-                contact: '<%= user.phone || "" %>'
-            }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
-
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Payment Error',
-            text: error.message
-        });
-        console.error('Payment Error:', error);
-    }
-}
-
-async function verifyRetryPayment(response, orderId) {
-    try {
-        Swal.fire({
-            title: 'Verifying Payment',
-            html: 'Please wait...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        const verificationResponse = await fetch('/verify-retry-payment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: orderId
-            }),
-            credentials: 'include'
-        });
-
-        const data = await verificationResponse.json();
-
-        console.log("vrify retry payement data:",data)
-        
-        if (!data.success) {
-            throw new Error(data.message || 'Verification failed');
-        }
-
-        window.location.href = `/order-success/${orderId}`;
-
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Verification Failed',
-            text: error.message
-        });
-        console.error('Verification Error:', error);
-        window.location.href = `/order-failed/${orderId}`;
-    }
-}
-</script>
-
-
-<!-- Add this script -->
-<script>
-   // Update your event listener script
-   document.addEventListener('DOMContentLoaded', function() {
-    // Cancel Item Button
-                document.querySelectorAll('.cancel-item-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const itemId = this.getAttribute('data-item-id');
-                        const productName = this.getAttribute('data-product-name');
-                        
-                        Swal.fire({
-                            title: `Cancel ${productName}`,
-                            html: `
-                                <p>You are about to cancel this item from your order.</p>
-                                <textarea id="cancelReason" class="swal2-textarea" 
-                                    placeholder="Please enter reason for cancellation (required)" required></textarea>
-                            `,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'Submit Cancellation',
-                            preConfirm: () => {
-                                const reason = document.getElementById('cancelReason').value;
-                                if (!reason) {
-                                    Swal.showValidationMessage('Reason is required');
-                                    return false;
-                                }
-                                return { reason };
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                fetch('/cancel-order-item', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                        orderId: '<%= order._id %>',
-                                        itemId: itemId,
-                                        reason: result.value.reason
-                                    })
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Item Cancelled',
-                                            html: `
-                                                <p>${data.message}</p>
-                                                ${data.refundAmount ? 
-                                                    `<p>₹${data.refundAmount} will be refunded to your wallet.</p>` : ''}
-                                            `,
-                                            willClose: () => location.reload()
-                                        });
-                                    } else {
-                                        throw new Error(data.message);
-                                    }
-                                })
-                                .catch(error => {
-                                    Swal.fire('Error', error.message, 'error');
-                                });
-                            }
-                        });
+                title: 'Return Order',
+                input: 'text',
+                inputLabel: 'Reason for return (mandatory):',
+                inputPlaceholder: 'Enter your reason here...',
+                inputValidator: (value) => {
+                    if (!value || value.trim().length < 10) {
+                        return 'Please provide a detailed reason (at least 10 characters).';
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Submit',
+                cancelButtonText: 'Cancel',
+                preConfirm: (reason) => {
+                    return fetch('/return-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ orderId: '<%= order._id %>', reason }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || 'Failed to submit return request.');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
                     });
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Return Request Submitted',
+                        text: result.value.message || 'Your return request has been submitted successfully.',
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        });
+
+        // Cancel Item Functionality
+        document.querySelectorAll('.cancel-item-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-item-id');
+                const productName = this.getAttribute('data-product-name');
+                
+                Swal.fire({
+                    title: `Cancel ${productName}`,
+                    html: `
+                        <p>You are about to cancel this item from your order.</p>
+                        <textarea id="cancelReason" class="swal2-textarea" 
+                            placeholder="Please enter reason for cancellation (required)" required></textarea>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit Cancellation',
+                    preConfirm: () => {
+                        const reason = document.getElementById('cancelReason').value;
+                        if (!reason) {
+                            Swal.showValidationMessage('Reason is required');
+                            return false;
+                        }
+                        return { reason };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/cancel-order-item', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                orderId: '<%= order._id %>',
+                                itemId: itemId,
+                                reason: result.value.reason
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Item Cancelled',
+                                    html: `
+                                        <p>${data.message}</p>
+                                        ${data.refundAmount ? 
+                                            `<p>₹${data.refundAmount} has been refunded to your wallet.</p>` : ''}
+                                    `,
+                                    willClose: () => location.reload()
+                                });
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Error', error.message, 'error');
+                        });
+                    }
                 });
             });
+        });
 
-        // Return Item
+        // Return Item Functionality
         document.querySelectorAll('.return-item-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const itemIndex = this.getAttribute('data-item-index');
@@ -1224,8 +1151,8 @@ async function verifyRetryPayment(response, orderId) {
                     confirmButtonText: 'Submit Return Request',
                     preConfirm: () => {
                         const reason = document.getElementById('returnReason').value;
-                        if (!reason) {
-                            Swal.showValidationMessage('Reason is required');
+                        if (!reason || reason.trim().length < 10) {
+                            Swal.showValidationMessage('Please provide a detailed reason (at least 10 characters)');
                             return false;
                         }
                         return { reason };
@@ -1267,9 +1194,113 @@ async function verifyRetryPayment(response, orderId) {
             });
         });
 
+        function downloadInvoice(orderId) {
+            window.location.href = `/download-invoice/${orderId}`;
+        }
 
+        // Retry payment function
+        async function retryPayment(orderId) {
+            try {
+                const swalInstance = Swal.fire({
+                    title: 'Processing Payment',
+                    html: 'Please wait...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
 
+                // Call retry endpoint
+                const response = await fetch(`/retry-payment/${orderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
 
-</script>
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Payment failed');
+                }
+
+                swalInstance.close();
+
+                const options = {
+                    key: data.key,
+                    amount: Math.round(data.totalAmount * 100),
+                    currency: 'INR',
+                    name: "SNEAKY",
+                    description: `Order #${orderId}`,
+                    order_id: data.razorpayOrderId,
+                    handler: function(response) {
+                        verifyRetryPayment(response, orderId);
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            window.location.href = `/order-failed/${orderId}`;
+                        }
+                    },
+                    prefill: {
+                        name: '<%= user.name %>',
+                        email: '<%= user.email %>',
+                        contact: '<%= user.phone || "" %>'
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Error',
+                    text: error.message
+                });
+                console.error('Payment Error:', error);
+            }
+        }
+
+        async function verifyRetryPayment(response, orderId) {
+            try {
+                Swal.fire({
+                    title: 'Verifying Payment',
+                    html: 'Please wait...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const verificationResponse = await fetch('/verify-retry-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature,
+                        orderId: orderId
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await verificationResponse.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Verification failed');
+                }
+
+                window.location.href = `/order-success/${orderId}`;
+
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: error.message
+                });
+                console.error('Verification Error:', error);
+                window.location.href = `/order-failed/${orderId}`;
+            }
+        }
+    </script>
 </body>
 </html>

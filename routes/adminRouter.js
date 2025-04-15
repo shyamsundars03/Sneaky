@@ -44,16 +44,18 @@ router.post('/userManagement/:id/toggle-status', adminAuth, userController.toggl
 router.get("/orderManagement", adminAuth, orderController.loadOrderManagement); 
 router.get("/order/:id", adminAuth, orderController.loadSingleAdminOrder); 
 
-// Order status management routes
+router.post('/update-item-status', adminAuth, orderController.updateItemStatus);
+router.post('/cancel-order-item', adminAuth, orderController.cancelOrderItem);
+router.post('/verify-item-return', adminAuth, orderController.verifyItemReturn);
+
 router.post('/update-order-status', adminAuth, orderController.updateOrderStatus); 
 router.post('/cancel-order', adminAuth, orderController.cancelOrder); 
 
-// Return management routes
 router.post('/verify-return', adminAuth, orderController.verifyReturn); 
-router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest); 
+// router.post('/verify-return-request', adminAuth, orderController.verifyReturnRequest); 
 
 // Order verification
-router.post('/verify-order', adminAuth, orderController.verifyOrder); 
+// router.post('/verify-order', adminAuth, orderController.verifyOrder); 
 
 
 

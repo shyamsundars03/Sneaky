@@ -88,7 +88,7 @@ router.get("/wishlist/status", userAuth, wishlistController.getWishlistStatus);
 router.get("/orders", userAuth, orderController.loadOrder);
 router.get("/orders/:orderId",userAuth, orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
-router.post('/cancel-order', orderController.cancelOrder);
+router.post('/cancel-order', userAuth, orderController.cancelOrder);
 router.post('/return-order', userAuth, orderController.returnOrder);
 router.get('/download-invoice/:orderId', orderController.downloadInvoice);
 router.get('/order-failed/:orderId', userAuth, orderController.loadOrderFailed);
@@ -131,11 +131,10 @@ router.get('/auth/google', passport.authenticate('google', { scope: ['email', 'p
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: 'https://www.thesneaky.club/signin' }), userController.googleCallback  );
 
 // Wallet routes
-router.get('/wallet',userAuth, walletController.loadWallet); 
-router.post('/wallet/add-funds',userAuth, walletController.addFunds); 
-
-
-
+router.get("/wallet", userAuth, walletController.loadWallet)
+router.post("/wallet/add-funds", userAuth, walletController.addFunds)
+router.post("/wallet/add-funds-razorpay", userAuth, walletController.addFundsRazorpay)
+router.post("/wallet/verify-razorpay", userAuth, walletController.verifyRazorpayPayment)
 
 
 

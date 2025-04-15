@@ -358,7 +358,7 @@
                                 <td><%= order.user ? order.user.name : 'Unknown User' %></td>
                                 <td><%= order.paymentMethod %></td>
                                 <td><%= order.createdAt.toLocaleDateString() %></td>
-                                <td>₹<%= order.totalAmount.toFixed(2) %></td>
+                                <td>₹<%= order.activeAmount.toFixed(2) %></td>
                                 <td>
                                     <span class="status-badge <%= order.status.toLowerCase() %>">
                                         <%= order.status %>

@@ -2,8 +2,6 @@ const mongoose = require("mongoose");
 const Order = require('../../models/orderSchema');
 const User = require('../../models/userSchema');
 const Product = require('../../models/productSchema');
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
 const { generateInvoice } = require('../../services/invoiceService');
 
 // Load orders page
@@ -39,8 +37,36 @@ const loadOrder = async (req, res) => {
             .limit(limit)
             .populate("items.product");
 
+// Process orders to calculate active quantities and amounts
+const processedOrders = orders.map(order => {
+    const orderObj = order.toObject();
+    
+    // Calculate active quantities (excluding cancelled and returned items)
+    let activeQuantity = 0;
+    let activeAmount = 0;
+    
+    order.items.forEach(item => {
+        if (item.status !== 'Cancelled' && item.status !== 'Returned') {
+            activeQuantity += item.quantity;
+            activeAmount += (item.price * item.quantity);
+        }
+    });
+    
+    // Add shipping cost and subtract discount
+    const finalAmount = activeAmount + (order.shippingCost || 0) - (order.discountAmount || 0);
+    
+    return {
+        ...orderObj,
+        activeQuantity,
+        activeAmount: finalAmount
+    };
+});
+
+
+
+
         res.render("orders", {
-            orders,
+            orders: processedOrders,
             user: req.user,
             searchTerm,
             currentPage: page,
@@ -57,13 +83,11 @@ const loadSingleOrder = async (req, res) => {
     try {
         if (!req.user) return res.redirect('/signin');
 
-        const orderId = req.params.orderId;
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).render("page-404", { message: "Invalid order ID." });
-        }
+        const orderIdParam = req.params.orderId;
+        const isObjectId = mongoose.Types.ObjectId.isValid(orderIdParam);
 
         const order = await Order.findOne({ 
-            _id: orderId, 
+            [isObjectId ? '_id' : 'transactionId']: orderIdParam,
             user: req.user._id 
         }).populate({
             path: 'items.product',
@@ -82,20 +106,19 @@ const loadSingleOrder = async (req, res) => {
         let subTotal = 0;
         let cancelledAmount = 0;
         let returnedAmount = 0;
-        
-        // Transform items and calculate amounts
+
         const items = order.items.map(item => {
             const itemTotal = item.price * item.quantity;
             
-            if (item.cancelled) {
+            if (item.status === 'Cancelled') {
                 cancelledAmount += itemTotal;
-            } else if (item.returned) {
+            } else if (item.status === 'Returned') {
                 returnedAmount += itemTotal;
             } else {
                 subTotal += itemTotal;
             }
             
-            // Fix image path if needed
+            // Fix image path
             if (item.product?.productImage?.[0]) {
                 item.product.productImage[0] = item.product.productImage[0]
                     .replace(/\\/g, '/')
@@ -107,22 +130,25 @@ const loadSingleOrder = async (req, res) => {
                 itemTotal: itemTotal.toFixed(2)
             };
         });
-
-        // Calculate final totals
+        
         const shippingCost = order.shippingCost || 0;
         const discountAmount = order.discountAmount || 0;
-        const grandTotal = order.totalAmount || (subTotal + shippingCost - discountAmount);
-
+        const grandTotal = (
+            subTotal + 
+            shippingCost - 
+            discountAmount
+        ).toFixed(2);
+        
         res.render("singleOrder", { 
             order: {
                 ...order.toObject(),
                 items,
-                subtotal: subTotal.toFixed(2),
+                subtotal: (order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)), // Original subtotal
                 cancelledAmount: cancelledAmount.toFixed(2),
                 returnedAmount: returnedAmount.toFixed(2),
                 shippingCost: shippingCost.toFixed(2),
                 discountAmount: discountAmount.toFixed(2),
-                grandTotal: grandTotal.toFixed(2),
+                grandTotal: grandTotal,
                 hasDiscount: discountAmount > 0
             },
             user: req.user
@@ -161,8 +187,6 @@ const loadOrderFailed = async (req, res) => {
     }
 };
 
-
-
 // Cancel Order
 const cancelOrder = async (req, res) => {
     const session = await mongoose.startSession();
@@ -170,6 +194,14 @@ const cancelOrder = async (req, res) => {
     
     try {
         const { orderId, reason } = req.body;
+        
+        if (!reason || reason.trim().length < 5) {
+            await session.abortTransaction();
+            return res.status(400).json({ 
+                success: false, 
+                message: "Please provide a valid reason for cancellation (minimum 5 characters)." 
+            });
+        }
         
         // Verify order belongs to user
         const order = await Order.findOne({ 
@@ -196,11 +228,20 @@ const cancelOrder = async (req, res) => {
             await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
-                message: "Order cannot be cancelled at this stage." 
+                message: "Order can only be cancelled before delivery." 
             });
         }
 
-        // Restore product stock (size-specific)
+        // Prevent duplicate refunds
+        if (order.refundProcessed) {
+            await session.abortTransaction();
+            return res.status(400).json({ 
+                success: false, 
+                message: "Refund already processed for this order." 
+            });
+        }
+
+        // Restore product stock
         const bulkOps = order.items.map(item => ({
             updateOne: {
                 filter: { 
@@ -214,37 +255,48 @@ const cancelOrder = async (req, res) => {
         }));
         await Product.bulkWrite(bulkOps, { session });
 
-        // Process refund if payment was completed
-        if (!order.refundProcessed && order.paymentStatus === 'COD') {
-            const user = await User.findById(req.user._id).session(session);
-            if (user) {
-                user.wallet.balance += order.totalAmount;
-                user.wallet.transactions.push({
-                    type: 'refund',
-                    amount: order.totalAmount,
-                    description: `Refund for cancelled order #${order.transactionId}`,
-                    date: new Date(),
-                    orderId: order._id  
-                });
-                await user.save({ session });
-                order.refundProcessed = true;
-                order.paymentStatus = 'Refunded';
-            }
+        // Process refund to wallet (for ALL payment methods)
+        const userUpdate = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $inc: { "wallet.balance": order.totalAmount },
+                $push: {
+                    "wallet.transactions": {
+                        type: "refund",
+                        amount: order.totalAmount,
+                        description: `Refund for cancelled ${order.paymentMethod} order #${order.transactionId}`,
+                        date: new Date(),
+                        orderId: order._id
+                    }
+                }
+            },
+            { new: true, session }
+        );
+        
+        if (!userUpdate) {
+            throw new Error("Failed to update wallet");
         }
-        console.log(user.wallet.transactions);
+
         // Update order status
         order.status = 'Cancelled';
         order.cancellationReason = reason;
-        order.stockRestored = true;
         order.cancelledDate = new Date();
-        await order.save({ session });
+        order.refundProcessed = true;
+        order.paymentStatus = 'Refunded';
+        
+        // Update all items status
+        order.items.forEach(item => {
+            item.status = 'Cancelled';
+            item.cancelled = true;
+            item.cancellationReason = reason;
+        });
 
+        await order.save({ session });
         await session.commitTransaction();
 
         return res.status(200).json({ 
             success: true, 
-            message: "Order cancelled successfully." + 
-                    (order.refundProcessed ? " Amount refunded to wallet." : "")
+            message: `Order cancelled successfully. ₹${order.totalAmount} refunded to wallet.`
         });
 
     } catch (error) {
@@ -252,78 +304,301 @@ const cancelOrder = async (req, res) => {
         console.error("Error cancelling order:", error);
         return res.status(500).json({ 
             success: false, 
-            message: "Failed to cancel order." 
+            message: error.message || "Failed to cancel order." 
         });
     } finally {
         session.endSession();
     }
 };
 
-
-
-
 // Return Order
 const returnOrder = async (req, res) => {
+    const session = await mongoose.startSession()
+    session.startTransaction()
+  
+    try {
+      const { orderId, reason } = req.body
+  
+      if (!reason || reason.trim().length < 10) {
+        await session.abortTransaction()
+        return res.status(400).json({
+          success: false,
+          message: "Please provide a detailed reason for return (minimum 10 characters).",
+        })
+      }
+  
+      const order = await Order.findOne({
+        _id: orderId,
+        user: req.user._id,
+        status: "Delivered", // Only delivered orders can be returned
+      })
+        .populate("items.product")
+        .session(session)
+  
+      if (!order) {
+        await session.abortTransaction()
+        return res.status(404).json({
+          success: false,
+          message: "Order not found or not eligible for return.",
+        })
+      }
+  
+      // Update order status
+      order.status = "Return Requested"
+      order.returnReason = reason.trim()
+  
+      // Update all items status
+      order.items.forEach((item) => {
+        if (item.status === "Delivered") {
+          // Only update delivered items
+          item.status = "Return Requested"
+          item.returnReason = reason.trim()
+        }
+      })
+  
+      await order.save({ session })
+      await session.commitTransaction()
+  
+      res.status(200).json({
+        success: true,
+        message: "Return request submitted for admin verification.",
+      })
+    } catch (error) {
+      await session.abortTransaction()
+      console.error("Error returning order:", error)
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to submit return request.",
+      })
+    } finally {
+      session.endSession()
+    }
+  }
+
+// Cancel single item
+const cancelOrderItem = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
-    try {
-        const { orderId, reason } = req.body;
 
-        // Verify order belongs to user
+    try {
+        const { orderId, itemId, reason } = req.body;
+        
+        if (!reason || reason.trim().length < 5) {
+            await session.abortTransaction();
+            return res.status(400).json({ 
+                success: false, 
+                message: "Please provide a valid reason for cancellation (minimum 5 characters)." 
+            });
+        }
+        
+        if (!req.user || !req.user._id) {
+            await session.abortTransaction();
+            return res.status(401).json({ 
+                success: false, 
+                message: "User not authenticated." 
+            });
+        }
+
         const order = await Order.findOne({ 
             _id: orderId, 
             user: req.user._id 
-        }).session(session);
+        })
+        .populate({
+            path: 'items.product',
+            select: '_id sizes productName price'
+        })
+        .session(session);
 
         if (!order) {
             await session.abortTransaction();
             return res.status(404).json({ 
                 success: false, 
-                message: "Order not found or unauthorized." 
+                message: "Order not found." 
             });
         }
 
-        if (order.status !== 'Delivered') {
+        const item = order.items.id(itemId);
+        if (!item) {
+            await session.abortTransaction();
+            return res.status(404).json({ 
+                success: false, 
+                message: "Item not found in order." 
+            });
+        }
+
+        // Prevent duplicate cancellations/refunds
+        if (item.status === 'Cancelled' || item.status === 'Returned') {
             await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
-                message: "Only delivered orders can be returned." 
+                message: `Item already ${item.status.toLowerCase()}.` 
             });
         }
 
-        if (!reason || reason.trim().length < 10) {
+        // Validate item can be cancelled
+        const cancellableStatuses = ['Ordered', 'Processing', 'Shipped'];
+        if (!cancellableStatuses.includes(item.status)) {
             await session.abortTransaction();
             return res.status(400).json({ 
                 success: false, 
-                message: "Valid return reason (min 10 chars) is required." 
+                message: "Item can only be cancelled before delivery." 
             });
         }
 
-        // Update order status
-        order.status = 'Return Requested';
-        order.returnReason = reason.trim();
+        // Restore stock
+        await Product.updateOne(
+            { 
+                _id: item.product._id,
+                "sizes.size": item.size
+            },
+            { $inc: { "sizes.$.stock": item.quantity } },
+            { session }
+        );
+
+        // Calculate refund amount
+        const refundAmount = item.price * item.quantity;
+
+        // Process refund to wallet
+        const userUpdate = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $inc: { "wallet.balance": refundAmount },
+                $push: {
+                    "wallet.transactions": {
+                        type: "refund",
+                        amount: refundAmount,
+                        description: `Refund for ${item.product.productName} from ${order.paymentMethod} order #${order.transactionId}`,
+                        date: new Date(),
+                        orderId: order._id
+                    }
+                }
+            },
+            { new: true, session }
+        );
+        
+        if (!userUpdate) {
+            throw new Error("Failed to update wallet");
+        }
+
+        // Update item status
+        item.status = 'Cancelled';
+        item.cancelled = true;
+        item.cancellationReason = reason;
+        item.cancelledDate = new Date();
+        item.refundProcessed = true;
+        
+        // Check if all items are cancelled
+        const allItemsCancelled = order.items.every(i => i.status === 'Cancelled');
+        if (allItemsCancelled) {
+            order.status = 'Cancelled';
+            order.cancellationReason = 'All items cancelled';
+            order.cancelledDate = new Date();
+        }
+        
         await order.save({ session });
-
         await session.commitTransaction();
 
-        res.status(200).json({ 
+        res.json({ 
             success: true, 
-            message: 'Return request submitted for admin verification.' 
+            message: `Item cancelled successfully.`,
+            refundAmount: refundAmount
         });
+
     } catch (error) {
         await session.abortTransaction();
-        console.error('Error returning order:', error);
+        console.error("Error cancelling item:", error);
         res.status(500).json({ 
             success: false, 
-            message: 'Failed to submit return request.' 
+            message: error.message || 'Failed to cancel item.' 
         });
     } finally {
         session.endSession();
     }
 };
 
-
+// Return single item
+const returnOrderItem = async (req, res) => {
+    const session = await mongoose.startSession()
+    session.startTransaction()
+  
+    try {
+      const { orderId, itemIndex, reason } = req.body
+  
+      if (!reason || reason.trim().length < 10) {
+        await session.abortTransaction()
+        return res.status(400).json({
+          success: false,
+          message: "Please provide a detailed reason for return (minimum 10 characters).",
+        })
+      }
+  
+      const order = await Order.findOne({
+        _id: orderId,
+        user: req.user._id,
+      })
+        .populate({
+          path: "items.product",
+          select: "_id sizes productName",
+        })
+        .session(session)
+  
+      if (!order || itemIndex >= order.items.length) {
+        await session.abortTransaction()
+        return res.status(404).json({
+          success: false,
+          message: "Order or item not found.",
+        })
+      }
+  
+      // Validate order is delivered
+      if (order.status !== "Delivered") {
+        await session.abortTransaction()
+        return res.status(400).json({
+          success: false,
+          message: "Only delivered orders can be returned.",
+        })
+      }
+  
+      const item = order.items[itemIndex]
+  
+      // Validate item can be returned
+      if (item.status !== "Delivered") {
+        await session.abortTransaction()
+        return res.status(400).json({
+          success: false,
+          message: `Item is ${item.status.toLowerCase()}, cannot be returned.`,
+        })
+      }
+  
+      // Update item status
+      item.status = "Return Requested"
+      item.returnReason = reason
+  
+      // Update order status if not already
+      if (order.status !== "Return Requested") {
+        order.status = "Return Requested"
+        order.returnReason = `Return requested for ${item.product.productName}: ${reason}`
+      }
+  
+      await order.save({ session })
+      await session.commitTransaction()
+  
+      res.json({
+        success: true,
+        message: "Return request submitted for admin approval",
+        returnedItem: item,
+      })
+    } catch (error) {
+      await session.abortTransaction()
+      console.error("Error returning item:", error)
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to submit return request.",
+      })
+    } finally {
+      session.endSession()
+    }
+  }
 
 const downloadInvoice = async (req, res) => {
     try {
@@ -338,188 +613,6 @@ const downloadInvoice = async (req, res) => {
     }
 };
 
-
-// Cancel single item
-const cancelOrderItem = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-        const { orderId, itemId, reason } = req.body;
-        
-        const order = await Order.findOne({ 
-            _id: orderId, 
-            user: req.user._id 
-        })
-        .populate({
-            path: 'items.product',
-            select: '_id sizes'
-        })
-        .session(session);
-
-        if (!order) {
-            await session.abortTransaction();
-            return res.status(404).json({ 
-                success: false, 
-                message: "Order not found." 
-            });
-        }
-
-        // Find the item by its _id
-        const item = order.items.find(i => i._id.toString() === itemId);
-        if (!item) {
-            await session.abortTransaction();
-            return res.status(404).json({ 
-                success: false, 
-                message: "Item not found in order." 
-            });
-        }
-
-        // Validate item can be cancelled
-        if (item.cancelled) {
-            await session.abortTransaction();
-            return res.status(400).json({ 
-                success: false, 
-                message: "Item already cancelled." 
-            });
-        }
-
-        // Restore stock for this item
-        await Product.updateOne(
-            { 
-                _id: item.product._id,
-                "sizes.size": item.size
-            },
-            { $inc: { "sizes.$.stock": item.quantity } },
-            { session }
-        );
-
-        // Calculate amount to refund
-        const refundAmount = item.price * item.quantity;
-        
-        // Process refund if payment was completed
-        if (order.paymentStatus === 'Completed' || order.paymentStatus === 'Paid') {
-            const user = await User.findById(req.user._id).session(session);
-            if (user) {
-                user.wallet.balance += refundAmount;
-                user.wallet.transactions.push({
-                    type: 'refund',
-                    amount: refundAmount,
-                    description: `Refund for cancelled item in order #${order.transactionId}`,
-                    date: new Date(),
-                    orderId: order._id 
-                });
-                await user.save({ session });
-            }
-        }
-        console.log(user.wallet.transactions);
-        // Update item status
-        item.cancelled = true;
-        item.status = "Cancelled";
-        item.cancellationReason = reason;
-        item.cancelledDate = new Date();
-        
-        // Update order totals
-        order.totalAmount -= refundAmount;
-        order.cancelledAmount = (order.cancelledAmount || 0) + refundAmount;
-        
-        // Check if all items are cancelled
-        const allCancelled = order.items.every(i => i.cancelled);
-        if (allCancelled) {
-            order.status = 'Cancelled';
-            order.cancellationReason = 'All items cancelled';
-        }
-        
-        await order.save({ session });
-        await session.commitTransaction();
-
-        res.json({ 
-            success: true, 
-            message: 'Item cancelled successfully',
-            refundAmount: refundAmount
-        });
-    } catch (error) {
-        await session.abortTransaction();
-        console.error("Error cancelling item:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
-    } finally {
-        session.endSession();
-    }
-};
-
-
-
-
-// Enhanced returnOrderItem function
-const returnOrderItem = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    
-    try {
-        const { orderId, itemIndex, reason } = req.body;
-        
-        const order = await Order.findOne({ 
-            _id: orderId, 
-            user: req.user._id,
-            status: 'Delivered'
-        })
-        .populate({
-            path: 'items.product',
-            select: '_id sizes productName'
-        })
-        .session(session);
-
-        if (!order || itemIndex >= order.items.length) {
-            await session.abortTransaction();
-            return res.status(404).json({ 
-                success: false, 
-                message: "Order or item not found." 
-            });
-        }
-
-        const item = order.items[itemIndex];
-        
-        // Validate item can be returned
-        if (item.returnRequested || item.returned) {
-            await session.abortTransaction();
-            return res.status(400).json({ 
-                success: false, 
-                message: "Item already has return request." 
-            });
-        }
-
-        // Update item status
-        order.items[itemIndex].returnRequested = true;
-        order.items[itemIndex].returnReason = `${item.product.productName}: ${reason}`;
-        order.items[itemIndex].status = "Return Requested";
-        
-        // Update order status if not already
-        if (order.status !== 'Return Requested') {
-            order.status = 'Return Requested';
-        }
-        
-        await order.save({ session });
-        await session.commitTransaction();
-
-        res.json({ 
-            success: true, 
-            message: 'Return request submitted for admin approval',
-            returnedItem: order.items[itemIndex]
-        });
-    } catch (error) {
-        await session.abortTransaction();
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
-    } finally {
-        session.endSession();
-    }
-};
-
 module.exports = {
     loadOrder,
     loadSingleOrder,
@@ -530,6 +623,4 @@ module.exports = {
     loadOrderFailed,
     returnOrderItem,
     cancelOrderItem
-
-
 };

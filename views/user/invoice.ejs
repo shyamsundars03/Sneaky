@@ -1,116 +1,229 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice</title>
+    <meta charset="utf-8">
+    <title>Invoice - <%= transactionId %></title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 50px;
-        }
-        .invoice-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .invoice-header h1 {
-            font-size: 24px;
             margin: 0;
+            padding: 20px;
+            color: #333;
         }
-        .invoice-header p {
-            margin: 5px 0;
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            font-size: 16px;
+            line-height: 24px;
         }
-        .bill-to, .invoice-details {
-            margin-bottom: 20px;
-        }
-        .bill-to h2, .invoice-details h2 {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        .bill-to p, .invoice-details p {
-            margin: 5px 0;
-        }
-        table {
+        .invoice-box table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            line-height: inherit;
             text-align: left;
+            border-collapse: collapse;
         }
-        table th {
-            background-color: #f2f2f2;
+        .invoice-box table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .invoice-box table tr.top table td {
+            padding-bottom: 20px;
+        }
+        .invoice-box table tr.top table td.title {
+            font-size: 45px;
+            line-height: 45px;
+            color: #333;
+        }
+        .invoice-box table tr.information table td {
+            padding-bottom: 40px;
+        }
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
             font-weight: bold;
         }
-        .summary {
-            margin-top: 20px;
+        .invoice-box table tr.payment-heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            font-weight:700 ;
+
         }
-        .summary p {
-            margin: 5px 0;
+        .invoice-box table tr.details td {
+            padding-bottom: 20px;
         }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 14px;
-            color: #555;
+        .invoice-box table tr.item td {
+            border-bottom: 1px solid #eee;
         }
+        .invoice-box table tr.item.last td {
+            border-bottom: none;
+        }
+        .invoice-box table tr.total td:nth-child(4) {
+            border-top: 2px solid #eee;
+            font-weight: bold;
+        }
+        .cancelled {
+            text-decoration: line-through;
+            color: #999;
+        }
+        .returned {
+            text-decoration: line-through;
+            color: #999;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-cancelled {
+            background-color: #ffcccc;
+            color: #cc0000;
+        }
+        .status-returned {
+            background-color: #ffe6cc;
+            color: #cc6600;
+        }
+        .status-delivered {
+            background-color: #ccffcc;
+            color: #006600;
+        }
+        .status-shipped {
+            background-color: #cce5ff;
+            color: #0066cc;
+        }
+        .status-processing {
+            background-color: #e6e6ff;
+            color: #0000cc;
+        }
+        .status-pending {
+            background-color: #f2f2f2;
+            color: #666666;
+        }
+        .status-return-requested {
+            background-color: #fff2cc;
+            color: #b38600;
+        }
+        .deduction {
+            color: #cc0000;
+        }
+
     </style>
 </head>
 <body>
-    <div class="invoice-header">
-        <h1>SNEAKY</h1>
-        <p>No 11, Ram Nagar</p>
-        <p>Ghandhipuram, Coimbatore, Tamil Nadu</p>
-        <p>Phone: +91 8148413021 | Email: sneakyteam@gmail.com</p>
-    </div>
-
-    <div class="bill-to">
-        <h2>BILL TO</h2>
-        <p><%= shippingAddress.name %></p>
-        <p><%= shippingAddress.street %></p>
-        <p><%= shippingAddress.city %>, <%= shippingAddress.state %>, <%= shippingAddress.zip %></p>
-        <p>Phone: <%= user.phone %> | Email: <%= user.email %></p>
-    </div>
-
-    <div class="invoice-details">
-        <h2>INVOICE DETAILS</h2>
-        <p>Invoice No: <%= transactionId %></p>
-        <p>Invoice Date: <%= createdAt %></p>
-        <p>Payment Method: <%= paymentMethod %></p>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Product Name</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Total</th>
+    <div class="invoice-box">
+        <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+                <td colspan="5">
+                    <table>
+                        <tr>
+                            <td class="title">
+                                SNEAKY
+                            </td>
+                            <td style="text-align: right;">
+                                Invoice #: <%= transactionId %><br>
+                                Created: <%= createdAt %><br>
+                                <span class="status-badge status-<%= orderStatus.toLowerCase().replace(' ', '-') %>">
+                                    <%= orderStatus %>
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            <% items.forEach(item => { %>
-            <tr>
-                <td><%= item.product.productName %></td>
-                <td><%= item.quantity %></td>
-                <td>₹<%= item.price %></td>
-                <td>₹<%= item.total %></td>
+            
+            <tr class="information">
+                <td colspan="5">
+                    <table>
+                        <tr>
+                            <td>
+                                Sneaky, Inc.<br>
+                                123 Fashion Street<br>
+                                Footwear City, FC 12345
+                            </td>
+                            <td style="text-align: right;">
+                                <%= shippingAddress.name %><br>
+                                <%= shippingAddress.street %><br>
+                                <%= shippingAddress.city %>, <%= shippingAddress.state %> <%= shippingAddress.zip %><br>
+                                <%= shippingAddress.country %>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
-            <% }) %>
-        </tbody>
-    </table>
-
-    <div class="summary">
-        <p>Sub Total: ₹<%= subTotal %></p>
-        <p>Shipping & handling: ₹<%= shippingCost %></p>
-        <p>Coupon(<%= order.couponCode %>):-₹<%= order.discountAmount.toFixed(2) %></p>
-        <p><strong>Total: ₹<%= totalAmount %></strong></p>
-    </div>
-
-    <div class="footer">
-        <p>Thank you for your business!</p>
+            
+            <tr class="payment-heading">
+                <td>Payment Method : </td>
+                <td colspan="4"><%= paymentMethod %></td>
+            </tr>
+            
+            <tr class="heading">
+                <td>Item</td>
+                <td>Price</td>
+                <td>Quantity</td>
+                <td>Status</td>
+                <td>Total</td>
+            </tr>
+            
+            <% items.forEach(function(item) { %>
+                <tr class="item <%= item.status === 'Cancelled' ? 'cancelled' : '' %> <%= item.status === 'Returned' ? 'returned' : '' %>">
+                    <td><%= item.product ? item.product.productName : 'Product Unavailable' %></td>
+                    <td>₹<%= item.price.toFixed(2) %></td>
+                    <td><%= item.quantity %></td>
+                    <td>
+                        <span class="status-badge status-<%= item.status.toLowerCase().replace(' ', '-') %>">
+                            <%= item.status %>
+                        </span>
+                    </td>
+                    <td>₹<%= item.total.toFixed(2) %></td>
+                </tr>
+            <% }); %>
+            
+            <tr class="total">
+                <td colspan="4" style="text-align: right;">Subtotal:</td>
+                <td>₹<%= subTotal.toFixed(2) %></td>
+            </tr>
+            
+            <% if (cancelledAmount > 0) { %>
+                <tr class="total deduction">
+                    <td colspan="4" style="text-align: right;">Cancelled Items:</td>
+                    <td>-₹<%= cancelledAmount.toFixed(2) %></td>
+                </tr>
+            <% } %>
+            
+            <% if (returnedAmount > 0) { %>
+                <tr class="total deduction">
+                    <td colspan="4" style="text-align: right;">Returned Items:</td>
+                    <td>-₹<%= returnedAmount.toFixed(2) %></td>
+                </tr>
+            <% } %>
+            
+            <tr class="total">
+                <td colspan="4" style="text-align: right;">Shipping:</td>
+                <td>₹<%= shippingCost.toFixed(2) %></td>
+            </tr>
+            
+            <% if (discountAmount > 0) { %>
+                <tr class="total">
+                    <td colspan="4" style="text-align: right;">Discount:</td>
+                    <td>-₹<%= discountAmount.toFixed(2) %></td>
+                </tr>
+            <% } %>
+            
+            <tr class="total">
+                <td colspan="4" style="text-align: right;"><strong>Grand Total:</strong></td>
+                <td><strong>₹<%= totalAmount.toFixed(2) %></strong></td>
+            </tr>
+        </table>
+        
+        <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #999;">
+            <p>Thank you for shopping with SNEAKY!</p>
+            <p>If you have any questions, please contact us at support@sneaky.com</p>
+        </div>
     </div>
 </body>
 </html>

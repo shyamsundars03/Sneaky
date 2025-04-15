@@ -11,45 +11,78 @@ const ejs = require('ejs');
  */
 const generateInvoice = async (orderId) => {
     try {
-        const order = await Order.findById(orderId).populate('items.product');
-        if (!order) throw new Error('Order not found.');
-
-        const invoicesDir = path.join(__dirname, '../../public/invoices');
-        if (!fs.existsSync(invoicesDir)) fs.mkdirSync(invoicesDir, { recursive: true });
-
-        const filePath = path.join(invoicesDir, `${order.transactionId}.pdf`);
-        const templatePath = path.join(__dirname, '../views/user/invoice.ejs');
-        const template = fs.readFileSync(templatePath, 'utf8');
-
-        const html = ejs.render(template, {
-            order, // Pass the entire order object
-            shippingAddress: order.shippingAddress,
-            user: order.user,
-            transactionId: order.transactionId,
-            createdAt: order.createdAt.toLocaleDateString(),
-            paymentMethod: order.paymentMethod,
-            items: order.items.map(item => ({
-                product: item.product,
-                quantity: item.quantity,
-                price: item.price,
-                total: item.price * item.quantity,
-            })),
-            subTotal: order.totalAmount - (order.shippingCost || 0),
-            shippingCost: order.shippingCost || 0,
-            totalAmount: order.totalAmount
-        });
-
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        await page.pdf({ path: filePath, format: 'A4' });
-        await browser.close();
-
-        return filePath;
+      const order = await Order.findById(orderId).populate("items.product").populate("user")
+      if (!order) throw new Error("Order not found.")
+  
+      const invoicesDir = path.join(__dirname, "../public/invoices")
+      if (!fs.existsSync(invoicesDir)) fs.mkdirSync(invoicesDir, { recursive: true })
+  
+      const filePath = path.join(invoicesDir, `${order.transactionId}.pdf`)
+      const templatePath = path.join(__dirname, "../views/user/invoice.ejs")
+      const template = fs.readFileSync(templatePath, "utf8")
+  
+      // Calculate totals correctly
+      let subTotal = 0
+      let cancelledAmount = 0
+      let returnedAmount = 0
+  
+      const processedItems = order.items.map((item) => {
+        const itemTotal = item.price * item.quantity
+  
+        // Track amounts by status
+        if (item.status === "Cancelled") {
+          cancelledAmount += itemTotal
+        } else if (item.status === "Returned") {
+          returnedAmount += itemTotal
+        } else {
+          subTotal += itemTotal
+        }
+  
+        return {
+          product: item.product,
+          quantity: item.quantity,
+          price: item.price,
+          total: itemTotal,
+          status: item.status,
+        }
+      })
+  
+      // Calculate final amounts
+      const shippingCost = order.shippingCost || 0
+      const discountAmount = order.discountAmount || 0
+      const totalAmount = subTotal + shippingCost - discountAmount
+  
+      const html = ejs.render(template, {
+        order,
+        shippingAddress: order.shippingAddress,
+        user: order.user,
+        transactionId: order.transactionId,
+        createdAt: order.createdAt.toLocaleDateString(),
+        paymentMethod: order.paymentMethod,
+        items: processedItems,
+        subTotal,
+        cancelledAmount,
+        returnedAmount,
+        shippingCost,
+        discountAmount,
+        totalAmount,
+        orderStatus: order.status,
+      })
+  
+      const browser = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      })
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: "networkidle0" })
+      await page.pdf({ path: filePath, format: "A4" })
+      await browser.close()
+  
+      return filePath
     } catch (error) {
-        console.error('Error generating invoice:', error);
-        throw error;
+      console.error("Error generating invoice:", error)
+      throw error
     }
-};
+  }
 
 module.exports = { generateInvoice };

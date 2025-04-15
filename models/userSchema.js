@@ -20,6 +20,15 @@ const transactionSchema = new Schema({
         type: String,
         default: "",
     },
+    paymentId: {
+        type: String,
+        default: null
+    },
+    orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+        default: null
+    },
 });
 
 const userSchema = new Schema({

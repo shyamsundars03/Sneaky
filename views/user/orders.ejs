@@ -570,19 +570,12 @@
                         <td><%= order.transactionId %></td>
                         <td><%= order.createdAt.toLocaleDateString() %></td>
                         <td>
-                            <% 
-                            let totalQuantity = 0;
-                            order.items.forEach(item => {
-                                totalQuantity += item.quantity;
-                            }); 
-                            %>
-                            <%= totalQuantity %>
+                            <%= order.activeQuantity %>
                         </td>
-                        <td>₹<%= order.totalAmount %></td>
+                        <td>₹<%= order.activeAmount.toFixed(2) %></td>
                         <td><span class="status-badge status-<%= order.status.toLowerCase() %>"><%= order.status %></span></td>
                         <td>
-                                <a href="/orders/<%= order._id %>" class="view-btn">View</a>
-                            
+                            <a href="/orders/<%= order._id %>" class="view-btn">View</a>
                         </td>
                     </tr>
                 <% }) %>
