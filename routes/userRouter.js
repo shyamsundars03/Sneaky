@@ -132,7 +132,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
 
 // Wallet routes
 router.get("/wallet", userAuth, walletController.loadWallet)
-router.post("/wallet/add-funds", userAuth, walletController.addFunds)
+// router.post("/wallet/add-funds", userAuth, walletController.addFunds)
 router.post("/wallet/add-funds-razorpay", userAuth, walletController.addFundsRazorpay)
 router.post("/wallet/verify-razorpay", userAuth, walletController.verifyRazorpayPayment)
 

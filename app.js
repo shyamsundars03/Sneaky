@@ -50,7 +50,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// checkPendingStockRestorations();
+
+app.use((req, res, next) => {
+    res.status(404).render("page-404");
+});
 
 app.listen(process.env.PORT,()=>{
     console.log("server running")

@@ -523,187 +523,200 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Modal functionality
-        const modal = document.getElementById("addMoneyModal");
-        const btn = document.getElementById("addMoneyBtn");
-        const span = document.getElementsByClassName("close")[0];
-
-        btn.onclick = function() {
-            modal.style.display = "block";
+      // Modal functionality
+      const modal = document.getElementById("addMoneyModal");
+      const btn = document.getElementById("addMoneyBtn");
+      const span = document.getElementsByClassName("close")[0];
+  
+      btn.onclick = function() {
+        modal.style.display = "block";
+      }
+  
+      span.onclick = function() {
+        modal.style.display = "none";
+      }
+  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
         }
-
-        span.onclick = function() {
-            modal.style.display = "none";
+      }
+  
+      // Handle form submission
+      document.getElementById("addMoneyForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        
+        const amount = parseFloat(document.getElementById("amount").value);
+        if (isNaN(amount) || amount < 1) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Amount',
+            text: 'Please enter a valid amount (minimum ₹1)'
+          });
+          return;
         }
-
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        // Handle form submission
-        document.getElementById("addMoneyForm").addEventListener("submit", async function(e) {
-            e.preventDefault();
-            
-            const amount = parseFloat(document.getElementById("amount").value);
-            if (isNaN(amount) || amount < 1) {
-                Swal.fire({
+  
+        try {
+          // Show loading indicator
+          Swal.fire({
+            title: 'Processing',
+            text: 'Initializing payment...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+  
+          const response = await fetch('/wallet/add-funds-razorpay', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount })
+          });
+  
+          const data = await response.json();
+          Swal.close();
+          
+          if (!data.success) {
+            throw new Error(data.message || 'Failed to initialize payment');
+          }
+  
+          // Initialize Razorpay payment
+          const options = {
+            key: data.key_id,
+            amount: data.amount,
+            currency: data.currency || "INR",
+            name: data.name || "The Sneaky Club",
+            description: data.description || "Wallet Top-up",
+            order_id: data.order_id,
+            prefill: data.prefill || {},
+            handler: async function(response) {
+              // Show processing indicator
+              Swal.fire({
+                title: 'Processing',
+                text: 'Verifying payment...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+              });
+  
+              // Verify payment on server
+              try {
+                const verificationResponse = await fetch('/wallet/verify-razorpay', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature,
+                    amount: amount
+                  })
+                });
+  
+                const verificationData = await verificationResponse.json();
+  
+                if (verificationData.success) {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `₹${amount} added to your wallet successfully`,
+                    confirmButtonText: 'OK'
+                  }).then(() => {
+                    window.location.reload();
+                  });
+                } else {
+                  Swal.fire({
                     icon: 'error',
-                    title: 'Invalid Amount',
-                    text: 'Please enter a valid amount (minimum ₹1)'
-                });
-                return;
-            }
-
-            try {
-                const response = await fetch('/wallet/add-funds-razorpay', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ amount })
-                });
-
-                const data = await response.json();
-                
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to initialize payment');
+                    title: 'Payment Failed',
+                    text: verificationData.message || 'Payment verification failed'
+                  });
                 }
-
-                // Initialize Razorpay payment
-                const options = {
-                    key: data.key_id,
-                    amount: data.amount,
-                    currency: data.currency || "INR",
-                    name: data.name || "The Sneaky Club",
-                    description: data.description || "Wallet Top-up",
-                    order_id: data.order_id,
-                    prefill: data.prefill || {},
-                    handler: async function(response) {
-                        // Verify payment on server
-                        const verificationResponse = await fetch('/wallet/verify-razorpay', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_signature: response.razorpay_signature,
-                                amount: amount
-                            })
-                        });
-
-                        const verificationData = await verificationResponse.json();
-
-                        if (verificationData.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: `₹${amount} added to your wallet successfully`,
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Payment Failed',
-                                text: verificationData.message || 'Payment verification failed'
-                            });
-                        }
-                    },
-                    theme: data.theme || {
-                        color: "#3399cc"
-                    },
-                    modal: {
-                        ondismiss: function() {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Payment Cancelled',
-                                text: 'You cancelled the payment process'
-                            });
-                        }
-                    }
-                };
-
-                const rzp = new Razorpay(options);
-                rzp.on('payment.failed', function(response) {
-                    console.error("Payment failed:", response.error);
-                    let errorMessage = response.error.description || 'Your payment has failed';
-                    
-                    // Specific handling for international cards
-                    if (response.error.code === 'BAD_REQUEST_ERROR' && 
-                        response.error.reason === 'international_transaction_not_allowed') {
-                        errorMessage = 'We only accept Indian payment methods. Please use an Indian card, UPI, or netbanking.';
-                    }
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Payment Failed',
-                        text: errorMessage
-                    });
+              } catch (error) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Verification Error',
+                  text: error.message || 'An error occurred during payment verification'
                 });
-                
-                rzp.open();
-                modal.style.display = "none";
-            } catch (error) {
+              }
+            },
+            modal: {
+              ondismiss: function() {
+                Swal.fire({
+                  icon: 'info',
+                  title: 'Payment Cancelled',
+                  text: 'You cancelled the payment process'
+                });
+              },
+              escape: false,
+              backdropclose: false
+            }
+          };
+  
+          const rzp = new Razorpay(options);
+          
+          rzp.on('payment.failed', function(response) {
+            console.error("Payment failed:", response.error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Payment Failed',
+              text: response.error.description || 'Your payment has failed'
+            });
+          });
+          
+          rzp.open();
+          modal.style.display = "none";
+        } catch (error) {
+          console.error('Error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'An error occurred while processing your request'
+          });
+        }
+      });
+  
+      // Sign out button handling
+      const signOutBtn = document.getElementById('signOutBtn');
+      if (signOutBtn) {
+        signOutBtn.addEventListener('click', function (event) {
+          event.preventDefault();
+  
+          Swal.fire({
+            title: 'Are you sure?',
+            text: 'You are about to sign out. Do you want to continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, sign out!',
+            cancelButtonText: 'Cancel',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              fetch('/logout', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              })
+              .then(response => {
+                if (response.redirected) {
+                  window.location.href = response.url;
+                }
+              })
+              .catch(error => {
                 console.error('Error:', error);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'An error occurred while processing your request'
+                  icon: 'error',
+                  title: 'Oops...',
+                  text: 'Something went wrong while signing out!',
                 });
+              });
             }
+          });
         });
-
-        // Sign out button handling
-        const signOutBtn = document.getElementById('signOutBtn');
-        if (signOutBtn) {
-            signOutBtn.addEventListener('click', function (event) {
-                event.preventDefault(); // Prevent the default link behavior
-
-                // SweetAlert2 confirmation modal
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'You are about to sign out. Do you want to continue?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, sign out!',
-                    cancelButtonText: 'Cancel',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Send a POST request to /logout
-                        fetch('/logout', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                        })
-                        .then(response => {
-                            if (response.redirected) {
-                                // Redirect to the home page after logout
-                                window.location.href = response.url;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Oops...',
-                                text: 'Something went wrong while signing out!',
-                            });
-                        });
-                    }
-                });
-            });
-        } else {
-            console.error('Error: Could not find Sign Out button.');
-        }
+      }
     });
-</script>
+  </script>
+  
 
 <%- include("../../views/partials/user/footer") %>

@@ -75,6 +75,9 @@ const getDashboardData = async (filters = {}) => {
             _id: { $in: Object.keys(productSales) } 
         }).limit(10);
 
+
+
+
         const topProductsData = topProducts.map(product => ({
             name: product.productName,
             sales: productSales[product._id.toString()],
@@ -169,11 +172,23 @@ const loadDashboard = async (req, res) => {
             };
         }
 
-        console.log('Final Dashboard Query:', query); // Log the final query for debugging
+        // console.log('Final Dashboard Query:', query); // Log the final query for debugging
+        const topProducts1 = await Product.find({ 
+            _id: { $in: Object.keys(productSales) } 
+        }).limit(10);
+
+
+
+
+        const topProductsData = topProducts1.map(product => ({
+            name: product.productName,
+            sales: productSales[product._id.toString()],
+            revenue: product.price * productSales[product._id.toString()]
+        })).sort((a, b) => b.sales - a.sales);
 
         // Fetch orders based on the query
         const orders = await Order.find(query).sort({ deliveredDate: -1 });
-        console.log('Retrieved Orders:', orders); // Log retrieved orders
+        // console.log('Retrieved Orders:', orders); // Log retrieved orders
 
         // Calculate summary statistics
         const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
@@ -191,7 +206,7 @@ const loadDashboard = async (req, res) => {
             }}
         ]);
 
-        console.log('Revenue Stats:', revenueStats); // Log revenue stats
+        // console.log('Revenue Stats:', revenueStats); // Log revenue stats
 
         const activeUsers = await User.countDocuments({ isActive: true });
 
@@ -207,7 +222,7 @@ const loadDashboard = async (req, res) => {
             totalRevenue: stats.totalRevenue.toFixed(2),
             totalOrders: stats.totalOrders,
             activeUsers, // This will now have the correct count
-            topProducts,
+            topProducts:topProductsData ,
             topCategories,
             dailyData,
             dateDisplay,

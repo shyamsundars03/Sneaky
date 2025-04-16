@@ -319,7 +319,7 @@ ul {
     color: var(--primary-color);
 }
 
-.place-order-btn {
+#place-order-btn {
     background: #ff0000;
     color: #fff;
     border: none;
@@ -553,7 +553,7 @@ ul {
                         <span>Total</span>
                         <span>₹<%= totalAmount %></span>
                     </div> 
-                    <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
+                    <button id ="place-order-btn" onclick="placeOrder()">Place Order</button>
 
                     <!-- Add this above the place order button -->
 
@@ -569,165 +569,199 @@ ul {
     <%-include("../../views/partials/user/footer")%>
 
     <script>
-      
-        document.getElementById('place-order-btn').addEventListener('click', placeOrder);
-      
-          // Place order function
-          async function placeOrder() {
-      try {
-          const swalInstance = Swal.fire({
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('place-order-btn').addEventListener('click', placeOrder);
+        });
+        
+        // Place order function
+        async function placeOrder() {
+          try {
+            // Show loading indicator
+            const swalInstance = Swal.fire({
               title: 'Processing Order',
               html: 'Please wait while we process your order...',
               allowOutsideClick: false,
               didOpen: () => Swal.showLoading()
-          });
-  
-          // First validate the order
-          const validationResponse = await fetch('/validate-and-place-order', {
+            });
+      
+            // First validate the order
+            const validationResponse = await fetch('/validate-and-place-order', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include'
-          });
-  
-          const validationResult = await validationResponse.json();
-          
-          if (!validationResult.success) {
+            });
+      
+            const validationResult = await validationResponse.json();
+            
+            if (!validationResult.success) {
               throw new Error(validationResult.message || 'Order validation failed');
-          }
-  
-          // Prepare order data
-          const orderData = {
+            }
+      
+            // Prepare order data
+            const orderData = {
               shippingAddress: JSON.parse('<%- JSON.stringify(shippingAddress) %>'),
               shippingMethod: '<%= shippingMethod %>',
-              shippingCost: <%= shippingCost %>,
+              shippingCost: <%- shippingCost %>,
               couponCode: '<%= couponCode %>' || null,
-              totalAmount: validationResult.totalAmount // Use validated total amount
-          };
-  
-          let paymentResponse;
-          
-          if ('<%= paymentMethod %>' === 'Razorpay') {
+              totalAmount: validationResult.totalAmount
+            };
+      
+            let paymentResponse;
+            const paymentMethod = '<%= paymentMethod %>';
+            
+            // Process payment based on method
+            if (paymentMethod === 'Razorpay') {
               paymentResponse = await fetch('/process-razorpay', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(orderData),
-                  credentials: 'include'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData),
+                credentials: 'include'
               });
-          } 
-          else if ('<%= paymentMethod %>' === 'Wallet') {
+            } 
+            else if (paymentMethod === 'Wallet') {
               paymentResponse = await fetch('/process-wallet', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(orderData),
-                  credentials: 'include'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData),
+                credentials: 'include'
               });
-          } 
-          else { // COD
+            } 
+            else { // COD
               paymentResponse = await fetch('/process-cod', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(orderData),
-                  credentials: 'include'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData),
+                credentials: 'include'
               });
-          }
-  
-          const paymentResult = await paymentResponse.json();
-          swalInstance.close();
-  
-          if (!paymentResult.success) {
+            }
+      
+            const paymentResult = await paymentResponse.json();
+            swalInstance.close();
+      
+            if (!paymentResult.success) {
               throw new Error(paymentResult.message || 'Payment processing failed');
-          }
-  
-          // Handle Razorpay payment
-          if ('<%= paymentMethod %>' === 'Razorpay') {
+            }
+      
+            // Handle Razorpay payment
+            if (paymentMethod === 'Razorpay') {
               handleRazorpayPayment(paymentResult);
-          } 
-          // For COD/Wallet, go to success page
-          else {
+            } 
+            // For COD/Wallet, go to success page
+            else {
               window.location.href = `/order-success/${paymentResult.orderId}`;
-          }
-  
-      } catch (error) {
-          console.error('Order Error:', error);
-          Swal.fire({
+            }
+          } 
+          catch (error) {
+            console.error('Order Error:', error);
+            Swal.fire({
               icon: 'error',
               title: 'Order Failed',
               text: error.message || 'Failed to place order',
-          }).then(() => {
-              if (error.message.includes('cart')) {
-                  window.location.href = '/cart';
-              } else if (error.message.includes('wallet')) {
-                  window.location.href = '/checkout2';
+            }).then(() => {
+              if (error.message && error.message.includes('cart')) {
+                window.location.href = '/cart';
+              } 
+              else if (error.message && error.message.includes('wallet')) {
+                window.location.href = '/checkout2';
               }
-          });
-      }
-  }
-  
-  function handleRazorpayPayment(result) {
-      const options = {
-          key: '<%= process.env.RAZORPAY_KEY_ID %>',
-          amount: Math.round(result.totalAmount * 100),
-          currency: 'INR',
-          name: "SNEAKY",
-          description: `Order #${result.orderId}`,
-          order_id: result.razorpayOrderId,
-          handler: function(response) {
-              console.log('Full Razorpay response:', response); // Debug log
-              
-              // Verify all required fields exist
+            });
+          }
+        }
+      
+        function handleRazorpayPayment(result) {
+          const options = {
+            key: '<%= process.env.RAZORPAY_KEY_ID %>',
+            amount: Math.round(result.totalAmount * 100),
+            currency: 'INR',
+            name: "SNEAKY",
+            description: `Order #${result.orderId}`,
+            order_id: result.razorpayOrderId,
+            handler: function(response) {
               if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
-                  console.error('Missing Razorpay fields:', response);
-                  window.location.href = `/order-failed/${result.orderId}`;
-                  return;
+                saveFailedOrder(result.orderId, 'Missing payment details');
+                return;
               }
-  
-              fetch('/verify-razorpay', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                      razorpay_payment_id: response.razorpay_payment_id,
-                      razorpay_order_id: response.razorpay_order_id,
-                      razorpay_signature: response.razorpay_signature,
-                      orderId: result.orderId
-                  }),
-                  credentials: 'include'
-              })
-              .then(res => res.json())
-              .then(data => {
-                  console.log('Verification response:', data);
-                  if (data.success) {
-                      window.location.href = `/order-success/${result.orderId}`;
-                  } else {
-                      window.location.href = `/order-failed/${result.orderId}`;
-                  }
-              })
-              .catch(error => {
-                  console.error('Verification error:', error);
-                  window.location.href = `/order-failed/${result.orderId}`;
-              });
-          },
-          modal: {
+              verifyPayment(response, result.orderId);
+            },
+            modal: {
               ondismiss: function() {
-                  window.location.href = `/order-failed/${result.orderId}`;
+                saveFailedOrder(result.orderId, 'Payment cancelled by user');
               },
-              width: 800,  // Set appropriate width
-              height: 600  // Set appropriate height
-          },
-          prefill: {
+              escape: false,
+              backdropclose: false
+            },
+            prefill: {
               name: '<%= user.name %>',
               email: '<%= user.email %>',
-              contact: '<%= user.phone || "" %>'
+              contact: '<%= user.phone || "0000000000" %>'
+            },
+            theme: {
+              color: "#3399cc"
+            }
+          };
+      
+          const rzp = new Razorpay(options);
+          
+          rzp.on('payment.failed', function(response) {
+            saveFailedOrder(result.orderId, response.error.description || 'Payment failed');
+          });
+          
+          rzp.open();
+        }
+      
+        // Verify payment with server
+        async function verifyPayment(response, orderId) {
+          try {
+            const verificationResponse = await fetch('/verify-razorpay', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: orderId
+              }),
+              credentials: 'include'
+            });
+      
+            const data = await verificationResponse.json();
+            
+            if (data.success) {
+              window.location.href = `/order-success/${orderId}`;
+            } 
+            else {
+              saveFailedOrder(orderId, data.message || 'Payment verification failed');
+            }
+          } 
+          catch (error) {
+            saveFailedOrder(orderId, error.message || 'Payment verification error');
           }
-      };
-  
-      const rzp = new Razorpay(options);
-      rzp.open();
-  }
-    function goBack() {
-      window.location.href = '/checkout2';
-    }
+        }
+      
+        // Save failed order and redirect
+        async function saveFailedOrder(orderId, errorDetails) {
+          try {
+            await fetch('/save-failed-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: orderId,
+                errorDetails: errorDetails
+              }),
+              credentials: 'include'
+            });
+          } 
+          catch (error) {
+            console.error('Error saving failed order:', error);
+          }
+          finally {
+            window.location.href = `/order-failed/${orderId}`;
+          }
+        }
+      
+        function goBack() {
+          window.location.href = '/checkout2';
+        }
       </script>
 
 </body>
