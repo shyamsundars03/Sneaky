@@ -463,6 +463,8 @@
 
 </body>
 <script>
+// This is the JavaScript part that needs to be updated in sales.ejs
+document.addEventListener('DOMContentLoaded', function() {
     // Debugging flag
     const DEBUG = true;
     
@@ -502,10 +504,10 @@
 
     // Update summary cards
     function updateSummaryCards(summary) {
-        document.getElementById('totalAmount').textContent = `₹${summary.totalAmount.toFixed(2)}`;
-        document.getElementById('totalDiscount').textContent = `₹${summary.totalDiscount.toFixed(2)}`;
+        document.getElementById('totalAmount').textContent = `₹${parseFloat(summary.totalAmount).toFixed(2)}`;
+        document.getElementById('totalDiscount').textContent = `₹${parseFloat(summary.totalDiscount).toFixed(2)}`;
         document.getElementById('totalOrders').textContent = summary.totalOrders;
-        document.getElementById('avgOrderValue').textContent = `₹${summary.avgOrderValue.toFixed(2)}`;
+        document.getElementById('avgOrderValue').textContent = `₹${parseFloat(summary.avgOrderValue).toFixed(2)}`;
     }
 
     // Render the sales table
@@ -535,8 +537,8 @@
                 <td>${order.name || 'Guest'}</td>
                 <td>${order.deliveryDate || 'N/A'}</td>
                 <td>${order.productsCount || 0}</td>
-                <td>₹${order.totalCost ? order.totalCost.toFixed(2) : '0.00'}</td>
-                <td>${order.couponCode || 'None'} (₹${order.discountAmount ? order.discountAmount.toFixed(2) : '0.00'})</td>
+                <td>₹${order.totalCost ? parseFloat(order.totalCost).toFixed(2) : '0.00'}</td>
+                <td>${order.couponCode || 'None'} (₹${order.discountAmount ? parseFloat(order.discountAmount).toFixed(2) : '0.00'})</td>
                 <td>${order.paymentMethod || 'Unknown'}</td>
             `;
             
@@ -550,7 +552,7 @@
         const paginationInfo = document.getElementById('paginationInfo');
         const paginationButtons = document.getElementById('paginationButtons');
         
-        const start = (currentPage - 1) * itemsPerPage + 1;
+        const start = totalOrders === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
         const end = Math.min(currentPage * itemsPerPage, totalOrders);
         
         paginationInfo.textContent = `Showing ${start} to ${end} of ${totalOrders} entries`;
@@ -589,7 +591,7 @@
         const nextBtn = document.createElement('button');
         nextBtn.className = 'page-btn next-btn';
         nextBtn.textContent = 'Next';
-        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
         nextBtn.addEventListener('click', () => {
             if (currentPage < totalPages) {
                 currentPage++;
@@ -610,8 +612,15 @@
             if (currentFilters.to) params.append('to', currentFilters.to);
             params.append('period', currentFilters.period || 'custom');
             
+            log(`Fetching data with params: ${params.toString()}`);
+            
             const response = await fetch(`/admin/sales/data?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            log('Received data:', data);
             
             if (data.success) {
                 filteredOrders = data.orders;
@@ -623,9 +632,16 @@
                 document.getElementById('fromDate').value = currentFilters.from || '';
                 document.getElementById('toDate').value = currentFilters.to || '';
                 
+                // Update download links with current filters
+                updateDownloadLinks();
+                
                 renderTable();
                 renderPagination();
                 updateSummaryCards(data.summary);
+                
+                showAlert(`Found ${totalOrders} orders matching your criteria`, 'success');
+            } else {
+                showAlert(data.error || 'Failed to load data', 'error');
             }
         } catch (error) {
             console.error("Error:", error);
@@ -633,6 +649,20 @@
         } finally {
             hideLoadingIndicator();
         }
+    }
+
+    // Update download links with current filters
+    function updateDownloadLinks() {
+        const params = new URLSearchParams();
+        if (currentFilters.from) params.append('from', currentFilters.from);
+        if (currentFilters.to) params.append('to', currentFilters.to);
+        params.append('period', currentFilters.period || 'custom');
+        
+        const pdfBtn = document.getElementById('downloadPDFBtn');
+        const excelBtn = document.getElementById('downloadExcelBtn');
+        
+        pdfBtn.href = `/admin/sales/download/pdf?${params.toString()}`;
+        excelBtn.href = `/admin/sales/download/excel?${params.toString()}`;
     }
 
     // Initialize event listeners
@@ -689,7 +719,12 @@
             const fromDate = document.getElementById('fromDate').value;
             const toDate = document.getElementById('toDate').value;
             
-            if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
+            if (!fromDate || !toDate) {
+                showAlert('Please select both start and end dates', 'error');
+                return;
+            }
+            
+            if (new Date(toDate) < new Date(fromDate)) {
                 showAlert('End date must be after start date', 'error');
                 return;
             }
@@ -718,7 +753,7 @@
             fetchSalesData();
         });
 
-        // Download buttons
+        // Download buttons - update URLs before download
         document.getElementById('downloadPDFBtn').addEventListener('click', function(e) {
             e.preventDefault();
             const params = new URLSearchParams(currentFilters);
@@ -733,26 +768,29 @@
     }
 
     // Initialize the page
-    document.addEventListener('DOMContentLoaded', function() {
+    function init() {
         // Initialize with server-rendered data if available
-        if (typeof initialOrders !== 'undefined') {
+        if (typeof initialOrders !== 'undefined' && Array.isArray(initialOrders)) {
             filteredOrders = initialOrders.map(order => ({
                 ...order,
                 transactionID: order.transactionID || 'N/A'
             }));
-            totalOrders = initialOrders.length;
+            totalOrders = filteredOrders.length;
             renderTable();
             renderPagination();
+            updateDownloadLinks();
         }
         
         initEventListeners();
-    });
+    }
 
     // Simple loading indicator functions
     function showLoadingIndicator() {
         document.getElementById('salesTableBody').innerHTML = `
             <tr>
-                <td colspan="8" style="text-align: center;">Loading data...</td>
+                <td colspan="8" style="text-align: center;">
+                    <div class="loading-spinner">Loading data...</div>
+                </td>
             </tr>
         `;
     }
@@ -760,5 +798,9 @@
     function hideLoadingIndicator() {
         // Handled by renderTable()
     }
+
+    // Initialize the page
+    init();
+});
 </script>
 </html>

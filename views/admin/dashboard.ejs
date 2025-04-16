@@ -862,187 +862,200 @@
     </div>
 </div>
 
+<!-- This is the updated script section for dashboard.ejs -->
 <script>
-function getChartColor(index) {
-    const colors = [
-        '#f44336', '#ff9800', '#3f51b5', '#9c27b0', '#4db6ac',
-        '#8bc34a', '#00bcd4', '#607d8b', '#795548', '#e91e63'
-    ];
-    return colors[index % colors.length];
-}
-
-// Initialize charts with real data
-const dailyData = JSON.parse('<%- JSON.stringify(dailyData) %>');
-const topCategories = JSON.parse('<%- JSON.stringify(topCategories) %>');
-
-// Line Chart
-const lineCtx = document.getElementById('lineChart').getContext('2d');
-const lineChart = new Chart(lineCtx, {
-    type: 'line',
-    data: {
-        labels: dailyData.map(d => d.date),
-        datasets: [{
-            label: 'Revenue',
-            data: dailyData.map(d => d.sales),
-            borderColor: '#f44336',
-            backgroundColor: 'rgba(244, 67, 54, 0.1)',
-            tension: 0.4,
-            pointStyle: 'circle',
-            pointRadius: 6,
-            pointHoverRadius: 10,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
+    function getChartColor(index) {
+        const colors = [
+            '#f44336', '#ff9800', '#3f51b5', '#9c27b0', '#4db6ac',
+            '#8bc34a', '#00bcd4', '#607d8b', '#795548', '#e91e63'
+        ];
+        return colors[index % colors.length];
+    }
+    
+    // Initialize charts with real data
+    const dailyData = <%- JSON.stringify(dailyData || []) %>;
+    const topCategories = <%- JSON.stringify(topCategories || []) %>;
+    
+    console.log('Chart data:', dailyData);
+    
+    // Line Chart
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    const lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: dailyData.map(d => d.date),
+            datasets: [{
+                label: 'Revenue',
+                data: dailyData.map(d => d.sales),
+                borderColor: '#f44336',
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₹' + context.raw.toFixed(2);
+                        },
+                        title: function(tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            return dailyData[index].fullDate;
+                        }
+                    }
+                }
             },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return '₹' + context.raw.toFixed(2);
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        autoSkip: true,
+                        maxTicksLimit: 20
                     }
                 }
             }
+        }
+    });
+    
+    // Polar Area Chart
+    const polarCtx = document.getElementById('polarChart').getContext('2d');
+    const polarChart = new Chart(polarCtx, {
+        type: 'polarArea',
+        data: {
+            labels: topCategories.map(c => c.name),
+            datasets: [{
+                label: 'Sales',
+                data: topCategories.map(c => c.sales),
+                backgroundColor: topCategories.map((_, i) => getChartColor(i)),
+                borderWidth: 1
+            }]
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)'
-                },
-                ticks: {
-                    callback: function(value) {
-                        return '₹' + value;
-                    }
-                }
-            },
-            x: {
-                grid: {
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
                     display: false
                 }
-            }
-        }
-    }
-});
-
-// Polar Area Chart
-const polarCtx = document.getElementById('polarChart').getContext('2d');
-const polarChart = new Chart(polarCtx, {
-    type: 'polarArea',
-    data: {
-        labels: topCategories.map(c => c.name),
-        datasets: [{
-            label: 'Sales',
-            data: topCategories.map(c => c.sales),
-            backgroundColor: topCategories.map((_, i) => getChartColor(i)),
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            r: {
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
+            },
+            scales: {
+                r: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
                 }
             }
         }
-    }
-});
-
-// Hamburger menu functionality
-const hamburger = document.querySelector('.hamburger');
-const mobileNav = document.querySelector('.mobile-nav');
-const closeMenu = document.querySelector('.close-menu');
-const mobileNavLinks = document.querySelectorAll('.mobile-nav a');
-
-hamburger.addEventListener('click', function() {
-    mobileNav.classList.add('active');
-    hamburger.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
-});
-
-closeMenu.addEventListener('click', function() {
-    mobileNav.classList.remove('active');
-    hamburger.classList.remove('active');
-    document.body.style.overflow = ''; // Re-enable scrolling
-});
-
-// Close menu when clicking on a link
-mobileNavLinks.forEach(link => {
-    link.addEventListener('click', function() {
-        mobileNav.classList.remove('active');
-        hamburger.classList.remove('active');
-        document.body.style.overflow = '';
     });
-});
-
-// Handle clicks outside the mobile nav to close it
-document.addEventListener('click', function(event) {
-    if (!mobileNav.contains(event.target) && !hamburger.contains(event.target) && mobileNav.classList.contains('active')) {
+    
+    // Hamburger menu functionality
+    const hamburger = document.querySelector('.hamburger');
+    const mobileNav = document.querySelector('.mobile-nav');
+    const closeMenu = document.querySelector('.close-menu');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav a');
+    
+    hamburger.addEventListener('click', function() {
+        mobileNav.classList.add('active');
+        hamburger.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+    });
+    
+    closeMenu.addEventListener('click', function() {
         mobileNav.classList.remove('active');
         hamburger.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-});
-
-// Filter functionality
-document.getElementById('applyFilter').addEventListener('click', function() {
-    const fromDate = document.getElementById('from-date').value;
-    const toDate = document.getElementById('to-date').value;
-    const period = document.getElementById('time-period').value;
+        document.body.style.overflow = ''; // Re-enable scrolling
+    });
     
-    if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
-        alert('End date must be after start date');
-        return;
-    }
+    // Close menu when clicking on a link
+    mobileNavLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            mobileNav.classList.remove('active');
+            hamburger.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    });
     
-    let url = '/admin/dashboard?';
-    if (period) url += `period=${period}`;
-    if (fromDate && toDate) url += `${period ? '&' : ''}from=${fromDate}&to=${toDate}`;
+    // Handle clicks outside the mobile nav to close it
+    document.addEventListener('click', function(event) {
+        if (!mobileNav.contains(event.target) && !hamburger.contains(event.target) && mobileNav.classList.contains('active')) {
+            mobileNav.classList.remove('active');
+            hamburger.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
     
-    window.location.href = url;
-});
-
-document.getElementById('clearFilter').addEventListener('click', function() {
-    window.location.href = '/admin/dashboard';
-});
-
-// Time period selector
-document.getElementById('time-period').addEventListener('change', function() {
-    const period = this.value;
-    if (period) {
+    // Filter functionality
+    document.getElementById('applyFilter').addEventListener('click', function() {
+        const fromDate = document.getElementById('from-date').value;
+        const toDate = document.getElementById('to-date').value;
+        const period = document.getElementById('time-period').value;
+        
+        if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
+            alert('End date must be after start date');
+            return;
+        }
+        
+        let url = '/admin/dashboard?';
+        if (period) url += `period=${period}`;
+        if (fromDate && toDate) url += `${period ? '&' : ''}from=${fromDate}&to=${toDate}`;
+        
+        window.location.href = url;
+    });
+    
+    document.getElementById('clearFilter').addEventListener('click', function() {
+        window.location.href = '/admin/dashboard';
+    });
+    
+    // Time period selector
+    document.getElementById('time-period').addEventListener('change', function() {
+        const period = this.value;
+        if (period) {
+            document.getElementById('from-date').disabled = true;
+            document.getElementById('to-date').disabled = true;
+        } else {
+            document.getElementById('from-date').disabled = false;
+            document.getElementById('to-date').disabled = false;
+        }
+    });
+    
+    // Initialize date inputs
+    if (document.getElementById('time-period').value) {
         document.getElementById('from-date').disabled = true;
         document.getElementById('to-date').disabled = true;
-    } else {
-        document.getElementById('from-date').disabled = false;
-        document.getElementById('to-date').disabled = false;
     }
-});
-
-// Initialize date inputs
-if (document.getElementById('time-period').value) {
-    document.getElementById('from-date').disabled = true;
-    document.getElementById('to-date').disabled = true;
-}
-
-// Chart responsiveness
-function handleResize() {
-    if (lineChart) lineChart.resize();
-    if (polarChart) polarChart.resize();
-}
-
-window.addEventListener('resize', handleResize);
-</script>
+    
+    // Chart responsiveness
+    function handleResize() {
+        if (lineChart) lineChart.resize();
+        if (polarChart) polarChart.resize();
+    }
+    
+    window.addEventListener('resize', handleResize);
+    </script>
 </body>
 </html>

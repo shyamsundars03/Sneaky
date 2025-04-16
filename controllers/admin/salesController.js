@@ -129,13 +129,13 @@ const loadSales = async (req, res) => {
 
 
 
+// This is the updated getSalesData function in salesController.js
 const getSalesData = async (req, res) => {
     try {
         const { from, to, period = 'custom' } = req.query;
         let dateRange = {};
         
-        // // Store filters in session for persistence
-        // req.session.salesFilters = { from, to, period };
+        console.log('Sales data request with filters:', { from, to, period });
         
         if (period !== 'custom') {
             dateRange = getDateRange(period);
@@ -151,9 +151,13 @@ const getSalesData = async (req, res) => {
             query.deliveredDate = { $gte: startDate, $lte: endDate };
         }
 
+        console.log('Sales query:', JSON.stringify(query));
+
         const orders = await Order.find(query)
             .populate('user', 'name')
             .sort({ deliveredDate: -1 });
+
+        console.log(`Found ${orders.length} orders matching criteria`);
 
         const summary = await calculateSalesSummary(query);
 
@@ -185,6 +189,8 @@ const getSalesData = async (req, res) => {
         });
     }
 };
+
+
 
 const generateExcelReport = async (reportData, summary, filters) => {
     try {

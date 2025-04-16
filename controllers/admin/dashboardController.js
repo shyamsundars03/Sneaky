@@ -1,8 +1,21 @@
+// controllers/admin/dashboardController.js
 const Order = require('../../models/orderSchema');
 const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
 const moment = require('moment');
+
+
+// Add this function to your dashboardController.js
+function getChartColor(index) {
+    const colors = [
+        '#f44336', '#ff9800', '#3f51b5', '#9c27b0', '#4db6ac',
+        '#8bc34a', '#00bcd4', '#607d8b', '#795548', '#e91e63'
+    ];
+    return colors[index % colors.length];
+}
+
+
 
 // Helper functions
 function formatDate(date) {
@@ -11,6 +24,7 @@ function formatDate(date) {
     const pad = num => num.toString().padStart(2, '0');
     return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
 }
+
 
 function getDateRange(period) {
     const today = new Date();
@@ -34,31 +48,75 @@ function getDateRange(period) {
     }
 }
 
-const getDashboardData = async (filters = {}) => {
-    try {
-        // Build query for delivered orders
-        const orderQuery = { 
-            status: { $in: ['Delivered', 'Completed'] } // Adjust based on your schema
-          }; // Adjust this if you want to include other statuses
-          if (filters.from && filters.to) {
-            const startDate = new Date(filters.from);
-            const endDate = new Date(filters.to);
-            endDate.setHours(23, 59, 59, 999);
-            
-            orderQuery.deliveredDate = { 
-              $gte: startDate, 
-              $lte: endDate 
-            };
-          }
+// Generate dates between two dates
+function getDatesInRange(startDate, endDate) {
+    const dates = [];
+    const currentDate = new Date(startDate);
+    
+    // Ensure we include the end date
+    const lastDate = new Date(endDate);
+    lastDate.setHours(23, 59, 59, 999);
+    
+    while (currentDate <= lastDate) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dates;
+}
 
-        // Get orders data
-        const orders = await Order.find(orderQuery)
-            .populate('items.product')
+const loadDashboard = async (req, res) => {
+    try {
+        if (!req.session.admin) {
+            return res.redirect('/admin');
+        }
+
+        const { period = 'today', from, to } = req.query;
+        const dateRange = getDateRange(period);
+        
+        // Build query based on filters
+        const query = { status: 'Delivered' };
+        let startDate, endDate;
+        
+        if (from && to) {
+            startDate = new Date(from);
+            endDate = new Date(to);
+            endDate.setHours(23, 59, 59, 999);
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
+        } else if (dateRange.from && dateRange.to) {
+            startDate = new Date(dateRange.from);
+            endDate = new Date(dateRange.to);
+            endDate.setHours(23, 59, 59, 999);
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
+        } else {
+            // Default to last 30 days if no date range specified
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            endDate = new Date();
+            query.deliveredDate = { $gte: startDate, $lte: endDate };
+        }
+
+        console.log('Dashboard Query:', query);
+
+        // Fetch orders based on the query
+        const orders = await Order.find(query)
+            .populate({
+                path: 'items.product',
+                populate: {
+                    path: 'category',
+                    model: 'Category'
+                }
+            })
             .sort({ deliveredDate: -1 });
 
-        // Calculate total revenue and orders
+        console.log(`Retrieved ${orders.length} orders`);
+
+        // Calculate summary statistics
         const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
         const totalOrders = orders.length;
+
+        // Get active users count
+        const activeUsers = await User.countDocuments({ isActive: true });
 
         // Get top selling products
         const productSales = {};
@@ -71,12 +129,10 @@ const getDashboardData = async (filters = {}) => {
             });
         });
 
+        const topProductIds = Object.keys(productSales);
         const topProducts = await Product.find({ 
-            _id: { $in: Object.keys(productSales) } 
+            _id: { $in: topProductIds } 
         }).limit(10);
-
-
-
 
         const topProductsData = topProducts.map(product => ({
             name: product.productName,
@@ -88,15 +144,21 @@ const getDashboardData = async (filters = {}) => {
         const categorySales = {};
         orders.forEach(order => {
             order.items.forEach(item => {
-                const categoryId = item.product?.category?.toString();
-                if (categoryId) {
-                    categorySales[categoryId] = (categorySales[categoryId] || 0) + item.quantity;
+                if (item.product && item.product.category) {
+                    const categoryId = typeof item.product.category === 'object' 
+                        ? item.product.category._id.toString() 
+                        : item.product.category.toString();
+                    
+                    if (categoryId) {
+                        categorySales[categoryId] = (categorySales[categoryId] || 0) + item.quantity;
+                    }
                 }
             });
         });
 
+        const topCategoryIds = Object.keys(categorySales);
         const topCategories = await Category.find({ 
-            _id: { $in: Object.keys(categorySales) } 
+            _id: { $in: topCategoryIds } 
         }).limit(10);
 
         const topCategoriesData = topCategories.map(category => ({
@@ -104,131 +166,53 @@ const getDashboardData = async (filters = {}) => {
             sales: categorySales[category._id.toString()]
         })).sort((a, b) => b.sales - a.sales);
 
-        // Prepare data for charts
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (6 - i));
-            return date;
-        });
-
-        const dailySalesData = last7Days.map(date => {
+        // Generate all dates in the selected range for the chart
+        const datesInRange = getDatesInRange(startDate, endDate);
+        
+        // Prepare data for charts - use all dates in the selected range
+        const dailyData = datesInRange.map(date => {
             const dayStart = new Date(date);
             dayStart.setHours(0, 0, 0, 0);
             const dayEnd = new Date(date);
             dayEnd.setHours(23, 59, 59, 999);
             
-            const dayOrders = orders.filter(order => 
-                order.deliveredDate >= dayStart && order.deliveredDate <= dayEnd
-            );
+            // Find orders for this specific day
+            const dayOrders = orders.filter(order => {
+                const orderDate = new Date(order.deliveredDate);
+                return orderDate >= dayStart && orderDate <= dayEnd;
+            });
+            
+            const daySales = dayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
             
             return {
                 date: moment(date).format('DD/MM'),
-                sales: dayOrders.reduce((sum, order) => sum + order.totalAmount, 0),
+                fullDate: moment(date).format('YYYY-MM-DD'),
+                sales: daySales,
                 count: dayOrders.length
             };
         });
 
-        return {
-            totalRevenue,
-            totalOrders,
-            topProducts: topProductsData,
-            topCategories: topCategoriesData,
-            dailySalesData,
-            filterFrom: filters.from ? formatDate(filters.from) : null,
-            filterTo: filters.to ? formatDate(filters.to) : null
-        };
-    } catch (error) {
-        console.error('Error in getDashboardData:', error);
-        throw error;
-    }
-};
-const loadDashboard = async (req, res) => {
-    try {
-        if (!req.session.admin) {
-            return res.redirect('/admin');
-        }
+        console.log('Daily data points:', dailyData.length);
+        console.log('Sample daily data:', dailyData.slice(0, 3));
 
-        const { period = 'today', from, to } = req.query;
-        const dateRange = getDateRange(period);
-        
-        // Build query based on filters
-        const query = { status: 'Delivered' };
-        
-        if (from && to) {
-            const startDate = new Date(from);
-            const endDate = new Date(to);
-            endDate.setHours(23, 59, 59, 999);
-            query.deliveredDate = { $gte: startDate, $lte: endDate };
-        } else if (dateRange.from && dateRange.to) {
-            const startDate = new Date(dateRange.from);
-            const endDate = new Date(dateRange.to);
-            endDate.setHours(23, 59, 59, 999);
-            query.deliveredDate = { $gte: startDate, $lte: endDate };
-        } else {
-            // Default to a broader date range for testing
-            query.deliveredDate = {
-                $gte: ISODate("2025-03-31T00:00:00.000Z"),
-                $lte: ISODate("2025-04-08T23:59:59.999Z")
-            };
-        }
-
-        // console.log('Final Dashboard Query:', query); // Log the final query for debugging
-        const topProducts1 = await Product.find({ 
-            _id: { $in: Object.keys(productSales) } 
-        }).limit(10);
-
-
-
-
-        const topProductsData = topProducts1.map(product => ({
-            name: product.productName,
-            sales: productSales[product._id.toString()],
-            revenue: product.price * productSales[product._id.toString()]
-        })).sort((a, b) => b.sales - a.sales);
-
-        // Fetch orders based on the query
-        const orders = await Order.find(query).sort({ deliveredDate: -1 });
-        // console.log('Retrieved Orders:', orders); // Log retrieved orders
-
-        // Calculate summary statistics
-        const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-        const totalOrders = orders.length;
-        const totalDiscount = orders.reduce((sum, order) => sum + (order.discountAmount || 0), 0);
-        const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
-
-        // Revenue aggregation
-        const revenueStats = await Order.aggregate([
-            { $match: query },
-            { $group: { 
-                _id: null, 
-                totalRevenue: { $sum: '$totalAmount' },
-                totalOrders: { $sum: 1 }
-            }}
-        ]);
-
-        // console.log('Revenue Stats:', revenueStats); // Log revenue stats
-
-        const activeUsers = await User.countDocuments({ isActive: true });
-
-
-        const stats = revenueStats[0] || { totalRevenue: 0, totalOrders: 0 };
         const dateDisplay = from && to 
             ? `${formatDate(from)} - ${formatDate(to)}` 
             : dateRange.from 
                 ? `${formatDate(dateRange.from)} - ${formatDate(dateRange.to)}` 
-                : 'N/A - N/A';
+                : 'Last 30 days';
 
         res.render("dashboard", {
-            totalRevenue: stats.totalRevenue.toFixed(2),
-            totalOrders: stats.totalOrders,
-            activeUsers, // This will now have the correct count
-            topProducts:topProductsData ,
-            topCategories,
+            totalRevenue: totalRevenue.toFixed(2),
+            totalOrders,
+            activeUsers,
+            topProducts: topProductsData,
+            topCategories: topCategoriesData,
             dailyData,
             dateDisplay,
-            filterFrom: from || formatDate(dateRange.from),
-            filterTo: to || formatDate(dateRange.to),
+            filterFrom: from || (dateRange.from ? formatDate(dateRange.from) : ''),
+            filterTo: to || (dateRange.to ? formatDate(dateRange.to) : ''),
             period,
+            getChartColor, // Add this line to pass the function
             error: null
         });
 
@@ -245,11 +229,11 @@ const loadDashboard = async (req, res) => {
             dateDisplay: 'N/A - N/A',
             filterFrom: '',
             filterTo: '',
-            period: 'today'
+            period: 'today',
+            getChartColor // Add this line to pass the function in error case too
         });
     }
 };
-
 
 module.exports = {
     loadDashboard
