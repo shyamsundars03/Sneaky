@@ -11,7 +11,11 @@ const validateCoupon = async (req, res) => {
             code: couponCode.toUpperCase(),
             startDate: { $lte: currentDate },
             endDate: { $gte: currentDate }
-        });
+        }).lean();
+
+ console.log(coupon)
+
+
 
         if (!coupon) {
             return res.json({ 

@@ -328,7 +328,7 @@ const downloadPDF = async (req, res) => {
         const filePath = await generateSalesReport(pdfData, summary, { from, to });
         res.download(filePath, 'sales-report.pdf', (err) => {
             if (err) console.error('Error sending PDF:', err);
-            fs.unlink(filePath, () => {});
+            
         });
     } catch (error) {
         console.error("Error generating PDF:", error);
@@ -373,7 +373,7 @@ const downloadExcel = async (req, res) => {
         const filePath = await generateExcelReport(reportData, summary, { from, to });
         res.download(filePath, 'sales-report.xlsx', (err) => {
             if (err) console.error('Error sending Excel:', err);
-            fs.unlink(filePath, () => {});
+            
         });
     } catch (error) {
         console.error("Error generating Excel:", error);

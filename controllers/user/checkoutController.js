@@ -312,6 +312,9 @@ const saveCheckout1 = async (req, res) => {
     try {
         const { selectedAddress, shippingMethod, shippingCost, couponCode, discountAmount } = req.body;
 
+console.log(couponCode)
+
+
         if (!req.session.checkoutData) {
             return res.status(400).json({ success: false, message: "Session expired" });
         }
@@ -326,8 +329,8 @@ const saveCheckout1 = async (req, res) => {
         req.session.checkoutData.selectedAddress = address;
         req.session.checkoutData.shippingMethod = shippingMethod || 'Standard'; // Fallback to 'Standard'
         req.session.checkoutData.shippingCost = Number(shippingCost) || 100; // Fallback to 100
-        req.session.checkoutData.couponCode = couponCode || null;
-        req.session.checkoutData.discountAmount = Number(discountAmount) || 0;
+        req.session.checkoutData.couponCode = couponCode || null,
+        req.session.checkoutData.discountAmount = Number(discountAmount) || 0,
         req.session.checkoutData.step = 1;
 
         res.json({ success: true });
@@ -342,78 +345,93 @@ const saveCheckout1 = async (req, res) => {
 
 
 
-// Validate and Apply Coupon
-const validateCoupon = async (req, res) => {
-    try {
-        const { couponCode } = req.body;
-        const userId = req.user._id;
+// // Validate and Apply Coupon
+// const validateCoupon = async (req, res) => {
+//     try {
+//         const { couponCode } = req.body;
+//         const userId = req.user._id;
         
-        if (!req.session.checkoutData) {
-            return res.status(400).json({ valid: false, message: "Session expired" });
-        }
+//         if (!req.session.checkoutData) {
+//             return res.status(400).json({ valid: false, message: "Session expired" });
+//         }
 
-        const cartTotal = req.session.checkoutData.cart.total;
-        const shippingCost = req.session.checkoutData.shippingCost || 100;
-        const totalAmount = cartTotal + shippingCost;
+//         const cartTotal = req.session.checkoutData.cart.total;
+//         const shippingCost = req.session.checkoutData.shippingCost || 100;
+//         const totalAmount = cartTotal + shippingCost;
 
-        // Find the coupon
-        const coupon = await Coupon.findOne({ 
-            code: couponCode.toUpperCase(),
-            startDate: { $lte: new Date() },
-            endDate: { $gte: new Date() }
-        });
+//         // Find the coupon
+//         const coupon = await Coupon.findOne({ 
+//             code: couponCode.toUpperCase()
 
-        if (!coupon) {
-            return res.json({ 
-                valid: false, 
-                message: 'Invalid or expired coupon code' 
-            });
-        }
+//         });
 
-        // Check if user already used this coupon
-        const existingOrder = await Order.findOne({ 
-            user: userId, 
-            couponCode: coupon.code,
-            paymentStatus: 'Completed'
-        });
 
-        if (existingOrder) {
-            return res.json({
-                valid: false,
-                message: 'You have already used this coupon'
-            });
-        }
+// console.log("coupon")
+// console.log(coupon)
 
-        // Check minimum purchase
-        if (totalAmount < coupon.minPurchase) {
-            return res.json({
-                valid: false,
-                message: `Minimum purchase of ₹${coupon.minPurchase} required for this coupon`
-            });
-        }
 
-        // Calculate discount amount
-        const discountAmount = (totalAmount * coupon.discountPercentage) / 100;
 
-        // Update session with coupon data
-        req.session.checkoutData.couponCode = coupon.code;
-        req.session.checkoutData.discountAmount = discountAmount;
+//         if (!coupon) {
+//             return res.json({ 
+//                 valid: false, 
+//                 message: 'Invalid or expired coupon code' 
+//             });
+//         }
 
-        res.json({
-            valid: true,
-            message: 'Coupon applied successfully',
-            discountAmount: discountAmount,
-            couponCode: coupon.code
-        });
+//         // Check if user already used this coupon
+//         const existingOrder = await Order.findOne({ 
+//             user: userId, 
+//             couponCode: coupon.code,
+//             paymentStatus: 'Completed'
+//         });
 
-    } catch (error) {
-        console.error('Error validating coupon:', error);
-        res.status(500).json({
-            valid: false,
-            message: 'Error validating coupon'
-        });
-    }
-};
+//         if (existingOrder) {
+//             return res.json({
+//                 valid: false,
+//                 message: 'You have already used this coupon'
+//             });
+//         }
+
+//         // Check minimum purchase
+//         if (totalAmount < coupon.minPurchase) {
+//             return res.json({
+//                 valid: false,
+//                 message: `Minimum purchase of ₹${coupon.minPurchase} required for this coupon`
+//             });
+//         }
+
+//         // Calculate discount amount
+//         const discountAmount = (totalAmount * coupon.discountPercentage) / 100;
+
+//         // Update session with coupon data
+//         req.session.checkoutData.couponCode = coupon.code;
+//         req.session.checkoutData.discountAmount = discountAmount;
+
+//         console.log({
+//             couponCode: coupon.code,
+//             totalAmount,
+//             discountPercentage: coupon.discountPercentage,
+//             discountAmount
+//         });
+
+
+
+
+//         res.json({
+//             valid: true,
+//             message: 'Coupon applied successfully',
+//             discountAmount: discountAmount,
+//             couponCode: coupon.code
+//         });
+
+//     } catch (error) {
+//         console.error('Error validating coupon:', error);
+//         res.status(500).json({
+//             valid: false,
+//             message: 'Error validating coupon'
+//         });
+//     }
+// };
 
 
 const saveCheckout2 = async (req, res) => {
@@ -542,7 +560,7 @@ module.exports = {
     loadCheckout3,
     saveCheckout1,
     saveCheckout2,
-    validateCoupon,
+  
     validateAndPlaceOrder,
     removeCoupon
 };

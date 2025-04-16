@@ -735,8 +735,8 @@ async function applyCoupon() {
             const newTotal = totalAmount - result.discountAmount;
             document.getElementById('totalAmount').textContent = `₹${newTotal}`;
             
-            // Reload to show applied coupon
-            window.location.reload();
+            // // Reload to show applied coupon
+            // window.location.reload();
         } else {
             messageElement.textContent = result.message;
             messageElement.style.color = 'red';

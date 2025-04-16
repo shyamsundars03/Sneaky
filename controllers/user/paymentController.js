@@ -590,6 +590,11 @@ const validateCoupon = async (req, res) => {
         const discountAmount = (totalAmount * coupon.discountPercentage) / 100;
         const finalAmount = totalAmount - discountAmount;
 
+        req.session.discountAmount = discountAmount;
+        req.session.finalAmount = finalAmount;
+        req.session.couponCode = coupon.code;
+
+
         res.json({ 
             valid: true,
             discountAmount,
