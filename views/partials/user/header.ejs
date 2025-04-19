@@ -1754,6 +1754,7 @@
         @media (max-width: 768px) {
             .mobile-menu-btn {
                 display: block;
+                z-index: 1001;
             }
 
             .logo {
@@ -1789,12 +1790,14 @@
 
             .nav-links.active {
                 display: flex;
+                z-index: 1000;
             }
             .close-menu-btn {
                 display: none;
             }
             .close-menu-btn.active {
                 display: block;
+                z-index: 1002;
             }
 
             .hero-content {
@@ -2387,39 +2390,31 @@
     </header>
 
     <script>
-    // Only initialize if elements exist and haven't been initialized
-    if (!window.mobileMenuInitialized) {
-        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-        const closeMenuBtn = document.querySelector('.close-menu-btn');
-        const navLinks = document.querySelector('.nav-links');
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const closeMenuBtn = document.querySelector('.close-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    
+    if (mobileMenuBtn && closeMenuBtn && navLinks) {
+        mobileMenuBtn.addEventListener('click', function() {
+            navLinks.classList.add('active');
+            closeMenuBtn.classList.add('active');
+        });
         
-        if (mobileMenuBtn && closeMenuBtn && navLinks) {
-            mobileMenuBtn.addEventListener('click', function() {
-                navLinks.classList.add('active');
-                closeMenuBtn.classList.add('active');
-            });
-            
-            closeMenuBtn.addEventListener('click', function() {
+        closeMenuBtn.addEventListener('click', function() {
+            navLinks.classList.remove('active');
+            closeMenuBtn.classList.remove('active');
+        });
+        
+        // Close menu when clicking on a link
+        const menuLinks = document.querySelectorAll('.nav-links a');
+        menuLinks.forEach(link => {
+            link.addEventListener('click', function() {
                 navLinks.classList.remove('active');
                 closeMenuBtn.classList.remove('active');
             });
-            
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    const dropdowns = document.querySelectorAll('.dropdown-content');
-                    dropdowns.forEach(dropdown => {
-                        dropdown.style.display = 'none';
-                    });
-                }
-                
-                if (e.target.closest('.nav-links a')) {
-                    navLinks.classList.remove('active');
-                    closeMenuBtn.classList.remove('active');
-                }
-            });
-            
-            window.mobileMenuInitialized = true;
-        }
+        });
     }
+});
     </script>
 </body>
