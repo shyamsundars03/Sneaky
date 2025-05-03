@@ -164,6 +164,15 @@ const loadOrderSuccess = async (req, res) => {
         const order = await Order.findById(req.params.orderId);
         if (!order) return res.redirect('/orders');
         
+        // Clear checkout session data
+        if (req.session.checkoutData) {
+            delete req.session.checkoutData;
+        }
+        if (req.session.pendingOrder) {
+            delete req.session.pendingOrder;
+        }
+        await req.session.save();
+        
         res.render('orderSuccess', {
             orderId: order._id,
             transactionId: order.transactionId
@@ -178,12 +187,21 @@ const loadOrderFailed = async (req, res) => {
         const order = await Order.findById(req.params.orderId);
         if (!order) return res.redirect('/orders');
         
+        // Clear checkout session data but keep cart intact
+        if (req.session.checkoutData) {
+            delete req.session.checkoutData;
+        }
+        if (req.session.pendingOrder) {
+            delete req.session.pendingOrder;
+        }
+        await req.session.save();
+        
         res.render('orderFailed', {
             orderId: order._id,
             transactionId: order.transactionId
         });
     } catch (error) {
-        res.redirect('/orders');
+        res.redirect('/cart');
     }
 };
 

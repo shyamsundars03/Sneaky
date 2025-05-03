@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Placed Successfully - SNEAKY</title>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Order Failed - SNEAKY</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Global Styles */
         * {
@@ -144,9 +149,76 @@
         <p>Your order was created but payment failed.</p>
         <div class="buttons">
 
-            <a href="/orders/<%= orderId %>" class="btn">View Order</a>
+            <a href="/orders/<%= orderId %>" class="btn" id="view-order-btn"  >View Order</a>
+            <a href="/cart" class="btn" id="back-to-cart-btn">Back to Cart</a>
         </div>
     </div>
 
 </body>
+<script>
+    // Execute immediately without waiting for DOMContentLoaded
+    (function() {
+        // Clear all session storage
+        sessionStorage.clear();
+        localStorage.removeItem('checkoutData');
+        
+        // Replace current history state
+        history.replaceState(null, '', window.location.href);
+        
+        // Disable back button completely
+        window.history.forward();
+        
+        // Handle back button attempts
+        window.onpopstate = function() {
+            // Force forward navigation
+            history.go(1);
+            
+            // Show alert if user tries to go back
+            Swal.fire({
+                icon: 'warning',
+                title: 'Navigation Restricted',
+                text: 'Please use the provided buttons to navigate',
+                confirmButtonColor: '#ff0000'
+            });
+        };
+        
+        // Disable all keyboard shortcuts for navigation
+        document.addEventListener('keydown', function(e) {
+            // Prevent Alt+Left (browser back)
+            if (e.altKey && e.keyCode === 37) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Prevent Backspace (except in form fields)
+            if (e.keyCode === 8 && 
+                !(e.target.tagName === 'INPUT' || 
+                  e.target.tagName === 'TEXTAREA' || 
+                  e.target.isContentEditable)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Detect if page is loaded from cache (back button)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Redirect to cart if loaded from cache
+                window.location.href = '/cart';
+            }
+        });
+    })();
+    
+    // Add event listeners after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make sure buttons work
+        document.getElementById('view-order-btn').addEventListener('click', function() {
+            window.location.href = '/orders/<%= orderId %>';
+        });
+        
+        document.getElementById('back-to-cart-btn').addEventListener('click', function() {
+            window.location.href = '/cart';
+        });
+    });
+</script>
 </html>

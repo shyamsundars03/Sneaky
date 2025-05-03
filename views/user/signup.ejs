@@ -191,17 +191,33 @@
                                 error = 'Phone number must be 10 digits';
                             }
                             break;
-                        case 'password':
-                            if (value.length < 6) {
-                                error = 'Password must be at least 6 characters';
+                            case 'password':
+                            if (value.length < 8) {
+                                error = 'Password must be at least 8 characters';
+                            } else if (!/[A-Z]/.test(value)) {
+                                error = 'Password must contain at least one uppercase letter';
+                            } else if (!/[a-z]/.test(value)) {
+                                error = 'Password must contain at least one lowercase letter';
+                            } else if (!/[0-9]/.test(value)) {
+                                error = 'Password must contain at least one number';
+                            } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)) {
+                                error = 'Password must contain at least one special character';
                             }
                             break;
                         case 'confirmPassword':
                             const password = document.getElementById('password').value;
                             if (value !== password) {
                                 error = 'Passwords do not match';
-                            } else if (value.length < 6) {
-                                error = 'Password must be at least 6 characters';
+                            } else if (value.length < 8) {
+                                error = 'Password must be at least 8 characters';
+                            } else if (!/[A-Z]/.test(value)) {
+                                error = 'Password must contain at least one uppercase letter';
+                            } else if (!/[a-z]/.test(value)) {
+                                error = 'Password must contain at least one lowercase letter';
+                            } else if (!/[0-9]/.test(value)) {
+                                error = 'Password must contain at least one number';
+                            } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)) {
+                                error = 'Password must contain at least one special character';
                             }
                             break;
                         case 'referralCode':
@@ -230,6 +246,29 @@
                 return true;
             };
     
+
+
+// Add this after the validateField function
+document.getElementById('password').addEventListener('input', function(e) {
+    const value = e.target.value;
+    const requirements = {
+        lengthReq: value.length >= 8,
+        upperReq: /[A-Z]/.test(value),
+        lowerReq: /[a-z]/.test(value),
+        numberReq: /[0-9]/.test(value),
+        specialReq: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)
+    };
+
+    for (const [id, isValid] of Object.entries(requirements)) {
+        const element = document.getElementById(id);
+        element.classList.toggle('valid', isValid);
+        element.classList.toggle('invalid', !isValid && value.length > 0);
+    }
+});
+
+
+
+            
             const googleSignUp = document.getElementById('googleSignUp');
             if (googleSignUp) {
                 googleSignUp.addEventListener('click', () => {
@@ -251,7 +290,16 @@
     
                 signupForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-    
+                // Get buttons
+                const submitButton = document.querySelector('button[type="submit"]');
+            const googleBtn = document.querySelector('button[type="button"]');
+            
+            // Disable buttons and show loading state
+            submitButton.disabled = true;
+            googleBtn.disabled = true;
+            submitButton.textContent = 'Sending...';
+
+
                     let isValid = true;
                     const formData = {};
     
@@ -273,7 +321,13 @@
                         validateField(document.getElementById('confirmPassword'), confirmPassword);
                     }
     
-                    if (!isValid) return;
+            if (!isValid) {
+                // Re-enable buttons if client-side validation fails
+                submitButton.disabled = false;
+                googleBtn.disabled = false;
+                submitButton.textContent = 'Sign Up';
+                return;
+            }
     
                     try {
                         const response = await fetch('/signup', {
@@ -295,6 +349,11 @@
                                 window.location.href = '/otpsend';
                             });
                         } else {
+                                                // Error - re-enable buttons
+                    submitButton.disabled = false;
+                    googleBtn.disabled = false;
+                    submitButton.textContent = 'Sign Up';
+
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error!',
@@ -302,6 +361,12 @@
                             });
                         }
                     } catch (error) {
+                                            // Error - re-enable buttons
+                    submitButton.disabled = false;
+                    googleBtn.disabled = false;
+                    submitButton.textContent = 'Sign Up';
+
+
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
@@ -312,7 +377,7 @@
             }
         });
     </script>
-    <script>
+    <!-- <script>
         document.getElementById('signupForm').addEventListener('submit', function() {
             const submitButton = document.querySelector('button[type="submit"]');
             const googlebtn =document.querySelector('button[type="button"]');
@@ -320,5 +385,5 @@
             submitButton.disabled = true; // Disable the button
             submitButton.textContent = 'Sending...'; // Change button text
         }); 
-        </script>
+        </script> -->
 </body>

@@ -433,8 +433,9 @@
                         <form id="addMoneyForm">
                             <div class="form-group">
                                 <label for="amount">Amount (₹)</label>
-                                <input type="number" id="amount" name="amount" min="1" required>
-                                <small>Minimum ₹1 required</small>
+                                <input type="number" id="amount" name="amount" min="1" max="20000" oninput="validateAmount(this)">
+
+                                <div id="amountError" class="error-message" style="color: red; display: none;"></div>
                             </div>
                             <button type="submit" class="btn btn-primary">Proceed to Payment</button>
                         </form>
@@ -522,6 +523,37 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
+function validateAmount(input) {
+  // Limit to 5 digits
+  if (input.value.length > 5) {
+    input.value = input.value.slice(0, 5);
+  }
+  
+  // Convert the input value to a float
+  const amount = parseFloat(input.value);
+  const errorElement = document.getElementById('amountError');
+  
+  // Check if amount is less than 1
+  if (amount < 1) {
+    errorElement.textContent = 'Amount must be ₹1 or above';
+    errorElement.style.display = 'block';
+    input.setCustomValidity('Amount must be ₹1 or above');
+  } 
+  // Check if amount exceeds the maximum allowed
+  else if (amount > 20000) {
+    errorElement.textContent = 'Amount cannot exceed ₹20,000';
+    errorElement.style.display = 'block';
+    input.setCustomValidity('Amount cannot exceed ₹20,000');
+  } 
+  // If input is valid, remove error message
+  else {
+    errorElement.style.display = 'none';
+    input.setCustomValidity('');
+  }
+}
+
+
     document.addEventListener('DOMContentLoaded', function () {
       // Modal functionality
       const modal = document.getElementById("addMoneyModal");
@@ -556,6 +588,15 @@
           return;
         }
   
+        if (amount > 20000) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Amount Exceeds Limit',
+      text: 'Maximum amount allowed is ₹20,000'
+    });
+    return;
+  }
+
         try {
           // Show loading indicator
           Swal.fire({

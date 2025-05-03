@@ -74,7 +74,13 @@ const addFundsRazorpay = async (req, res) => {
         message: "Minimum amount is ₹1"
       });
     }
-
+    if (amount > 20000) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum amount allowed is ₹20,000"
+      });
+    }
+    
     // Create a unique receipt ID
     const receiptId = `wallet_${userId.toString().slice(-6)}_${Date.now().toString().slice(-8)}`;
 

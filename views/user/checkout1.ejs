@@ -1,4 +1,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+
+
 <style>
     /* Modal Styles */
     .modal-overlay {
@@ -462,8 +468,7 @@
     <div id="couponMessage" class="coupon-message"></div>
     <% if (couponApplied) { %>
         <div class="coupon-success">
-            Coupon applied! Discount: ₹<%= discountAmount %>
-            
+            Coupon applied! Discount: ₹<%= discountAmount.toFixed(2) %>
         </div>
     <% } %>
 </div>
@@ -485,15 +490,13 @@
                 <span>Shipping & Handling</span>
                 <span id="shippingCost">₹100</span>
             </div>
-            <% if (couponApplied) { %>
-                <div class="summary-item">
-                    <span style="color: red;">Coupon Discount</span>
-                    <span style="color: red;">-₹<%= discountAmount %></span>
-                </div>
-            <% } %>
+            <div class="summary-item">
+                <span style="<%= couponApplied ? 'color: red;' : '' %>">Coupon Discount</span>
+                <span style="<%= couponApplied ? 'color: red;' : '' %>">-₹<%= discountAmount.toFixed(2) %></span>
+            </div>
             <div class="summary-item total-row">
                 <span>Total</span>
-                <span id="totalAmount">₹<%= cartTotal + (100 - (couponApplied ? discountAmount : 0)) %></span>
+                <span id="totalAmount">₹<%= (cartTotal + shippingCost - discountAmount).toFixed(2) %></span>
             </div>
         </div>
     </div>
@@ -714,6 +717,11 @@ async function applyCoupon() {
         messageElement.textContent = 'Validating coupon...';
         messageElement.style.color = 'blue';
 
+                // Get the current shipping cost from the DOM
+        const shippingCostText = document.getElementById('shippingCost').textContent;
+        const shippingCost = Number(shippingCostText.replace('₹', '')) || 100;
+
+
         const response = await fetch('/validate-coupon', {
             method: 'POST',
             headers: {
@@ -721,22 +729,25 @@ async function applyCoupon() {
             },
             body: JSON.stringify({
                 couponCode,
-                totalAmount
+                totalAmount: <%= cartTotal %> + shippingCost
             }),
+              credentials: 'include'
         });
 
         const result = await response.json();
 
         if (result.valid) {
-            messageElement.textContent = result.message;
-            messageElement.style.color = 'green';
+ // Show success message
+            await Swal.fire({
+                    icon: 'success',
+                     title: 'Coupon Applied',
+                     text: result.message,
+                    timer: 2000,
+                    showConfirmButton: false
+            });
             
-            // Update total display
-            const newTotal = totalAmount - result.discountAmount;
-            document.getElementById('totalAmount').textContent = `₹${newTotal}`;
-            
-            // // Reload to show applied coupon
-            // window.location.reload();
+            // Reload to show applied coupon
+            window.location.reload();
         } else {
             messageElement.textContent = result.message;
             messageElement.style.color = 'red';
@@ -796,28 +807,23 @@ async function removeCoupon() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            }
+            },
+            credentials: 'include'
         });
 
         const result = await response.json();
 
         if (result.success) {
-            // Clear coupon from UI
-            document.getElementById('couponCode').value = '';
-            document.getElementById('couponCode').disabled = false;
-            document.getElementById('couponMessage').textContent = '';
+            // Show success message
+            await Swal.fire({
+                icon: 'success',
+                title: 'Coupon Removed',
+                text: 'Coupon has been removed successfully',
+                timer: 2000,
+                showConfirmButton: false
+            });
             
-            // Remove coupon success message
-            const couponSuccess = document.querySelector('.coupon-success');
-            if (couponSuccess) couponSuccess.remove();
-            
-            // Update total amount
-            const cartTotal = <%= cartTotal %>;
-            const shippingCost = <%= shippingCost %> || 100;
-            const totalAmount = cartTotal + shippingCost;
-            document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
-            
-            // Reload to ensure clean state
+            // Reload to update UI
             window.location.reload();
         } else {
             Swal.fire({

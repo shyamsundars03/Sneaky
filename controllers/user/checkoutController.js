@@ -180,8 +180,9 @@ const removeCoupon = async (req, res) => {
         }
 
         // Remove coupon from session
-        delete req.session.checkoutData.couponCode;
-        delete req.session.checkoutData.discountAmount;
+        req.session.checkoutData.couponCode = null;
+        req.session.checkoutData.discountAmount = 0;
+        await req.session.save();
 
         res.json({ 
             success: true,

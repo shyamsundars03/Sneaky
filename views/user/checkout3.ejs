@@ -6,6 +6,9 @@
     <link rel="icon" href="/images/sneaky.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
     <title>SNEAKY</title>
     <style>
 /* Global Styles */
@@ -569,104 +572,108 @@ ul {
     <%-include("../../views/partials/user/footer")%>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          document.getElementById('place-order-btn').addEventListener('click', placeOrder);
-        });
+
         
         // Place order function
         async function placeOrder() {
-          try {
-            // Show loading indicator
-            const swalInstance = Swal.fire({
-              title: 'Processing Order',
-              html: 'Please wait while we process your order...',
-              allowOutsideClick: false,
-              didOpen: () => Swal.showLoading()
-            });
-      
-            // First validate the order
-            const validationResponse = await fetch('/validate-and-place-order', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include'
-            });
-      
-            const validationResult = await validationResponse.json();
-            
-            if (!validationResult.success) {
-              throw new Error(validationResult.message || 'Order validation failed');
-            }
-      
-            // Prepare order data
-            const orderData = {
-              shippingAddress: JSON.parse('<%- JSON.stringify(shippingAddress) %>'),
-              shippingMethod: '<%= shippingMethod %>',
-              shippingCost: <%- shippingCost %>,
-              couponCode: '<%= couponCode %>' || null,
-              totalAmount: validationResult.totalAmount
-            };
-      
-            let paymentResponse;
-            const paymentMethod = '<%= paymentMethod %>';
-            
-            // Process payment based on method
-            if (paymentMethod === 'Razorpay') {
-              paymentResponse = await fetch('/process-razorpay', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
-                credentials: 'include'
-              });
-            } 
-            else if (paymentMethod === 'Wallet') {
-              paymentResponse = await fetch('/process-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
-                credentials: 'include'
-              });
-            } 
-            else { // COD
-              paymentResponse = await fetch('/process-cod', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
-                credentials: 'include'
-              });
-            }
-      
-            const paymentResult = await paymentResponse.json();
-            swalInstance.close();
-      
-            if (!paymentResult.success) {
-              throw new Error(paymentResult.message || 'Payment processing failed');
-            }
-      
-            // Handle Razorpay payment
-            if (paymentMethod === 'Razorpay') {
-              handleRazorpayPayment(paymentResult);
-            } 
-            // For COD/Wallet, go to success page
-            else {
-              window.location.href = `/order-success/${paymentResult.orderId}`;
-            }
-          } 
-          catch (error) {
-            console.error('Order Error:', error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Order Failed',
-              text: error.message || 'Failed to place order',
-            }).then(() => {
-              if (error.message && error.message.includes('cart')) {
-                window.location.href = '/cart';
-              } 
-              else if (error.message && error.message.includes('wallet')) {
-                window.location.href = '/checkout2';
-              }
-            });
-          }
-        }
+  try {
+    // Disable the button to prevent multiple clicks
+    document.getElementById('place-order-btn').disabled = true;
+    
+    // Show loading indicator
+    const swalInstance = Swal.fire({
+      title: 'Processing Order',
+      html: 'Please wait while we process your order...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    // First validate the order
+    const validationResponse = await fetch('/validate-and-place-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+
+    const validationResult = await validationResponse.json();
+    
+    if (!validationResult.success) {
+      throw new Error(validationResult.message || 'Order validation failed');
+    }
+
+    // Prepare order data
+    const orderData = {
+      shippingAddress: JSON.parse('<%- JSON.stringify(shippingAddress) %>'),
+      shippingMethod: '<%= shippingMethod %>',
+      shippingCost: <%- shippingCost %>,
+      couponCode: '<%= couponCode %>' || null,
+      totalAmount: validationResult.totalAmount
+    };
+
+    let paymentResponse;
+    const paymentMethod = '<%= paymentMethod %>';
+    
+    // Process payment based on method
+    if (paymentMethod === 'Razorpay') {
+      paymentResponse = await fetch('/process-razorpay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+        credentials: 'include'
+      });
+    } 
+    else if (paymentMethod === 'Wallet') {
+      paymentResponse = await fetch('/process-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+        credentials: 'include'
+      });
+    } 
+    else { // COD
+      paymentResponse = await fetch('/process-cod', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+        credentials: 'include'
+      });
+    }
+
+    const paymentResult = await paymentResponse.json();
+    swalInstance.close();
+
+    if (!paymentResult.success) {
+      throw new Error(paymentResult.message || 'Payment processing failed');
+    }
+
+    // Handle Razorpay payment
+    if (paymentMethod === 'Razorpay') {
+      handleRazorpayPayment(paymentResult);
+    } 
+    // For COD/Wallet, go to success page
+    else {
+      window.location.href = `/order-success/${paymentResult.orderId}`;
+    }
+  } 
+  catch (error) {
+    console.error('Order Error:', error);
+    // Re-enable the button
+    document.getElementById('place-order-btn').disabled = false;
+    
+    Swal.fire({
+      icon: 'error',
+      title: 'Order Failed',
+      text: error.message || 'Failed to place order',
+    }).then(() => {
+      if (error.message && error.message.includes('cart')) {
+        window.location.href = '/cart';
+      } 
+      else if (error.message && error.message.includes('wallet')) {
+        window.location.href = '/checkout2';
+      }
+    });
+  }
+}
       
         function handleRazorpayPayment(result) {
           const options = {

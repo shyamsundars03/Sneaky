@@ -6,7 +6,11 @@
     <link rel="icon" href="/images/sneaky.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>SNEAKY</title>
+
     <style>
         /* Global Styles */
         * {
@@ -150,4 +154,71 @@
     </div>
 
 </body>
+<script>
+    // Execute immediately without waiting for DOMContentLoaded
+    (function() {
+        // Clear all session storage
+        sessionStorage.clear();
+        localStorage.removeItem('checkoutData');
+        
+        // Replace current history state
+        history.replaceState(null, '', window.location.href);
+        
+        // Disable back button completely
+        window.history.forward();
+        
+        // Handle back button attempts
+        window.onpopstate = function() {
+            // Force forward navigation
+            history.go(1);
+            
+            // Show alert if user tries to go back
+            Swal.fire({
+                icon: 'warning',
+                title: 'Navigation Restricted',
+                text: 'Please use the provided buttons to navigate',
+                confirmButtonColor: '#ff0000'
+            });
+        };
+        
+        // Disable all keyboard shortcuts for navigation
+        document.addEventListener('keydown', function(e) {
+            // Prevent Alt+Left (browser back)
+            if (e.altKey && e.keyCode === 37) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Prevent Backspace (except in form fields)
+            if (e.keyCode === 8 && 
+                !(e.target.tagName === 'INPUT' || 
+                  e.target.tagName === 'TEXTAREA' || 
+                  e.target.isContentEditable)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Detect if page is loaded from cache (back button)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Redirect to home if loaded from cache
+                window.location.href = '/';
+            }
+        });
+    })();
+    
+    // Add event listeners after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make sure buttons work
+        document.getElementById('view-orders-btn').addEventListener('click', function() {
+            window.location.href = '/orders';
+        });
+        
+        document.getElementById('home-btn').addEventListener('click', function() {
+            window.location.href = '/';
+        });
+    });
+</script>
+
 </html>

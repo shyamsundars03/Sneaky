@@ -47,7 +47,38 @@ const processCOD = async (req, res) => {
             });
         }
 
-        // Create order
+        // Check if there's already a pending order for this session
+        if (req.session.pendingOrder) {
+            // Use the existing order instead of creating a new one
+            const existingOrder = await Order.findById(req.session.pendingOrder.orderId);
+            
+            if (existingOrder && existingOrder.status === 'Payment Processing') {
+                // Update the existing order to COD
+                existingOrder.paymentMethod = 'CashOnDelivery';
+                existingOrder.status = 'Ordered';
+                existingOrder.paymentStatus = 'Pending';
+                existingOrder.orderedDate = new Date();
+                await existingOrder.save({ session });
+                
+                // Clear session data
+                delete req.session.pendingOrder;
+                delete req.session.checkoutData;
+                await req.session.save();
+                
+                // Clear cart
+                await Cart.findOneAndDelete({ user: userId }).session(session);
+                
+                await session.commitTransaction();
+                
+                return res.json({
+                    success: true,
+                    orderId: existingOrder._id,
+                    redirectUrl: `/order-success/${existingOrder._id}`
+                });
+            }
+        }
+
+        // Create a new order if no pending order exists
         const order = new Order({
             user: userId,
             items: checkoutData.cart.items,
@@ -86,6 +117,7 @@ const processCOD = async (req, res) => {
 
         // Clear checkout session
         delete req.session.checkoutData;
+        delete req.session.pendingOrder; // Also clear any pending order
         await req.session.save();
 
         await session.commitTransaction();
@@ -224,10 +256,6 @@ const processRazorpay = async (req, res) => {
             throw new Error("Session expired. Please restart checkout.");
         }
 
-
-console.log(req.body)
-
-
         const checkoutData = req.session.checkoutData;
         const userId = req.user._id;
 
@@ -237,7 +265,38 @@ console.log(req.body)
         const discountAmount = Number(checkoutData.discountAmount) || 0;
         const totalAmount = subtotal + shippingCost - discountAmount;
 
-        // Create order in database first
+        // Check if there's already a pending order for this session
+        if (req.session.pendingOrder) {
+            // Use the existing order instead of creating a new one
+            const existingOrder = await Order.findById(req.session.pendingOrder.orderId);
+            
+            if (existingOrder && existingOrder.status === 'Payment Processing') {
+                // Create Razorpay order for the existing order
+                const razorpayOrder = await razorpay.orders.create({
+                    amount: Math.round(totalAmount * 100), // Convert to paise
+                    currency: 'INR',
+                    receipt: `order_${existingOrder._id}`,
+                    notes: {
+                        orderId: existingOrder._id.toString()
+                    }
+                });
+                
+                // Update session with new Razorpay order ID
+                req.session.pendingOrder.razorpayOrderId = razorpayOrder.id;
+                await req.session.save();
+                
+                await session.commitTransaction();
+                
+                return res.json({
+                    success: true,
+                    orderId: existingOrder._id,
+                    razorpayOrderId: razorpayOrder.id, 
+                    totalAmount: totalAmount
+                });
+            }
+        }
+
+        // Create a new order if no pending order exists
         const order = new Order({
             user: userId,
             items: checkoutData.cart.items,
@@ -561,6 +620,7 @@ const verifyRetryPayment = async (req, res) => {
 const validateCoupon = async (req, res) => {
     try {
         const { couponCode, totalAmount } = req.body;
+        const userId = req.user._id; // Get user ID from authenticated user
         
         if (!couponCode || !totalAmount) {
             return res.json({ 
@@ -580,6 +640,20 @@ const validateCoupon = async (req, res) => {
             return res.json({ valid: false, message: "Coupon has expired" });
         }
 
+        // Check if user already used this coupon
+        const existingOrder = await Order.findOne({ 
+            user: userId, 
+            couponCode: coupon.code,
+            paymentStatus: { $in: ['Completed', 'Pending'] } // Include pending orders too
+        });
+
+        if (existingOrder) {
+            return res.json({
+                valid: false,
+                message: 'You have already used this coupon'
+            });
+        }
+
         if (totalAmount < coupon.minPurchase) {
             return res.json({ 
                 valid: false, 
@@ -590,10 +664,12 @@ const validateCoupon = async (req, res) => {
         const discountAmount = (totalAmount * coupon.discountPercentage) / 100;
         const finalAmount = totalAmount - discountAmount;
 
-        req.session.discountAmount = discountAmount;
-        req.session.finalAmount = finalAmount;
-        req.session.couponCode = coupon.code;
-
+        // Update session with coupon data
+        if (req.session.checkoutData) {
+            req.session.checkoutData.couponCode = coupon.code;
+            req.session.checkoutData.discountAmount = discountAmount;
+            await req.session.save();
+        }
 
         res.json({ 
             valid: true,
