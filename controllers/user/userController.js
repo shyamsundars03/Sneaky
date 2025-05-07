@@ -302,15 +302,12 @@ const signupPost = async (req, res) => {
 
 const googleCallback = async (req, res) => {
     try {
-        if (!req.user) return res.redirect('/signin?error=Google auth failed');
+        if (!req.user) return res.redirect('/signin');
 
         // Only process new Google users
         if (req.user.isNew) {
-            // Generate referral code using your existing service
-            const referralCode = require('../../services/referralService').generateReferralCode(req.user.email);
-            
-            // Prepare base update
-            const updateData = {
+            const referralCode = await generateReferralCode();
+            let updateData = { 
                 referralCode,
                 wallet: {
                     balance: 0,
@@ -320,23 +317,13 @@ const googleCallback = async (req, res) => {
 
             // Process referral if exists
             if (req.session.referralCode) {
-                const referrer = await User.findOne({ 
-                    referralCode: req.session.referralCode 
-                });
+                const referralApplied = await applyReferralBonus(
+                    req.session.referralCode, 
+                    req.user.email
+                );
 
-                if (referrer) {
-                    // 1. Update referrer (EXACTLY like normal user flow)
-                    referrer.wallet.balance += 50;
-                    referrer.wallet.transactions.push({
-                        type: 'referral',
-                        amount: 50,
-                        description: `Referral bonus for ${req.user.email}`,
-                        date: new Date()
-                    });
-                    referrer.referralCount += 1;
-                    await referrer.save();
-
-                    // 2. Update new user (EXACTLY like normal user flow)
+                if (referralApplied) {
+                    updateData.referredBy = req.session.referralCode;
                     updateData.wallet = {
                         balance: 50,
                         transactions: [{
@@ -346,12 +333,11 @@ const googleCallback = async (req, res) => {
                             date: new Date()
                         }]
                     };
-                    updateData.referredBy = req.session.referralCode;
                 }
                 delete req.session.referralCode;
             }
 
-            // Final user update
+            // Update new user
             await User.findByIdAndUpdate(
                 req.user._id,
                 updateData

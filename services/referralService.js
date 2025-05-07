@@ -1,14 +1,13 @@
 // services/referralService.js
-const usercollection = require('../models/userSchema'); 
-
+const User = require('../models/userSchema');  // Changed from usercollection to User
 
 const generateReferralCode = async () => {
     let code;
     let isUnique = false;
     
     while (!isUnique) {
-        code = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const existingUser = await usercollection.findOne({ referralCode: code });
+        code = Math.random().toString(36).substring(2, 8).toUpperCase(); // Reduced to 6 chars
+        const existingUser = await User.findOne({ referralCode: code });
         if (!existingUser) isUnique = true;
     }
     
@@ -17,9 +16,17 @@ const generateReferralCode = async () => {
 
 const applyReferralBonus = async (referralCode, newUserEmail) => {
     try {
-        const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+        const referrer = await User.findOne({ referralCode: referralCode });
         
         if (referrer) {
+            // Initialize wallet if doesn't exist
+            if (!referrer.wallet) {
+                referrer.wallet = {
+                    balance: 0,
+                    transactions: []
+                };
+            }
+            
             referrer.wallet.balance += 50;
             referrer.wallet.transactions.push({
                 type: 'referral',

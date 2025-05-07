@@ -40,26 +40,18 @@ const updateProfileImage = async (req, res) => {
 };
 
 // Load profile page
+// controllers/user/profileController.js
 const loadProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).lean();
-        
-        // Ensure ALL users have referral code (including Google users)
-        if (!user.referralCode) {
-            const referralCode = require('../../services/referralService').generateReferralCode(user.email);
-            await User.updateOne(
-                { _id: req.user._id },
-                { referralCode }
-            );
-            user.referralCode = referralCode;
-        }
-
-        res.render('profile', {
+        res.render('profile', { 
             user,
-            referralLink: `${req.protocol}://${req.get('host')}/signup?ref=${user.referralCode}`
+            referralLink: user.referralCode 
+                ? `${req.protocol}://${req.get('host')}/signup?ref=${user.referralCode}`
+                : null
         });
     } catch (error) {
-        console.error('Profile load error:', error);
+        console.error('Error loading profile:', error);
         res.status(500).render('page-404');
     }
 };
