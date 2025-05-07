@@ -130,9 +130,13 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 router.get('/auth/google', (req, res, next) => {
     if (req.query.ref) {
         req.session.referralCode = req.query.ref;
-        req.session.save(); // Important for persistence
+        req.session.save(err => {
+            if (err) console.error('Session save error:', err);
+            next();
+        });
+    } else {
+        next();
     }
-    next();
 }, passport.authenticate('google', { scope: ['email', 'profile'], prompt: "select_account" }));
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: 'https://www.thesneaky.club/signin' }), userController.googleCallback  );
 

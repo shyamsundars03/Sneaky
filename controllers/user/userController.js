@@ -304,45 +304,60 @@ const googleCallback = async (req, res) => {
     try {
         if (!req.user) return res.redirect('/signin');
 
-        // Only process new Google users
+        // Process for new Google users
         if (req.user.isNew) {
-            // Generate referral code for the new user
-            const referralCode = await generateReferralCode();
+            const session = await mongoose.startSession();
+            session.startTransaction();
             
-            // Prepare base user data
-            const userData = {
-                referralCode,
-                wallet: {
-                    balance: 0,
-                    transactions: []
-                }
-            };
+            try {
+                // Generate and assign referral code
+                const referralCode = await generateReferralCode();
+                
+                // Prepare base update
+                const updateData = {
+                    referralCode,
+                    wallet: {
+                        balance: 0,
+                        transactions: []
+                    }
+                };
 
-            // Process referral if exists
-            if (req.session.referralCode) {
-                const referralSuccess = await applyReferralBonus(
-                    req.session.referralCode,
-                    req.user.email
+                // Process referral if exists
+                if (req.session.referralCode) {
+                    const referralSuccess = await applyReferralBonus(
+                        req.session.referralCode,
+                        req.user.email
+                    );
+
+                    if (referralSuccess) {
+                        updateData.referredBy = req.session.referralCode;
+                        updateData.wallet = {
+                            balance: 50,
+                            transactions: [{
+                                type: 'referral',
+                                amount: 50,
+                                description: 'Welcome bonus from referral',
+                                date: new Date()
+                            }]
+                        };
+                    }
+                    delete req.session.referralCode;
+                }
+
+                // Update user with all changes
+                await User.findByIdAndUpdate(
+                    req.user._id,
+                    updateData,
+                    { session, new: true }
                 );
 
-                if (referralSuccess) {
-                    // Add welcome bonus for new user
-                    userData.wallet = {
-                        balance: 50,
-                        transactions: [{
-                            type: 'referral',
-                            amount: 50,
-                            description: 'Welcome bonus from referral',
-                            date: new Date()
-                        }]
-                    };
-                    userData.referredBy = req.session.referralCode;
-                }
-                delete req.session.referralCode;
+                await session.commitTransaction();
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
             }
-
-            // Update the new user
-            await User.findByIdAndUpdate(req.user._id, userData);
         }
 
         res.redirect('/');
