@@ -90,7 +90,7 @@ router.get("/orders/:orderId",userAuth, orderController.loadSingleOrder);
 router.get("/order-success/:orderId", userAuth, orderController.loadOrderSuccess);
 router.post('/cancel-order', userAuth, orderController.cancelOrder);
 router.post('/return-order', userAuth, orderController.returnOrder);
-router.get('/download-invoice/:orderId', orderController.downloadInvoice);
+router.get('/download-invoice/:orderId', userAuth, orderController.downloadInvoice);
 router.get('/order-failed/:orderId', userAuth, orderController.loadOrderFailed);
 router.post('/retry-payment/:orderId', userAuth, paymentController.retryPayment);
 
