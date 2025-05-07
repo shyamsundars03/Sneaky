@@ -40,7 +40,6 @@ const updateProfileImage = async (req, res) => {
 };
 
 // Load profile page
-// controllers/user/profileController.js
 const loadProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).lean();
@@ -64,7 +63,6 @@ const updateProfile = async (req, res) => {
 
         // Google user handling
         if (user.googleId) {
-
             if (phone !== user.phone) {
                 const updatedUser = await User.findByIdAndUpdate(
                     req.user._id,
@@ -87,7 +85,6 @@ const updateProfile = async (req, res) => {
         }
 
         // Regular user handling
-
         const updateData = {};
         if (username !== user.name) updateData.name = username;
         if (phone !== user.phone) updateData.phone = phone;
@@ -101,7 +98,6 @@ const updateProfile = async (req, res) => {
             updateData,
             { new: true, runValidators: true }
         );
-
 
         // Update session
         req.session.user = {
@@ -129,7 +125,6 @@ const updateProfile = async (req, res) => {
     }
 };
 
-
 // Load address page
 const loadAddress = async (req, res) => {
     try {
@@ -150,7 +145,16 @@ const saveAddress = async (req, res) => {
 
         if (id) {
             // Update existing address
-            await Address.findByIdAndUpdate(id, { name, street, city, state, zip, country });
+            const updatedAddress = await Address.findByIdAndUpdate(
+                id, 
+                { name, street, city, state, zip, country },
+                { new: true }
+            );
+            return res.json({ 
+                success: true, 
+                message: "Address updated successfully!",
+                address: updatedAddress
+            });
         } else {
             // Add new address
             const newAddress = new Address({
@@ -163,12 +167,19 @@ const saveAddress = async (req, res) => {
                 country,
             });
             await newAddress.save();
+            return res.json({ 
+                success: true, 
+                message: "Address added successfully!",
+                address: newAddress
+            });
         }
-
-        res.json({ success: true, message: "Address saved successfully!" });
     } catch (error) {
         console.error("Error saving address:", error);
-        res.redirect('/address?success=false');
+        return res.status(500).json({ 
+            success: false, 
+            message: "Failed to save address.",
+            error: error.message 
+        });
     }
 };
 
@@ -176,17 +187,27 @@ const saveAddress = async (req, res) => {
 const deleteAddress = async (req, res) => {
     try {
         const addressId = req.params.id;
-        await Address.findByIdAndDelete(addressId);
-        res.json({ success: true, message: "Address deleted successfully!" });
+        const deletedAddress = await Address.findByIdAndDelete(addressId);
+        if (!deletedAddress) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Address not found." 
+            });
+        }
+        res.json({ 
+            success: true, 
+            message: "Address deleted successfully!",
+            addressId: addressId
+        });
     } catch (error) {
         console.error("Error deleting address:", error);
-        res.status(500).json({ success: false, message: "Failed to delete address." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to delete address.",
+            error: error.message 
+        });
     }
 };
-
-
-
-
 
 module.exports = {
     loadProfile,

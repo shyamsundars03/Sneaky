@@ -65,7 +65,7 @@ router.post("/change-password", userController.changePassword);
 router.get("/profile", userAuth, profileController.loadProfile);
 router.post("/profile/update", userAuth, profileController.updateProfile);
 router.post("/profile/image", userAuth, profileController.upload, profileController.updateProfileImage);
-// router.post("/update-profile",userAuth, profileController.updateProfile);
+
 
 // Address Routes
 router.get("/address", userAuth, profileController.loadAddress);
@@ -108,7 +108,6 @@ router.get("/checkout2", userAuth, checkoutController.loadCheckout2);
 router.get("/checkout3", userAuth, checkoutController.loadCheckout3);
 router.post("/checkout1/save", userAuth, checkoutController.saveCheckout1);
 router.post("/checkout2/save", userAuth, checkoutController.saveCheckout2);
-// router.post("/validate-coupon", userAuth, checkoutController.validateCoupon);
 router.post("/validate-and-place-order", userAuth, checkoutController.validateAndPlaceOrder);
 router.post('/remove-coupon', checkoutController.removeCoupon);
 
@@ -130,6 +129,7 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 router.get('/auth/google', (req, res, next) => {
     if (req.query.ref) {
         req.session.referralCode = req.query.ref;
+        console.log(req.session.referralCode)
         req.session.save(err => {
             if (err) console.error('Session save error:', err);
             next();
@@ -142,7 +142,6 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
 
 // Wallet routes
 router.get("/wallet", userAuth, walletController.loadWallet)
-// router.post("/wallet/add-funds", userAuth, walletController.addFunds)
 router.post("/wallet/add-funds-razorpay", userAuth, walletController.addFundsRazorpay)
 router.post("/wallet/verify-razorpay", userAuth, walletController.verifyRazorpayPayment)
 

@@ -312,7 +312,9 @@ const googleCallback = async (req, res) => {
             try {
                 // Generate and assign referral code
                 const referralCode = await generateReferralCode();
-                
+                console.log(referralCode)
+                console.log("generated")
+
                 // Prepare base update
                 const updateData = {
                     referralCode,
@@ -341,6 +343,7 @@ const googleCallback = async (req, res) => {
                             }]
                         };
                     }
+                    console.log("sucesss")
                     delete req.session.referralCode;
                 }
 
