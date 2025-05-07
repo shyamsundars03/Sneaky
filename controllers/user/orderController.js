@@ -618,16 +618,48 @@ const returnOrderItem = async (req, res) => {
     }
   }
 
-const downloadInvoice = async (req, res) => {
+  const downloadInvoice = async (req, res) => {
     try {
         const orderId = req.params.orderId;
-        const filePath = await generateInvoice(orderId);
+        
+        // Verify order belongs to user
+        const order = await Order.findOne({
+            _id: orderId,
+            user: req.user._id
+        });
+        
+        if (!order) {
+            return res.status(404).render("page-404", { 
+                message: "Order not found or unauthorized." 
+            });
+        }
 
-        // Send the file for download
-        res.download(filePath);
+        const filePath = await generateInvoice(orderId);
+        
+        // Check if file was created
+        if (!fs.existsSync(filePath)) {
+            throw new Error("Invoice file not created");
+        }
+
+        // Set headers and send file
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${path.basename(filePath)}`);
+        
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+        // Clean up after sending (optional)
+        fileStream.on('end', () => {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error("Error deleting temp invoice:", err);
+            });
+        });
+
     } catch (error) {
-        console.error("Error generating invoice:", error);
-        res.status(500).render("page-404", { message: "Failed to generate invoice." });
+        console.error("Error in downloadInvoice:", error);
+        res.status(500).render("page-404", { 
+            message: "Failed to generate invoice. Please try again later." 
+        });
     }
 };
 
