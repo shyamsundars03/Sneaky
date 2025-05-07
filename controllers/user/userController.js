@@ -306,8 +306,11 @@ const googleCallback = async (req, res) => {
 
         // Only process new Google users
         if (req.user.isNew) {
+            // Generate referral code for the new user
             const referralCode = await generateReferralCode();
-            let updateData = { 
+            
+            // Prepare base user data
+            const userData = {
                 referralCode,
                 wallet: {
                     balance: 0,
@@ -317,31 +320,29 @@ const googleCallback = async (req, res) => {
 
             // Process referral if exists
             if (req.session.referralCode) {
-                const referralApplied = await applyReferralBonus(
-                    req.session.referralCode, 
+                const referralSuccess = await applyReferralBonus(
+                    req.session.referralCode,
                     req.user.email
                 );
 
-                if (referralApplied) {
-                    updateData.referredBy = req.session.referralCode;
-                    updateData.wallet = {
+                if (referralSuccess) {
+                    // Add welcome bonus for new user
+                    userData.wallet = {
                         balance: 50,
                         transactions: [{
                             type: 'referral',
                             amount: 50,
-                            description: `Welcome bonus from referral`,
+                            description: 'Welcome bonus from referral',
                             date: new Date()
                         }]
                     };
+                    userData.referredBy = req.session.referralCode;
                 }
                 delete req.session.referralCode;
             }
 
-            // Update new user
-            await User.findByIdAndUpdate(
-                req.user._id,
-                updateData
-            );
+            // Update the new user
+            await User.findByIdAndUpdate(req.user._id, userData);
         }
 
         res.redirect('/');
