@@ -54,7 +54,7 @@
                 <input type="hidden" id="scenario" value="<%= scenario || 'forgot-password' %>">
                 <div class="mb-3">
                     <label class="form-label">OTP</label>
-                    <input type="text" class="form-control" id="otp" placeholder="Enter OTP" required maxlength="6" >
+                    <input type="text" class="form-control" id="otp" placeholder="Enter OTP" maxlength="6" >
                     <div id="otpError" class="error-message"></div>
                 </div>
                 <p class="text-center mt-3">
@@ -70,86 +70,96 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-       document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById("otpForm");
             const otpField = document.getElementById("otp");
             const otpError = document.getElementById("otpError");
             const scenario = document.getElementById("scenario").value;
             const timerDisplay = document.getElementById("time");
             const resendOtpBtn = document.getElementById("resendOtpBtn");
-            const verifyOtpBtn = document.getElementById("verifyOtpBtn");
-
+            const verifyOtpBtn = document.querySelector("#otpForm button[type='submit']"); // More reliable way to get verify button
+        
             let timeLeft = <%= remainingTime %>; 
-
-            // Timer logic
-            const timer = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    resendOtpBtn.disabled = false;
-                    verifyOtpBtn.disabled = true; // Disable verify button when timer ends
-                    timerDisplay.textContent = "0";
-                }
-            }, 1000);
-
+            let timer;
+        
+            // Timer function
+            const startTimer = () => {
+                clearInterval(timer); // Clear any existing timer
+                timer = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.textContent = timeLeft;
+        
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        resendOtpBtn.disabled = false;
+                        if (verifyOtpBtn) verifyOtpBtn.disabled = true;
+                        timerDisplay.textContent = "0";
+                    }
+                }, 1000);
+            };
+        
+            // Start initial timer
+            startTimer();
+        
             // Resend OTP logic
             resendOtpBtn.addEventListener("click", async function (event) {
-    event.preventDefault(); // Prevent default form submission
-    try {
-        const response = await fetch("/resend-otp2", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ scenario }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            Swal.fire({
-                icon: "success",
-                title: "OTP Resent!",
-                text: "A new OTP has been sent to your email.",
-                showConfirmButton: false,
-                timer: 1500,
+                event.preventDefault();
+                try {
+                    const response = await fetch("/resend-otp2", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ scenario }),
+                    });
+        
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "OTP Resent!",
+                            text: "A new OTP has been sent to your email.",
+                            showConfirmButton: false,
+                            timer: 1500,
+                        });
+        
+                        // Reset timer
+                        timeLeft = 75;
+                        timerDisplay.textContent = timeLeft;
+                        resendOtpBtn.disabled = true;
+                        if (verifyOtpBtn) verifyOtpBtn.disabled = false;
+                        startTimer(); // Restart the timer
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error!",
+                            text: data.message || "Failed to resend OTP.",
+                        });
+                    }
+                } catch (error) {
+                    console.error("Resend OTP error:", error);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error!",
+                        text: "An error occurred. Please try again.",
+                    });
+                }
             });
-
-            // Reset timer
-            timeLeft = 75;
-            timerDisplay.textContent = timeLeft;
-            resendOtpBtn.disabled = true;
-            verifyOtpBtn.disabled = false; // Re-enable verify button
-        } else {
-            Swal.fire({
-                icon: "error",
-                title: "Error!",
-                text: data.message || "Failed to resend OTP.",
-            });
-        }
-    } catch (error) {
-        Swal.fire({
-            icon: "error",
-            title: "Error!",
-            text: "An error occurred. Please try again.",
-        });
-    }
-});
-
+        
             // OTP verification logic
             form.addEventListener("submit", async function (event) {
                 event.preventDefault();
                 otpError.textContent = "";
-
+        
                 const otp = otpField.value.trim();
-
-                // Validate OTP length
-                if (otp.length !== 6) {
-                    otpError.textContent = "OTP must be 6 digits.";
+        
+                // Validate OTP
+                if (!otp) {
+                    otpError.textContent = "Enter OTP";
+                    return;
+                } else if (otp.length !== 6 || !/^\d+$/.test(otp)) {
+                    otpError.textContent = "OTP must be 6 digits";
                     return;
                 }
-
+        
                 // Check if timer has ended
                 if (timeLeft <= 0) {
                     Swal.fire({
@@ -159,16 +169,14 @@
                     });
                     return;
                 }
-
+        
                 try {
                     const response = await fetch("/verify-otp", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ otp, scenario }),
                     });
-
+        
                     const data = await response.json();
                     if (data.success) {
                         Swal.fire({
@@ -192,6 +200,7 @@
                         });
                     }
                 } catch (error) {
+                    console.error("Verify OTP error:", error);
                     Swal.fire({
                         icon: "error",
                         title: "Error!",
@@ -200,6 +209,6 @@
                 }
             });
         });
-    </script>
+        </script>
 </body>
 </html>

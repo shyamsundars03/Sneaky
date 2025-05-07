@@ -300,27 +300,68 @@ const signupPost = async (req, res) => {
 
 
 
-
-const googleCallback = async (req, res, next) => {
+const googleCallback = async (req, res) => {
     try {
-        if (!req.user) {
-            return res.redirect('/signin?error=Google authentication failed.');
+        if (!req.user) return res.redirect('/signin?error=Google auth failed');
+
+        // Only process new Google users
+        if (req.user.isNew) {
+            // Generate referral code using your existing service
+            const referralCode = require('../../services/referralService').generateReferralCode(req.user.email);
+            
+            // Prepare base update
+            const updateData = {
+                referralCode,
+                wallet: {
+                    balance: 0,
+                    transactions: []
+                }
+            };
+
+            // Process referral if exists
+            if (req.session.referralCode) {
+                const referrer = await User.findOne({ 
+                    referralCode: req.session.referralCode 
+                });
+
+                if (referrer) {
+                    // 1. Update referrer (EXACTLY like normal user flow)
+                    referrer.wallet.balance += 50;
+                    referrer.wallet.transactions.push({
+                        type: 'referral',
+                        amount: 50,
+                        description: `Referral bonus for ${req.user.email}`,
+                        date: new Date()
+                    });
+                    referrer.referralCount += 1;
+                    await referrer.save();
+
+                    // 2. Update new user (EXACTLY like normal user flow)
+                    updateData.wallet = {
+                        balance: 50,
+                        transactions: [{
+                            type: 'referral',
+                            amount: 50,
+                            description: `Welcome bonus from referral`,
+                            date: new Date()
+                        }]
+                    };
+                    updateData.referredBy = req.session.referralCode;
+                }
+                delete req.session.referralCode;
+            }
+
+            // Final user update
+            await User.findByIdAndUpdate(
+                req.user._id,
+                updateData
+            );
         }
 
-        // Set the session with user details
-        req.session.user = {
-            _id: req.user._id,
-            name: req.user.name,
-            email: req.user.email,
-            googleId: req.user.googleId, // Ensure googleId is included
-            profileImage: req.user.profileImage || 'https://via.placeholder.com/150', // Default image if none
-        };
-        req.session.loginSession = true;
-
         res.redirect('/');
-    } catch (err) {
-        console.error("Error in googleCallback:", err);
-        next(new AppError('Sorry...Something went wrong', 500));
+    } catch (error) {
+        console.error('Google callback error:', error);
+        res.redirect('/signin');
     }
 };
 
@@ -457,15 +498,18 @@ const loadShop = async (req, res) => {
         const limit = 6;
         const skip = (page - 1) * limit;
         
-        // Filtering parameters
-        const categoryIds = req.query.category ? req.query.category.split(',') : [];
-        const selectedSizes = req.query.size ? req.query.size.split(',') : [];
-        const minPrice = parseFloat(req.query.minPrice);
-        const maxPrice = parseFloat(req.query.maxPrice);
-        const searchTerm = req.query.search;
-        const sortOption = req.query.sort || 'bestMatch';
+        // Filtering parameters (support both GET and POST for AJAX)
+        const categoryIds = req.query.category ? req.query.category.split(',') : 
+                         (req.body.category || []);
+        const selectedSizes = req.query.size ? req.query.size.split(',') : 
+                           (req.body.size || []);
+        const minPrice = parseFloat(req.query.minPrice || req.body.minPrice);
+        const maxPrice = parseFloat(req.query.maxPrice || req.body.maxPrice);
+        const searchTerm = req.query.search || req.body.search || '';
+        const sortOption = req.query.sort || req.body.sort || 'bestMatch';
+        const currentPage = req.query.page || req.body.page || 1;
 
-        // Build the initial search query (without price filters)
+        // Build the initial search query
         const searchQuery = {
             isDeleted: false,
             isListed: true
@@ -511,7 +555,7 @@ const loadShop = async (req, res) => {
             products = products.filter(p => p.finalPrice <= maxPrice);
         }
 
-        // Apply sorting based on the selected option
+        // Apply sorting
         switch (sortOption) {
             case 'nameAsc':
                 products.sort((a, b) => a.productName.localeCompare(b.productName));
@@ -526,7 +570,6 @@ const loadShop = async (req, res) => {
                 products.sort((a, b) => b.finalPrice - a.finalPrice);
                 break;
             default:
-                // Default: newest first
                 products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         }
 
@@ -537,7 +580,7 @@ const loadShop = async (req, res) => {
         // Apply pagination
         const paginatedProducts = products.slice(skip, skip + limit);
 
-        // Fix image paths for the products
+        // Fix image paths
         const fixedProducts = paginatedProducts.map(product => {
             const fixedImages = product.productImage.map(img =>
                 img.replace(/\\/g, '/').replace(/^public\//, '/')
@@ -548,50 +591,66 @@ const loadShop = async (req, res) => {
             };
         });
 
-        // Fetch all categories for the sidebar
-        const categories = await Category.find({ isDeleted: false });
-
-        // Build query string for pagination
-        const buildQueryString = (params) => {
-            const searchParams = new URLSearchParams();
-            for (const [key, value] of Object.entries(params)) {
-                if (value !== undefined && value !== null && value !== '') {
-                    if (Array.isArray(value)) {
-                        value.forEach(v => searchParams.append(key, v));
-                    } else {
-                        searchParams.set(key, value);
-                    }
-                }
-            }
-            return searchParams.toString();
-        };
-
-        // Render the shop page with the filtered products and other data
-        res.render("shop", {
+        // Prepare response data
+        const responseData = {
             products: fixedProducts,
-            categories,
             currentPage: page,
             totalPages,
             totalProducts,
-            selectedCategory: categoryIds,
-            selectedSizes: selectedSizes,
-            minPrice: minPrice || '',
-            maxPrice: maxPrice || '',
-            searchTerm: searchTerm || '',
-            sortOption,
-            user: req.session.user,
-            buildQueryString,
             queryParams: {
                 category: categoryIds,
                 size: selectedSizes,
                 minPrice: minPrice || '',
                 maxPrice: maxPrice || '',
-                search: searchTerm || '',
+                search: searchTerm,
                 sort: sortOption
             }
+        };
+
+        // Handle AJAX requests
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.json(responseData);
+        }
+
+        // Regular request - render full page
+        const categories = await Category.find({ isDeleted: false });
+        
+        res.render("shop", {
+            ...responseData,
+            categories,
+            user: req.session.user,
+            buildQueryString: (params) => {
+                const searchParams = new URLSearchParams();
+                for (const [key, value] of Object.entries(params)) {
+                    if (value !== undefined && value !== null && value !== '') {
+                        if (Array.isArray(value)) {
+                            value.forEach(v => searchParams.append(key, v));
+                        } else {
+                            searchParams.set(key, value);
+                        }
+                    }
+                }
+                return searchParams.toString();
+            },
+            selectedCategory: categoryIds,
+            selectedSizes: selectedSizes,
+            minPrice: minPrice || '',
+            maxPrice: maxPrice || '',
+            searchTerm: searchTerm || '',
+            sortOption
         });
+
     } catch (error) {
         console.error('Error in loadShop:', error);
+        
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.status(500).json({ 
+                error: 'Failed to load products',
+                products: [],
+                totalProducts: 0
+            });
+        }
+        
         res.render("shop", {
             error: 'Failed to load products',
             products: [],
@@ -599,12 +658,6 @@ const loadShop = async (req, res) => {
             currentPage: 1,
             totalPages: 0,
             totalProducts: 0,
-            selectedCategory: [],
-            selectedSizes: [],
-            minPrice: '',
-            maxPrice: '',
-            searchTerm: '',
-            sortOption: 'bestMatch',
             user: req.session.user,
             buildQueryString: () => '',
             queryParams: {}

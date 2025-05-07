@@ -226,60 +226,221 @@
 </div>
 
 <script>
-    // Function to toggle size filter
-    function toggleSizeFilter(size) {
-        const sizeButton = document.querySelector(`#size-filters .size-option[data-size="${size}"]`);
-        sizeButton.classList.toggle('active');
-        updateFilters();
-    }
-
-    // Function to update filters and reload page
-    function updateFilters() {
-        const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked')).map(input => input.value);
-        const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active')).map(button => button.getAttribute('data-size'));
+// Main function to update products via AJAX
+async function updateProducts() {
+    try {
+        // Get current filter values
+        const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked'))
+            .map(input => input.value);
+        const selectedSizes = Array.from(document.querySelectorAll('#size-filters .size-option.active'))
+            .map(button => button.getAttribute('data-size'));
         const minPrice = document.querySelector('.price-range input[placeholder="Min"]').value;
         const maxPrice = document.querySelector('.price-range input[placeholder="Max"]').value;
         const searchTerm = document.getElementById('searchBox').value.trim();
         const sortOption = document.querySelector('.sort-select').value;
+        const currentPage = <%= currentPage %>;
 
-        // Build new URL
-        const url = new URL('/shop', window.location.origin);
+        // Show loading state
+        const productsGrid = document.getElementById('products-grid');
+        const pagination = document.querySelector('.pagination');
+        productsGrid.innerHTML = '<div class="loading-spinner">Loading products...</div>';
+        if (pagination) pagination.style.opacity = '0.5';
+
+        // Build query params
+        const params = new URLSearchParams();
+        if (selectedCategories.length) params.set('category', selectedCategories.join(','));
+        if (selectedSizes.length) params.set('size', selectedSizes.join(','));
+        if (minPrice) params.set('minPrice', minPrice);
+        if (maxPrice) params.set('maxPrice', maxPrice);
+        if (searchTerm) params.set('search', searchTerm);
+        if (sortOption !== 'bestMatch') params.set('sort', sortOption);
+        if (currentPage > 1) params.set('page', currentPage);
+
+        // Fetch products
+        const response = await fetch(`/shop?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
         
-        // Add filters to URL
-        if (selectedCategories.length > 0) {
-            url.searchParams.set('category', selectedCategories.join(','));
-        }
-        if (selectedSizes.length > 0) {
-            url.searchParams.set('size', selectedSizes.join(','));
-        }
-        if (minPrice) {
-            url.searchParams.set('minPrice', minPrice);
-        }
-        if (maxPrice) {
-            url.searchParams.set('maxPrice', maxPrice);
-        }
-        if (searchTerm) {
-            url.searchParams.set('search', searchTerm);
-        }
-        if (sortOption !== 'bestMatch') {
-            url.searchParams.set('sort', sortOption);
-        }
-        
-        // Reload page with new filters
-        window.location.href = url.toString();
+        const data = await response.json();
+
+        // Update browser URL without reload
+        window.history.pushState({}, '', `/shop?${params.toString()}`);
+
+        // Render products
+        renderProducts(data);
+
+    } catch (error) {
+        console.error('Error updating products:', error);
+        const productsGrid = document.getElementById('products-grid');
+        productsGrid.innerHTML = '<p class="error-message">Error loading products. Please try again.</p>';
+    } finally {
+        const pagination = document.querySelector('.pagination');
+        if (pagination) pagination.style.opacity = '1';
+    }
+}
+
+// Render products to the grid
+function renderProducts(data) {
+    const productsGrid = document.getElementById('products-grid');
+    const paginationInfo = document.querySelector('.pagination-info');
+    const paginationControls = document.querySelector('.pagination-controls');
+
+    // Update product grid
+    if (data.products.length === 0) {
+        productsGrid.innerHTML = '<p>No products found matching your criteria.</p>';
+    } else {
+        productsGrid.innerHTML = data.products.map(product => `
+            <div class="product-card">
+                <a href="/product/${product._id}" class="product-image">
+                    <img src="${product.productImage[0]}" alt="${product.productName}">
+                </a>
+                <div class="product-info">
+                    <div class="product-price">
+                        ${product.finalPrice < product.price ? `
+                            <span class="offer-price">₹${product.finalPrice}</span>
+                            <span class="original-price">₹${product.price}</span>
+                            ${product.hasCategoryOffer ? '<span class="category-offer-badge">Category Offer</span>' : ''}
+                        ` : `
+                            <span class="current-price">₹${product.price}</span>
+                        `}
+                    </div>
+                    <h4 class="product-name">${product.productName}</h4>
+                    <div class="product-actions">
+                        <button class="add-to-cart-btn" onclick="addToCart('${product._id}', '${product.sizes && product.sizes[0] ? product.sizes[0].size : "7"}')">
+                            Add to cart
+                        </button>
+                        <button class="add-to-wishlist" data-product-id="${product._id}" onclick="toggleWishlist('${product._id}')">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
     }
 
-    // Function to clear all filters
-    function clearFilters() {
-        window.location.href = '/shop';
+    // Update pagination info
+    if (paginationInfo) {
+        paginationInfo.textContent = `Showing ${(data.currentPage - 1) * 6 + 1} to ${Math.min(data.currentPage * 6, data.totalProducts)} of ${data.totalProducts} entries`;
     }
 
-    // Debounce for search input
+    // Update pagination controls
+    if (paginationControls) {
+        let html = '';
+        if (data.currentPage > 1) {
+            html += `<a href="javascript:void(0)" onclick="changePage(${data.currentPage - 1})" class="pagination-prev">Previous</a>`;
+        }
+        
+        for (let i = 1; i <= data.totalPages; i++) {
+            html += `<a href="javascript:void(0)" onclick="changePage(${i})" class="page-number ${i === data.currentPage ? 'active' : ''}">${i}</a>`;
+        }
+        
+        if (data.currentPage < data.totalPages) {
+            html += `<a href="javascript:void(0)" onclick="changePage(${data.currentPage + 1})" class="pagination-next">Next</a>`;
+        }
+        
+        paginationControls.innerHTML = html;
+    }
+
+    // Update wishlist icons
+    updateWishlistIcons();
+}
+
+// Change page handler
+function changePage(page) {
+    const pageInput = document.createElement('input');
+    pageInput.type = 'hidden';
+    pageInput.name = 'page';
+    pageInput.value = page;
+    document.getElementById('searchForm').appendChild(pageInput);
+    updateProducts();
+}
+
+// Toggle size filter
+function toggleSizeFilter(size) {
+    const sizeButton = document.querySelector(`.size-option[data-size="${size}"]`);
+    sizeButton.classList.toggle('active');
+    updateProducts();
+}
+
+// Clear all filters
+function clearFilters() {
+    // Uncheck all category filters
+    document.querySelectorAll('#category-filters input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Clear size filters
+    document.querySelectorAll('#size-filters .size-option.active').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // Clear price filters
+    document.querySelector('.price-range input[placeholder="Min"]').value = '';
+    document.querySelector('.price-range input[placeholder="Max"]').value = '';
+    
+    // Reset search and sort
+    document.getElementById('searchBox').value = '';
+    document.querySelector('.sort-select').value = 'bestMatch';
+    
+    updateProducts();
+}
+
+// Update wishlist icons
+async function updateWishlistIcons() {
+    try {
+        const response = await fetch('/wishlist/status');
+        if (!response.ok) return;
+        
+        const result = await response.json();
+        if (result.success) {
+            result.wishlistItems.forEach(productId => {
+                const heartIcon = document.querySelector(`.add-to-wishlist[data-product-id="${productId}"] i`);
+                if (heartIcon) {
+                    heartIcon.classList.remove('far');
+                    heartIcon.classList.add('fas');
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error updating wishlist icons:', error);
+    }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Category filter change
+    document.querySelectorAll('#category-filters input').forEach(input => {
+        input.addEventListener('change', updateProducts);
+    });
+    
+    // Price filter change
+    document.querySelectorAll('.price-range input').forEach(input => {
+        input.addEventListener('change', () => {
+            const min = document.querySelector('.price-range input[placeholder="Min"]').value;
+            const max = document.querySelector('.price-range input[placeholder="Max"]').value;
+            if (min || max) updateProducts();
+        });
+    });
+    
+    // Sort option change
+    document.querySelector('.sort-select').addEventListener('change', updateProducts);
+    
+    // Search input with debounce
     let searchTimer;
     document.getElementById('searchBox').addEventListener('input', function() {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(updateFilters, 500);
+        searchTimer = setTimeout(updateProducts, 500);
     });
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', function() {
+        updateProducts();
+    });
+});
 
     // Add to cart function
     async function addToCart(productId, size) {
@@ -403,13 +564,13 @@
     });
 
 
-// Add this function for search input handling
-function handleSearchInput() {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        updateFilters();
-    }, 500);
-}
+// // Add this function for search input handling
+// function handleSearchInput() {
+//     clearTimeout(searchTimer);
+//     searchTimer = setTimeout(() => {
+//         updateFilters();
+//     }, 500);
+// }
 
 
 
@@ -440,6 +601,25 @@ function handleSearchInput() {
         background-color: #333;
         color: white;
     }
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        font-size: 1.2rem;
+        color: #666;
+    }
+    
+    .error-message {
+        color: #dc3545;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .pagination {
+        transition: opacity 0.3s ease;
+    }
+    
 </style>
 
 <%- include("../../views/partials/user/footer") %>

@@ -47,7 +47,7 @@
             <form id="changeEmailForm">
                 <div class="mb-3">
                     <label class="form-label">New Email</label>
-                    <input type="email" class="form-control" id="newEmail" placeholder="Enter new email" required>
+                    <input type="email" class="form-control" id="newEmail" placeholder="Enter new email" >
                     <div id="newEmailError" class="error-message"></div>
                 </div>
                 <button type="submit" class="btn btn-theme w-100">Send OTP</button>
@@ -58,60 +58,82 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
- document.addEventListener("DOMContentLoaded", function () {
-        const form = document.getElementById("changeEmailForm");
-        const newEmailField = document.getElementById("newEmail");
-        const newEmailError = document.getElementById("newEmailError");
-
-        form.addEventListener("submit", async function (event) {
-            event.preventDefault();
-            newEmailError.textContent = "";
-
-            const newEmail = newEmailField.value.trim();
-
-            // Validate email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!newEmail || !emailRegex.test(newEmail)) {
-                newEmailError.textContent = "Please enter a valid email address.";
-                return;
-            }
-
-            try {
-                const response = await fetch('/change-email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ newEmail }),
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'OTP Sent!',
-                        text: 'An OTP has been sent to your new email.',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        window.location.href = data.redirectUrl; // Redirect to OTP verification page
-                    });
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("changeEmailForm");
+            const newEmailField = document.getElementById("newEmail");
+            const newEmailError = document.getElementById("newEmailError");
+        
+            // Email validation regex
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        
+            // Real-time email validation
+            newEmailField.addEventListener('input', function() {
+                const email = newEmailField.value.trim();
+                if (email) {
+                    if (!emailRegex.test(email)) {
+                        newEmailError.textContent = "Enter a valid email address (e.g., example@domain.com)";
+                    } else {
+                        newEmailError.textContent = "";
+                    }
                 } else {
+                    newEmailError.textContent = "";
+                }
+            });
+        
+            form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                newEmailError.textContent = "";
+        
+                const newEmail = newEmailField.value.trim();
+        
+                // Validate email
+                if (!newEmail) {
+                    newEmailError.textContent = "Enter your new email address";
+                    return;
+                } else if (!emailRegex.test(newEmail)) {
+                    newEmailError.textContent = "Enter a valid email address (e.g., example@domain.com)";
+                    return;
+                }
+        
+                try {
+                    const response = await fetch('/change-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ newEmail }),
+                    });
+        
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'OTP Sent!',
+                            text: 'An OTP has been sent to your new email address.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.href = data.redirectUrl || '/verify-otp?scenario=change-email';
+                        });
+                    } else {
+                        let errorMessage = data.message || 'Failed to send OTP';
+                        if (data.message && data.message.includes("already in use")) {
+                            errorMessage = "This email is already registered. Please use a different email.";
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: errorMessage,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Email change error:", error);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: data.message || 'Failed to send OTP.',
+                        text: 'An error occurred. Please try again.',
                     });
                 }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'An error occurred. Please try again.',
-                });
-            }
+            });
         });
-    });
     </script>
 </body>
 </html>
