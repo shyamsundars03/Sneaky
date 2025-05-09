@@ -1,4 +1,4 @@
-// config/passport.js - Complete fixed version
+// config/passport.js
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/userSchema');
@@ -10,39 +10,44 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    passReqToCallback: true // Add this to access the session
+    passReqToCallback: true // This allows us to access the session
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
-        console.log('Google strategy executing for:', profile.displayName);
+        console.log('Google auth callback in passport strategy');
         
         // Check if user exists by email
-        const existingUser = await User.findOne({ email: profile.emails[0].value });
+        let user = await User.findOne({ email: profile._json.email });
         
-        if (existingUser) {
-            console.log('Existing user found:', existingUser.email);
+        if (user) {
+            console.log('Existing user found:', user.email);
             
-            // Update Google ID if needed
-            if (!existingUser.googleId) {
-                existingUser.googleId = profile.id;
-                await existingUser.save();
+            // Update Google ID if not set
+            if (!user.googleId) {
+                user.googleId = profile.id;
+                await user.save();
                 console.log('Updated existing user with Google ID');
             }
             
-            return done(null, existingUser);
+            return done(null, user);
         } else {
             console.log('Creating new user from Google profile');
             
-            // Generate referral code
+            // Generate a unique referral code
             const referralCode = await generateReferralCode();
-            console.log('Generated referral code for new user:', referralCode);
+            console.log('Generated referral code:', referralCode);
+            
+            // Get referral code from session if it exists
+            const referredBy = req.session.referralCode || null;
+            console.log('Referral from session:', referredBy);
             
             // Create new user with referral code
             const newUser = new User({
                 name: profile.displayName,
-                email: profile.emails[0].value,
+                email: profile._json.email,
                 googleId: profile.id,
                 profileImage: profile.photos[0].value,
                 referralCode: referralCode,
+                referredBy: referredBy,
                 wallet: {
                     balance: 0,
                     transactions: []
@@ -50,21 +55,14 @@ passport.use(new GoogleStrategy({
                 referralCount: 0
             });
             
-            // Process referral if exists in session
-            if (req.session && req.session.referralCode) {
-                console.log('Found referral code in session:', req.session.referralCode);
-                newUser.referredBy = req.session.referralCode;
-            }
-            
             await newUser.save();
-            console.log('New Google user created with ID:', newUser._id);
-            console.log('User referral code:', newUser.referralCode);
+            console.log('New Google user created with referral code:', referralCode);
             
             return done(null, newUser);
         }
-    } catch (error) {
-        console.error('Error in Google strategy:', error);
-        return done(error, null);
+    } catch (err) {
+        console.error('Error in Google strategy:', err);
+        return done(err, null);
     }
 }));
 
@@ -75,12 +73,10 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
     try {
-        console.log('Deserializing user ID:', id);
         const user = await User.findById(id);
         done(null, user);
-    } catch (error) {
-        console.error('Error deserializing user:', error);
-        done(error, null);
+    } catch (err) {
+        done(err, null);
     }
 });
 

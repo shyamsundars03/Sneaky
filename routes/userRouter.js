@@ -126,7 +126,6 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 
 
 // Google authentication
-// In routes/userRouter.js - Update your Google auth routes
 router.get('/auth/google', (req, res, next) => {
     console.log('Google auth initiated, referral:', req.query.ref);
     if (req.query.ref) {
@@ -142,36 +141,23 @@ router.get('/auth/google', (req, res, next) => {
 }, passport.authenticate('google', { scope: ['email', 'profile'], prompt: "select_account" }));
 
 router.get('/auth/google/callback', 
-    (req, res, next) => {
-        console.log('Google callback route hit');
-        next();
-    },
     passport.authenticate('google', { 
         failureRedirect: '/signin',
-        failureLogger: true // Add this to log failures
+        failureLogger: true
     }), 
-    (req, res, next) => {
-        console.log('Google auth successful, user:', req.user?._id);
-        next();
-    },
     userController.googleCallback
 );
 
-router.get('/debug/user', async (req, res) => {
-    try {
-        if (!req.session.user) {
-            return res.json({ error: 'No user in session' });
-        }
-        
-        const user = await User.findById(req.session.user._id);
-        res.json({
-            sessionUser: req.session.user,
-            dbUser: user
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+// Debug route to check user data
+router.get('/debug/user', (req, res) => {
+    res.json({
+        session: req.session,
+        user: req.user,
+        sessionUser: req.session.user
+    });
 });
+
+
 // Wallet routes
 router.get("/wallet", userAuth, walletController.loadWallet)
 router.post("/wallet/add-funds-razorpay", userAuth, walletController.addFundsRazorpay)
