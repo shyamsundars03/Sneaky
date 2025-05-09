@@ -297,7 +297,7 @@ const signupPost = async (req, res) => {
 
 
 
-// controllers/user/userController.js - Fixed googleCallback
+// controllers/user/userController.js - googleCallback function
 const googleCallback = async (req, res) => {
     try {
         console.log('Google callback controller executing');
@@ -376,7 +376,6 @@ const googleCallback = async (req, res) => {
         res.redirect('/signin');
     }
 };
-
 
 const blockedUser = async (req, res) => {
     try {

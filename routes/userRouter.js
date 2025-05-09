@@ -125,6 +125,8 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 
 
 
+
+// routes/userRouter.js - Google auth routes
 // Google authentication
 router.get('/auth/google', (req, res, next) => {
     console.log('Google auth initiated, referral:', req.query.ref);
