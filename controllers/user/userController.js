@@ -7,7 +7,7 @@ const otpCollection = require("../../models/otpSchema");
 const sendotp = require('../../helper/sendOtp')
 const passport = require('passport');
 const { generateReferralCode, applyReferralBonus } = require('../../services/referralService');
-
+const User = require('../../models/userSchema');
 
 async function encryptPassword(password) {
     const saltRounds = 10;
@@ -297,79 +297,87 @@ const signupPost = async (req, res) => {
 
 
 
-
-
-
+// controllers/user/userController.js - Fixed googleCallback
 const googleCallback = async (req, res) => {
     try {
-        if (!req.user) return res.redirect('/signin');
-
-        // Process for new Google users
-        if (req.user.isNew) {
-            const session = await mongoose.startSession();
-            session.startTransaction();
+        console.log('Google callback controller executing');
+        
+        if (!req.user) {
+            console.log('No user in request - redirecting to signin');
+            return res.redirect('/signin');
+        }
+        
+        console.log('Google user authenticated:', req.user.email);
+        console.log('User data:', JSON.stringify({
+            id: req.user._id,
+            email: req.user.email,
+            referralCode: req.user.referralCode,
+            referredBy: req.user.referredBy
+        }));
+        
+        // Process referral bonus if user was referred
+        if (req.user.referredBy && !req.user.referralBonusApplied) {
+            console.log('Processing referral bonus for:', req.user.referredBy);
             
-            try {
-                // Generate and assign referral code
-                const referralCode = await generateReferralCode();
-                console.log(referralCode)
-                console.log("generated")
-
-                // Prepare base update
-                const updateData = {
-                    referralCode,
-                    wallet: {
-                        balance: 0,
-                        transactions: []
-                    }
-                };
-
-                // Process referral if exists
-                if (req.session.referralCode) {
-                    const referralSuccess = await applyReferralBonus(
-                        req.session.referralCode,
-                        req.user.email
-                    );
-
-                    if (referralSuccess) {
-                        updateData.referredBy = req.session.referralCode;
-                        updateData.wallet = {
-                            balance: 50,
-                            transactions: [{
-                                type: 'referral',
-                                amount: 50,
-                                description: 'Welcome bonus from referral',
-                                date: new Date()
-                            }]
-                        };
-                    }
-                    console.log("sucesss")
-                    delete req.session.referralCode;
+            // Find referrer
+            const referrer = await User.findOne({ referralCode: req.user.referredBy });
+            
+            if (referrer) {
+                console.log('Found referrer:', referrer.email);
+                
+                // Initialize wallet if it doesn't exist
+                if (!referrer.wallet) {
+                    referrer.wallet = { balance: 0, transactions: [] };
                 }
-
-                // Update user with all changes
-                await User.findByIdAndUpdate(
-                    req.user._id,
-                    updateData,
-                    { session, new: true }
-                );
-
-                await session.commitTransaction();
-            } catch (error) {
-                await session.abortTransaction();
-                throw error;
-            } finally {
-                session.endSession();
+                
+                // Add bonus to referrer's wallet
+                referrer.wallet.balance += 50;
+                referrer.wallet.transactions.push({
+                    type: 'referral',
+                    amount: 50,
+                    description: `Referral bonus for ${req.user.email}`,
+                    date: new Date()
+                });
+                referrer.referralCount = (referrer.referralCount || 0) + 1;
+                await referrer.save();
+                
+                console.log('Added referral bonus to referrer wallet');
+                
+                // Initialize user's wallet if it doesn't exist
+                if (!req.user.wallet) {
+                    req.user.wallet = { balance: 0, transactions: [] };
+                }
+                
+                // Add bonus to new user's wallet
+                req.user.wallet.balance += 50;
+                req.user.wallet.transactions.push({
+                    type: 'referral',
+                    amount: 50,
+                    description: 'Welcome bonus from referral',
+                    date: new Date()
+                });
+                req.user.referralBonusApplied = true;
+                await req.user.save();
+                
+                console.log('Added welcome bonus to new user wallet');
             }
         }
-
+        
+        // Set session for authentication
+        req.session.user = {
+            _id: req.user._id,
+            name: req.user.name,
+            email: req.user.email
+        };
+        req.session.loginSession = true;
+        
+        console.log('Google auth complete - redirecting to home');
         res.redirect('/');
     } catch (error) {
-        console.error('Google callback error:', error);
+        console.error('Error in Google callback:', error);
         res.redirect('/signin');
     }
 };
-
 
 const blockedUser = async (req, res) => {
     try {
