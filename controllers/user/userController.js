@@ -297,33 +297,14 @@ const signupPost = async (req, res) => {
 
 
 
-// controllers/user/userController.js - googleCallback function
 const googleCallback = async (req, res) => {
     try {
-        console.log('Google callback controller executing');
-        
-        if (!req.user) {
-            console.log('No user in request - redirecting to signin');
-            return res.redirect('/signin');
-        }
-        
-        console.log('Google user authenticated:', req.user.email);
-        
-        // Process referral bonus if user was referred and bonus not yet applied
-        if (req.user.referredBy && !req.user.referralBonusApplied) {
-            console.log('Processing referral bonus for:', req.user.referredBy);
-            
-            // Find referrer
-            const referrer = await usercollection.findOne({ referralCode: req.user.referredBy });
-            
+        if (!req.user) return res.redirect('/signin');
+
+        // Process referral bonus if user was referred
+        if (req.user.referredBy) {
+            const referrer = await User.findOne({ referralCode: req.user.referredBy });
             if (referrer) {
-                console.log('Found referrer:', referrer.email);
-                
-                // Add bonus to referrer's wallet
-                if (!referrer.wallet) {
-                    referrer.wallet = { balance: 0, transactions: [] };
-                }
-                
                 referrer.wallet.balance += 50;
                 referrer.wallet.transactions.push({
                     type: 'referral',
@@ -331,36 +312,11 @@ const googleCallback = async (req, res) => {
                     description: `Referral bonus for ${req.user.email}`,
                     date: new Date()
                 });
-                referrer.referralCount = (referrer.referralCount || 0) + 1;
+                referrer.referralCount += 1;
                 await referrer.save();
-                
-                console.log('Added referral bonus to referrer wallet');
-                
-                // Add bonus to new user's wallet
-                if (!req.user.wallet) {
-                    req.user.wallet = { balance: 0, transactions: [] };
-                }
-                
-                req.user.wallet.balance += 50;
-                req.user.wallet.transactions.push({
-                    type: 'referral',
-                    amount: 50,
-                    description: 'Welcome bonus from referral',
-                    date: new Date()
-                });
-                req.user.referralBonusApplied = true;
-                await req.user.save();
-                
-                console.log('Added welcome bonus to new user wallet');
             }
         }
-        
-        // Clear referral code from session
-        if (req.session.referralCode) {
-            delete req.session.referralCode;
-            console.log('Cleared referral code from session');
-        }
-        
+
         // Set session for authentication
         req.session.user = {
             _id: req.user._id,
@@ -368,14 +324,14 @@ const googleCallback = async (req, res) => {
             email: req.user.email
         };
         req.session.loginSession = true;
-        
-        console.log('Google auth complete - redirecting to home');
+
         res.redirect('/');
     } catch (error) {
         console.error('Error in Google callback:', error);
         res.redirect('/signin');
     }
 };
+
 
 const blockedUser = async (req, res) => {
     try {

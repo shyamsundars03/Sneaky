@@ -126,20 +126,12 @@ router.post('/verify-retry-payment', userAuth, paymentController.verifyRetryPaym
 
 
 
-// routes/userRouter.js - Google auth routes
-// Google authentication
+
 router.get('/auth/google', (req, res, next) => {
-    console.log('Google auth initiated, referral:', req.query.ref);
     if (req.query.ref) {
         req.session.referralCode = req.query.ref;
-        console.log('Saved referral code to session:', req.session.referralCode);
-        req.session.save(err => {
-            if (err) console.error('Session save error:', err);
-            next();
-        });
-    } else {
-        next();
     }
+    next();
 }, passport.authenticate('google', { scope: ['email', 'profile'], prompt: "select_account" }));
 
 router.get('/auth/google/callback', 
