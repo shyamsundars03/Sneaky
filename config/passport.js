@@ -1,7 +1,10 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/userSchema');
-const { generateReferralCode } = require('../services/referralService');
+// const { generateReferralCode } = require('../services/referralService');
+
+
+const generateReferralCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -28,6 +31,8 @@ passport.use(new GoogleStrategy({
         const referralCode = await generateReferralCode();
         const referredBy = req.session.referralCode || null;
         
+        console.log(`referral code= ${referralCode}`)
+
         user = new User({
             name: profile.displayName,
             email: email,
