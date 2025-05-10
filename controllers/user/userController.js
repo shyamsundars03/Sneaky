@@ -300,34 +300,23 @@ const signupPost = async (req, res) => {
 const googleCallback = async (req, res) => {
     try {
         if (!req.user) return res.redirect('/signin');
-
-        // Process referral bonus if user was referred
-        if (req.user.referredBy) {
-            const referrer = await User.findOne({ referralCode: req.user.referredBy });
-            if (referrer) {
-                referrer.wallet.balance += 50;
-                referrer.wallet.transactions.push({
-                    type: 'referral',
-                    amount: 50,
-                    description: `Referral bonus for ${req.user.email}`,
-                    date: new Date()
-                });
-                referrer.referralCount += 1;
-                await referrer.save();
-            }
-        }
-
-        // Set session for authentication
+        
+        // Set session
         req.session.user = {
             _id: req.user._id,
             name: req.user.name,
             email: req.user.email
         };
         req.session.loginSession = true;
-
+        
+        // Clear referral code from session if exists
+        if (req.session.referralCode) {
+            delete req.session.referralCode;
+        }
+        
         res.redirect('/');
     } catch (error) {
-        console.error('Error in Google callback:', error);
+        console.error('Google callback error:', error);
         res.redirect('/signin');
     }
 };
