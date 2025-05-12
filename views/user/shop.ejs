@@ -693,6 +693,24 @@ document.addEventListener('DOMContentLoaded', function() {
         transition: opacity 0.3s ease;
     }
     
+.retry-btn {
+    padding: 8px 16px;
+    background-color: #337ab7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.retry-btn:hover {
+    background-color: #286090;
+}
+
+.retry-btn + .retry-btn {
+    margin-left: 10px;
+}
+    
 </style>
 
 <%- include("../../views/partials/user/footer") %>
