@@ -445,10 +445,11 @@ const calculateFinalPrice = (product, activeOffers) => {
     };
 };
 
-
-
 const loadShop = async (req, res) => {
     try {
+        // Check if this is an AJAX request
+        const isAjax = req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest';
+        
         // Extract query parameters
         const page = parseInt(req.query.page) || 1;
         const limit = 6;
@@ -463,8 +464,7 @@ const loadShop = async (req, res) => {
         const maxPrice = parseFloat(req.query.maxPrice || req.body.maxPrice);
         const searchTerm = req.query.search || req.body.search || '';
         const sortOption = req.query.sort || req.body.sort || 'bestMatch';
-        const currentPage = req.query.page || req.body.page || 1;
-
+        
         // Build the initial search query
         const searchQuery = {
             isDeleted: false,
@@ -538,9 +538,15 @@ const loadShop = async (req, res) => {
 
         // Fix image paths
         const fixedProducts = paginatedProducts.map(product => {
-            const fixedImages = product.productImage.map(img =>
-                img.replace(/\\/g, '/').replace(/^public\//, '/')
-            );
+            const fixedImages = product.productImage.map(img => {
+                // Make sure we have a valid image path
+                if (!img) return '/images/placeholder.jpg';
+                
+                // Handle both relative and absolute paths
+                if (img.startsWith('http')) return img;
+                return img.replace(/\\/g, '/').replace(/^public\//, '/');
+            });
+            
             return {
                 ...product,
                 productImage: fixedImages
@@ -564,7 +570,8 @@ const loadShop = async (req, res) => {
         };
 
         // Handle AJAX requests
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (isAjax) {
+            res.setHeader('Content-Type', 'application/json');
             return res.json(responseData);
         }
 
@@ -599,11 +606,14 @@ const loadShop = async (req, res) => {
     } catch (error) {
         console.error('Error in loadShop:', error);
         
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        // Check if this is an AJAX request
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
             return res.status(500).json({ 
-                error: 'Failed to load products',
+                error: 'Failed to load products: ' + (error.message || 'Unknown error'),
                 products: [],
-                totalProducts: 0
+                totalProducts: 0,
+                currentPage: 1,
+                totalPages: 0
             });
         }
         
@@ -616,7 +626,13 @@ const loadShop = async (req, res) => {
             totalProducts: 0,
             user: req.session.user,
             buildQueryString: () => '',
-            queryParams: {}
+            queryParams: {},
+            selectedCategory: [],
+            selectedSizes: [],
+            minPrice: '',
+            maxPrice: '',
+            searchTerm: '',
+            sortOption: 'bestMatch'
         });
     }
 };
