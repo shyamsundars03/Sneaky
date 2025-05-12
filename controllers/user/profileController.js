@@ -2,41 +2,90 @@ const User = require('../../models/userSchema');
 const Address = require('../../models/addressSchema');
 const multer = require('multer');
 const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../../config/cloudinary');
 
-// Multer configuration for image upload
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
+// Initialize Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: (req, file) => {
+    return {
+      folder: 'sneaky/profile_images',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'svg'],
+      transformation: [{ width: 500, height: 500, crop: 'limit' }],
+      public_id: `user-${req.user._id}-${Date.now()}`
+    };
+  }
 });
 
-const upload = multer({ storage: storage }).single('profileImage');
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpe?g|png|svg/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only images (jpeg, jpg, png, svg) are allowed!'));
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+}).single('profileImage');
 
 // Update profile image
 const updateProfileImage = async (req, res) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ success: false, message: "User not authenticated." });
-        }
-
-        if (req.file) {
-            const imageUrl = `/uploads/${req.file.filename}`;
-            await User.findByIdAndUpdate(req.user._id, { profileImage: imageUrl });
-
-            // Update the session with the new profile image
-            req.user.profileImage = imageUrl;
-            req.session.user.profileImage = imageUrl;
-
-            return res.json({ success: true, message: "Profile image uploaded successfully!" });
-        }
-        return res.status(400).json({ success: false, message: "No file uploaded." });
-    } catch (error) {
-        console.error("Error updating profile image:", error);
-        return res.status(500).json({ success: false, message: "Error updating profile image." });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "User not authenticated." });
     }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded." });
+    }
+
+    const imageUrl = req.file.path;
+    
+    // Delete old image if it exists
+    if (req.user.profileImage) {
+      try {
+        const publicId = req.user.profileImage.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`sneaky/profile_images/${publicId}`);
+      } catch (error) {
+        console.error("Error deleting old image:", error);
+      }
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { profileImage: imageUrl });
+
+    // Update session
+    req.user.profileImage = imageUrl;
+    req.session.user.profileImage = imageUrl;
+
+    return res.json({ 
+      success: true, 
+      message: "Profile image uploaded successfully!",
+      imageUrl: imageUrl
+    });
+
+  } catch (error) {
+    console.error("Error updating profile image:", error);
+    
+    let errorMessage = "Error updating profile image.";
+    if (error.message.includes('File too large')) {
+      errorMessage = "Image size should be less than 5MB.";
+    } else if (error.message.includes('Only images')) {
+      errorMessage = "Only jpeg, jpg, png, and svg images are allowed.";
+    }
+
+    return res.status(500).json({ 
+      success: false, 
+      message: errorMessage,
+      error: error.message 
+    });
+  }
 };
 
 // Load profile page

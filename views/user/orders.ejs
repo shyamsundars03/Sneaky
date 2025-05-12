@@ -568,7 +568,8 @@
                 <% orders.forEach(order => { %>
                     <tr>
                         <td><%= order.transactionId %></td>
-                        <td><%= order.createdAt.toLocaleDateString() %></td>
+                        <td><%= order.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' }) %></td>
+
                         <td>
                             <%= order.activeQuantity %>
                         </td>

@@ -815,7 +815,7 @@ tfoot td {
                     <div class="detail-card">
                         <h3>Order Details</h3>
                         <p>Order ID: <%= order.transactionId %></p>
-                        <p>Order Date: <%= order.createdAt.toLocaleDateString() %></p>
+                        <p>Order Date: <%= order.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' }) %></p>
                         <p>Order Total: ₹<%= order.grandTotal %></p>
                     </div>
                 </div>

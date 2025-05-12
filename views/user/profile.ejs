@@ -701,47 +701,79 @@ input.error {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('DOM fully loaded!'); // Debugging
-
     const changeProfileBtn = document.getElementById('changeProfileBtn');
     const profileImageInput = document.getElementById('profileImageInput');
 
     if (changeProfileBtn && profileImageInput) {
         changeProfileBtn.addEventListener('click', function () {
-            console.log('File input clicked!'); // Debugging
             profileImageInput.click();
         });
 
         profileImageInput.addEventListener('change', function () {
             if (this.files && this.files[0]) {
-                console.log('File selected:', this.files[0]); // Debugging
+                const file = this.files[0];
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                // Validate file type
+                if (!validTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File Type',
+                        text: 'Only JPG, JPEG, PNG, and SVG images are allowed.',
+                    });
+                    this.value = ''; // Clear the input
+                    return;
+                }
+
+                // Validate file size
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: 'Image size should be less than 5MB.',
+                    });
+                    this.value = ''; // Clear the input
+                    return;
+                }
 
                 const formData = new FormData();
-                formData.append('profileImage', this.files[0]);
+                formData.append('profileImage', file);
 
-                console.log('Sending fetch request...'); // Debugging
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Uploading Image',
+                    html: 'Please wait while we upload your profile picture...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 fetch('/profile/image', {
                     method: 'POST',
                     body: formData,
                 })
                 .then(response => {
-                    console.log('Response received:', response); // Debugging
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data); // Debugging
+                    Swal.close();
                     if (data.success) {
-                        // SweetAlert2 success message
                         Swal.fire({
                             icon: 'success',
                             title: 'Success!',
                             text: 'Profile image updated successfully!',
                         }).then(() => {
-                            // Reload the page after the alert is closed
-                            window.location.reload();
+                            // Update the image preview immediately
+                            if (data.imageUrl) {
+                                document.getElementById('profileImg').src = data.imageUrl;
+                            }
                         });
                     } else {
-                        // SweetAlert2 error message
                         Swal.fire({
                             icon: 'error',
                             title: 'Oops...',
@@ -750,26 +782,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error); // Debugging
-                    // SweetAlert2 error message
+                    Swal.close();
+                    console.error('Error:', error);
                     Swal.fire({
                         icon: 'error',
-                        title: 'Oops...',
-                        text: 'Something went wrong while uploading the image!',
+                        title: 'Error',
+                        text: error.message || 'Something went wrong while uploading the image!',
                     });
-                });
-            } else {
-                console.log('No file selected.'); // Debugging
-                // SweetAlert2 warning message
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No File Selected',
-                    text: 'Please select an image to upload.',
                 });
             }
         });
-    } else {
-        console.error('Error: Could not find profile image elements.');
     }
 });
 </script>
