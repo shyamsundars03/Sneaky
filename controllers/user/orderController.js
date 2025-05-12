@@ -3,7 +3,8 @@ const Order = require('../../models/orderSchema');
 const User = require('../../models/userSchema');
 const Product = require('../../models/productSchema');
 const { generateInvoice } = require('../../services/invoiceService');
-
+const { generateUserInvoice } = require('../../services/invoice');
+const fs = require('fs');
 // Load orders page
 const loadOrder = async (req, res) => {
     try {
@@ -618,18 +619,71 @@ const returnOrderItem = async (req, res) => {
     }
   }
 
+// const downloadInvoice = async (req, res) => {
+//     try {
+//         const orderId = req.params.orderId;
+//         const filePath = await generateInvoice(orderId);
+
+//         // Send the file for download
+//         res.download(filePath);
+//     } catch (error) {
+//         console.error("Error generating invoice:", error);
+//         res.status(500).render("page-404", { message: "Failed to generate invoice." });
+//     }
+// };
+
 const downloadInvoice = async (req, res) => {
     try {
         const orderId = req.params.orderId;
-        const filePath = await generateInvoice(orderId);
+        
+        // Check if user is authorized to download this invoice
+        if (!req.user) {
+            return res.redirect('/signin');
+        }
+        
+        // Verify the order belongs to the user
+        const order = await Order.findOne({ 
+            _id: orderId,
+            user: req.user._id
+        });
+        
+        if (!order) {
+            return res.status(404).render("page-404", { 
+                message: "Order not found or unauthorized." 
+            });
+        }
+        
+        const filePath = await generateUserInvoice(orderId);
 
         // Send the file for download
-        res.download(filePath);
+        res.download(filePath, `SNEAKY-Invoice-${order.transactionId}.pdf`, (err) => {
+            if (err) {
+                console.error('Error sending invoice:', err);
+                if (!res.headersSent) {
+                    res.status(500).render("page-404", { 
+                        message: "Failed to download invoice." 
+                    });
+                }
+            }
+            
+            // Optionally delete the file after sending
+            // Uncomment if you want to delete the file after download
+            /*
+            setTimeout(() => {
+                fs.unlink(filePath, (unlinkErr) => {
+                    if (unlinkErr) console.error('Error deleting invoice file:', unlinkErr);
+                });
+            }, 1000);
+            */
+        });
     } catch (error) {
         console.error("Error generating invoice:", error);
-        res.status(500).render("page-404", { message: "Failed to generate invoice." });
+        res.status(500).render("page-404", { 
+            message: "Failed to generate invoice." 
+        });
     }
 };
+
 
 module.exports = {
     loadOrder,

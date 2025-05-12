@@ -926,7 +926,7 @@ tfoot td {
         <% if (order.discountAmount > 0) { %>
             <tr>
                 <td colspan="6" class="text-right">Discount (<%= order.couponCode %>):</td>
-                <td class="text-right">-₹<%= order.discountAmount.toFixed(2) %></td>
+                <td class="text-right">-₹<%= order.discountAmount %></td>
             </tr>
         <% } %>
         
