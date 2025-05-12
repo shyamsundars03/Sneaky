@@ -239,12 +239,9 @@ async function updateProducts() {
         const searchTerm = document.getElementById('searchBox').value.trim();
         const sortOption = document.querySelector('.sort-select').value;
         
-        // Get current page or default to 1
-        let currentPage = 1;
+        // Get current page from URL or default to 1
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('page')) {
-            currentPage = parseInt(urlParams.get('page')) || 1;
-        }
+        const currentPage = parseInt(urlParams.get('page')) || 1;
 
         // Show loading state
         const productsGrid = document.getElementById('products-grid');
@@ -262,33 +259,25 @@ async function updateProducts() {
         if (sortOption !== 'bestMatch') params.set('sort', sortOption);
         params.set('page', currentPage);
 
-        // Build URL and add headers for AJAX request
-        const url = `/shop?${params.toString()}`;
-        
-        const response = await fetch(url, {
-            method: 'GET',
+        // Make the AJAX request
+        const response = await fetch(`/shop?${params.toString()}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
             },
-            credentials: 'same-origin' // Include cookies in the request
+            credentials: 'include'
         });
 
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-        
-        // Check content type to handle both JSON and HTML responses
+        // Check if response is JSON
         const contentType = response.headers.get('content-type');
-        let data;
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned unexpected content type');
+        }
+
+        const data = await response.json();
         
-        if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-        } else {
-            // If server responds with HTML instead of JSON, extract data from HTML
-            const html = await response.text();
-            console.error('Server responded with HTML instead of JSON');
-            throw new Error('Invalid server response format');
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load products');
         }
 
         // Update browser URL without reload
@@ -300,7 +289,13 @@ async function updateProducts() {
     } catch (error) {
         console.error('Error updating products:', error);
         const productsGrid = document.getElementById('products-grid');
-        productsGrid.innerHTML = `<p class="error-message">Error loading products: ${error.message}. Please refresh the page and try again.</p>`;
+        productsGrid.innerHTML = `
+            <div class="error-message">
+                <p>Error loading products: ${error.message}</p>
+                <button onclick="location.reload()" class="retry-btn">Refresh Page</button>
+                <button onclick="updateProducts()" class="retry-btn">Try Again</button>
+            </div>
+        `;
     } finally {
         const pagination = document.querySelector('.pagination');
         if (pagination) pagination.style.opacity = '1';

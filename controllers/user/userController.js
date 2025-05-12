@@ -448,8 +448,12 @@ const calculateFinalPrice = (product, activeOffers) => {
 const loadShop = async (req, res) => {
     try {
         // Check if this is an AJAX request
-        const isAjax = req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest';
-        
+               const isAjax = req.xhr || 
+                     req.headers['x-requested-with'] === 'XMLHttpRequest' || 
+                     req.headers.accept?.includes('application/json');
+
+
+
         // Extract query parameters
         const page = parseInt(req.query.page) || 1;
         const limit = 6;
@@ -555,6 +559,7 @@ const loadShop = async (req, res) => {
 
         // Prepare response data
         const responseData = {
+            success: true,
             products: fixedProducts,
             currentPage: page,
             totalPages,
@@ -571,7 +576,6 @@ const loadShop = async (req, res) => {
 
         // Handle AJAX requests
         if (isAjax) {
-            res.setHeader('Content-Type', 'application/json');
             return res.json(responseData);
         }
 
@@ -607,13 +611,11 @@ const loadShop = async (req, res) => {
         console.error('Error in loadShop:', error);
         
         // Check if this is an AJAX request
-        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+       if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
             return res.status(500).json({ 
-                error: 'Failed to load products: ' + (error.message || 'Unknown error'),
-                products: [],
-                totalProducts: 0,
-                currentPage: 1,
-                totalPages: 0
+                success: false,
+                error: 'Failed to load products',
+                message: error.message || 'Unknown error'
             });
         }
         
