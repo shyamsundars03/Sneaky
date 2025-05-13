@@ -585,7 +585,29 @@
             color: white;
             border: none;
         }
-        .item-action-btn{
+        .verify-item-return-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+                .save-item-status-btn{
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+        }
+                .item-action-btn{
             display: inline-block;
             padding: 8px 16px;
             border-radius: 5px;
@@ -683,7 +705,7 @@
         .status-badge.processing { background-color: #ffc107; color: #212529; }
         .status-badge.shipped { background-color: #6f42c1; }
         .status-badge.delivered { background-color: #28a745; }
-        .status-badge.cancelled { background-color: #dc3545; }
+        .status-badge.cancelled { background-color: #dc3545;color: white; }
         .status-badge.return-requested { background-color: #fd7e14; }
         .status-badge.returned { background-color: #6c757d; }
 
@@ -731,11 +753,11 @@
                 <select id="statusSelect" class="status-select">
                     <% if (order.status === 'Ordered') { %>
                         <option value="Ordered" selected>Ordered</option>
-                        <option value="Processing">Processing</option>
+                        <!-- <option value="Processing">Processing</option> -->
                         <option value="Shipped">Shipped</option>
                         <option value="Cancelled">Cancel</option>
                     <% } else if (order.status === 'Processing') { %>
-                        <option value="Processing" selected>Processing</option>
+                        <!-- <option value="Processing" selected>Processing</option> -->
                         <option value="Shipped">Shipped</option>
                         <option value="Cancelled">Cancel</option>
                     <% } else if (order.status === 'Shipped') { %>
@@ -787,7 +809,7 @@
                     <th>Quantity</th>
                     <th>Status</th>
                     <th>Total</th>
-                    <th>Actions</th>
+                    <!-- <th>Actions</th> -->
                 </tr>
             </thead>
             <tbody>
@@ -809,7 +831,7 @@
                             <% if (!item.cancelled && !item.returned && ['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
                                 <select class="item-status-select" data-item-id="<%= item._id %>">
                                     <option value="Ordered" <%= item.status === 'Ordered' ? 'selected' : '' %>>Ordered</option>
-                                    <option value="Processing" <%= item.status === 'Processing' ? 'selected' : '' %>>Processing</option>
+                                    <!-- <option value="Processing" <%= item.status === 'Processing' ? 'selected' : '' %>>Processing</option> -->
                                     <option value="Shipped" <%= item.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
                                     <option value="Delivered" <%= item.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
                                 </select>
@@ -822,7 +844,7 @@
                             <% } %>
                         </td>
                         <td data-label="Total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
-                        <td>
+                        <!-- <td>
                             <% if (!item.cancelled && !item.returned && ['Ordered', 'Processing', 'Shipped'].includes(item.status)) { %>
                                 <button class="item-action-btn" 
                                         data-action="cancel" 
@@ -831,7 +853,7 @@
                                     Cancel Item
                                 </button>
                             <% } %>
-                        </td>
+                        </td> -->
                     </tr>
                     <% if (item.cancellationReason) { %>
                         <tr>

@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["Payment Processing", "Ordered", "Processing", "Shipped", "Delivered", "Cancelled", "Return Requested", "Failed","Returned"],
+        enum: ["Payment Processing", "Ordered", "Processing", "Shipped", "Delivered", "Cancelled", "Partially Returned","Return Requested", "Failed","Returned"],
         default: "Payment Processing"
     },
     transactionId: {

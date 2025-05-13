@@ -856,7 +856,7 @@ tfoot td {
                 <td>
                     <% if (item.status !== 'Cancelled' && item.status !== 'Returned' && 
                           item.status !== 'Return Requested' && 
-                          ['Ordered', 'Processing', 'Shipped'].includes(item.status)) { %>
+                          ['Ordered', 'Processing', 'Shipped','Pending'].includes(item.status)) { %>
                         <button class="cancel-item-btn" 
                                 data-item-id="<%= item._id %>" 
                                 data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
