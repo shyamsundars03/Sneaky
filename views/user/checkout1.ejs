@@ -554,41 +554,174 @@
     let shippingCost = 100; // Default shipping cost
     const cartTotal = <%= cartTotal %>;
 
+    // Address validation functions
+    function validateName(name) {
+        const regex = /^[a-zA-Z ]+$/;
+        return regex.test(name) && name.trim().length > 1;
+    }
+
+    function validateStreet(street) {
+        return street.trim().length > 0;
+    }
+
+    function validateCity(city) {
+        const regex = /^[a-zA-Z ]+$/;
+        return regex.test(city) && city.trim().length > 0;
+    }
+
+    function validateState(state) {
+        const regex = /^[a-zA-Z ]+$/;
+        return regex.test(state) && state.trim().length > 0;
+    }
+
+    function validateZip(zip) {
+        const regex = /^\d{6}$/;
+        return regex.test(zip);
+    }
+
+    function validateCountry(country) {
+        const regex = /^[a-zA-Z ]+$/;
+        return regex.test(country) && country.trim().length > 0;
+    }
+
+    // Show validation error
+    function showValidationError(field, message) {
+        // Check if error element exists, if not create it
+        let errorElement = document.getElementById(`${field}Error`);
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.id = `${field}Error`;
+            errorElement.className = 'invalid-feedback';
+            errorElement.style.color = 'red';
+            errorElement.style.fontSize = '12px';
+            errorElement.style.marginTop = '5px';
+            
+            // Insert after the input field
+            const inputField = document.querySelector(`input[name="${field}"]`);
+            if (inputField && inputField.parentNode) {
+                inputField.parentNode.appendChild(errorElement);
+            }
+        }
+        
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        document.querySelector(`input[name="${field}"]`).classList.add('is-invalid');
+        document.querySelector(`input[name="${field}"]`).style.borderColor = 'red';
+    }
+
+    // Clear validation error
+    function clearValidationError(field) {
+        const errorElement = document.getElementById(`${field}Error`);
+        if (errorElement) {
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+        }
+        
+        const inputField = document.querySelector(`input[name="${field}"]`);
+        if (inputField) {
+            inputField.classList.remove('is-invalid');
+            inputField.style.borderColor = '';
+        }
+    }
+
+    // Validate entire form
+    function validateAddressForm(form) {
+        let isValid = true;
+        const formData = {
+            name: form.name.value.trim(),
+            street: form.street.value.trim(),
+            city: form.city.value.trim(),
+            state: form.state.value.trim(),
+            zip: form.zip.value.trim(),
+            country: form.country.value.trim()
+        };
+
+        // Validate name
+        if (!validateName(formData.name)) {
+            showValidationError('name', 'Name must contain only letters and be at least 2 characters long');
+            isValid = false;
+        } else {
+            clearValidationError('name');
+        }
+
+        // Validate street
+        if (!validateStreet(formData.street)) {
+            showValidationError('street', 'Street address is required');
+            isValid = false;
+        } else {
+            clearValidationError('street');
+        }
+
+        // Validate city
+        if (!validateCity(formData.city)) {
+            showValidationError('city', 'City must contain only letters');
+            isValid = false;
+        } else {
+            clearValidationError('city');
+        }
+
+        // Validate state
+        if (!validateState(formData.state)) {
+            showValidationError('state', 'State must contain only letters');
+            isValid = false;
+        } else {
+            clearValidationError('state');
+        }
+
+        // Validate zip
+        if (!validateZip(formData.zip)) {
+            showValidationError('zip', 'Zip code must be exactly 6 digits');
+            isValid = false;
+        } else {
+            clearValidationError('zip');
+        }
+
+        // Validate country
+        if (!validateCountry(formData.country)) {
+            showValidationError('country', 'Country must contain only letters');
+            isValid = false;
+        } else {
+            clearValidationError('country');
+        }
+
+        return isValid;
+    }
+
     // Function to select an address
     function selectAddress(addressId, addressDetails) {
-    // Store selected address in sessionStorage
-    sessionStorage.setItem('selectedAddress', JSON.stringify(addressDetails));
-    
-    // Update the UI to reflect the selected address
-    document.querySelectorAll('.address-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    const selectedCard = document.querySelector(`input[name="selectedAddress"][value="${addressId}"]`).parentElement;
-    selectedCard.classList.add('selected');
-}
+        // Store selected address in sessionStorage
+        sessionStorage.setItem('selectedAddress', JSON.stringify(addressDetails));
+        
+        // Update the UI to reflect the selected address
+        document.querySelectorAll('.address-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        const selectedCard = document.querySelector(`input[name="selectedAddress"][value="${addressId}"]`).parentElement;
+        selectedCard.classList.add('selected');
+    }
 
     // Function to update shipping cost
     function updateShippingCost(cost) {
-    const selectedShippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-    
-    // Update UI
-    document.getElementById('shippingCost').textContent = `₹${cost}`;
-    const cartTotal = <%= cartTotal %>;
-    const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
-    const totalAmount = cartTotal + cost - discountAmount;
-    document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+        const selectedShippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+        
+        // Update UI
+        document.getElementById('shippingCost').textContent = `₹${cost}`;
+        const cartTotal = <%= cartTotal %>;
+        const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
+        const totalAmount = cartTotal + cost - discountAmount;
+        document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
 
-    // Update selected state
-    document.querySelectorAll('.shipping-option-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    document.querySelector(`input[name="shipping"]:checked`).parentElement.classList.add('selected');
+        // Update selected state
+        document.querySelectorAll('.shipping-option-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        document.querySelector(`input[name="shipping"]:checked`).parentElement.classList.add('selected');
 
-    // Store in sessionStorage
-    sessionStorage.setItem('selectedShippingMethod', selectedShippingMethod);
-    sessionStorage.setItem('shippingCost', cost);
-}
+        // Store in sessionStorage
+        sessionStorage.setItem('selectedShippingMethod', selectedShippingMethod);
+        sessionStorage.setItem('shippingCost', cost);
+    }
 
     // Function to open the address modal
     function openAddressModal() {
@@ -603,244 +736,323 @@
 
     // Function to save the address
     async function saveAddress(event) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const address = Object.fromEntries(formData.entries());
+        event.preventDefault();
+        const form = event.target;
+        
+        // First validate the form
+        if (!validateAddressForm(form)) {
+            return; // Stop form submission if validation fails
+        }
+        
+        const formData = new FormData(form);
+        const address = Object.fromEntries(formData.entries());
 
-    try {
-        const response = await fetch('/address/save', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(address),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Show success alert
-            await Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: result.message || 'Address saved successfully',
-                timer: 1500,
-                showConfirmButton: false
+        try {
+            const response = await fetch('/address/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(address),
             });
-            
-            // Close modal and refresh addresses
-            closeAddressModal();
-            window.location.reload();
-        } else {
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success alert
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: result.message || 'Address saved successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+                // Close modal and refresh addresses
+                closeAddressModal();
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message || 'Failed to save address',
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: result.message || 'Failed to save address',
+                text: 'Failed to save address. Please try again.',
             });
         }
-    } catch (error) {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to save address. Please try again.',
-        });
     }
-}
 
     // Function to proceed to checkout step 2
-    // In checkout1.ejs, update the proceedToCheckout2 function:
-
-async function proceedToCheckout2() {
-    const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
-    const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-    const shippingCost = Number(sessionStorage.getItem('shippingCost')) || 100;
-    
-    if (!selectedRadio) {
-        await Swal.fire({
-            icon: 'warning',
-            title: 'Address Required',
-            text: 'Please select a shipping address to continue.',
-            confirmButtonColor: '#4CAF50',
-        });
-        return;
-    }
-
-    try {
-        const response = await fetch('/checkout1/save', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                selectedAddress: selectedRadio.value,
-                shippingMethod,
-                shippingCost,
-                couponCode: document.getElementById('couponCode').value || null,
-                discountAmount: <%= couponApplied ? discountAmount : 0 %>
-            }),
-            credentials: 'include'
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            window.location.href = '/checkout2';
-        } else {
-            throw new Error(result.message || 'Failed to proceed to checkout');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Failed to proceed to checkout',
-        });
-    }
-}
-
-// Apply Coupon Function
-async function applyCoupon() {
-    const couponCode = document.getElementById('couponCode').value.trim();
-    const messageElement = document.getElementById('couponMessage');
-    const cartTotal = <%= cartTotal %>;
-    const shippingCost = 100; // Assuming a default shipping cost
-    const totalAmount = cartTotal + shippingCost;
-
-    if (!couponCode) {
-        messageElement.textContent = 'Please enter a coupon code';
-        messageElement.style.color = 'red';
-        return;
-    }
-
-    try {
-        messageElement.textContent = 'Validating coupon...';
-        messageElement.style.color = 'blue';
-
-                // Get the current shipping cost from the DOM
-        const shippingCostText = document.getElementById('shippingCost').textContent;
-        const shippingCost = Number(shippingCostText.replace('₹', '')) || 100;
-
-
-        const response = await fetch('/validate-coupon', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                couponCode,
-                totalAmount: <%= cartTotal %> + shippingCost
-            }),
-              credentials: 'include'
-        });
-
-        const result = await response.json();
-
-        if (result.valid) {
- // Show success message
-            await Swal.fire({
-                    icon: 'success',
-                     title: 'Coupon Applied',
-                     text: result.message,
-                    timer: 2000,
-                    showConfirmButton: false
-            });
-            
-            // Reload to show applied coupon
-            window.location.reload();
-        } else {
-            messageElement.textContent = result.message;
-            messageElement.style.color = 'red';
-        }
-    } catch (error) {
-        console.error('Error applying coupon:', error);
-        messageElement.textContent = error.message || 'Failed to apply coupon';
-        messageElement.style.color = 'red';
-    }
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    // Restore selected address
-    const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
-    if (selectedAddress) {
-        const addressInput = document.querySelector(`input[name="selectedAddress"][value="${selectedAddress._id}"]`);
-        if (addressInput) {
-            addressInput.checked = true;
-            selectAddress(selectedAddress._id, selectedAddress);
-        }
-    }
-
-    // Restore shipping method with proper initialization
-    const savedShippingMethod = sessionStorage.getItem('selectedShippingMethod') || 'Standard';
-    const savedShippingCost = sessionStorage.getItem('shippingCost') || 100;
-    
-    // Set the radio button and UI
-    const radio = document.querySelector(`input[name="shipping"][value="${savedShippingMethod}"]`);
-    if (radio) {
-        radio.checked = true;
-        radio.parentElement.classList.add('selected');
+    async function proceedToCheckout2() {
+        const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
+        const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+        const shippingCost = Number(sessionStorage.getItem('shippingCost')) || 100;
         
-        // Update cost display
-        document.getElementById('shippingCost').textContent = `₹${savedShippingCost}`;
-        
-        // Update total amount
-        const cartTotal = <%= cartTotal %>;
-        const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
-        const totalAmount = cartTotal + Number(savedShippingCost) - discountAmount;
-        document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
-    }
-
-    // Ensure only one shipping method is selected
-    document.querySelectorAll('.shipping-option-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    if (radio) {
-        radio.parentElement.classList.add('selected');
-    }
-});
-    
-
-async function removeCoupon() {
-    try {
-        const response = await fetch('/remove-coupon', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include'
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Show success message
+        if (!selectedRadio) {
             await Swal.fire({
-                icon: 'success',
-                title: 'Coupon Removed',
-                text: 'Coupon has been removed successfully',
-                timer: 2000,
-                showConfirmButton: false
+                icon: 'warning',
+                title: 'Address Required',
+                text: 'Please select a shipping address to continue.',
+                confirmButtonColor: '#4CAF50',
             });
-            
-            // Reload to update UI
-            window.location.reload();
-        } else {
+            return;
+        }
+
+        try {
+            const response = await fetch('/checkout1/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selectedAddress: selectedRadio.value,
+                    shippingMethod,
+                    shippingCost,
+                    couponCode: document.getElementById('couponCode').value || null,
+                    discountAmount: <%= couponApplied ? discountAmount : 0 %>  
+                }),
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = '/checkout2';
+            } else {
+                throw new Error(result.message || 'Failed to proceed to checkout');
+            }
+        } catch (error) {
+            console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: result.message || 'Failed to remove coupon',
+                text: error.message || 'Failed to proceed to checkout',
             });
         }
-    } catch (error) {
-        console.error('Error removing coupon:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to remove coupon. Please try again.',
-        });
     }
-}
 
+    // Apply Coupon Function
+    async function applyCoupon() {
+        const couponCode = document.getElementById('couponCode').value.trim();
+        const messageElement = document.getElementById('couponMessage');
+        const cartTotal = <%= cartTotal %>;
+        const shippingCost = 100; // Assuming a default shipping cost
+        const totalAmount = cartTotal + shippingCost;
 
+        if (!couponCode) {
+            messageElement.textContent = 'Please enter a coupon code';
+            messageElement.style.color = 'red';
+            return;
+        }
+
+        try {
+            messageElement.textContent = 'Validating coupon...';
+            messageElement.style.color = 'blue';
+
+            // Get the current shipping cost from the DOM
+            const shippingCostText = document.getElementById('shippingCost').textContent;
+            const shippingCost = Number(shippingCostText.replace('₹', '')) || 100;
+
+            const response = await fetch('/validate-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    couponCode,
+                    totalAmount: <%= cartTotal %> + shippingCost
+                }),
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (result.valid) {
+                // Show success message
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Coupon Applied',
+                    text: result.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Reload to show applied coupon
+                window.location.reload();
+            } else {
+                messageElement.textContent = result.message;
+                messageElement.style.color = 'red';
+            }
+        } catch (error) {
+            console.error('Error applying coupon:', error);
+            messageElement.textContent = error.message || 'Failed to apply coupon';
+            messageElement.style.color = 'red';
+        }
+    }
+
+    async function removeCoupon() {
+        try {
+            const response = await fetch('/remove-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success message
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Coupon Removed',
+                    text: 'Coupon has been removed successfully',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Reload to update UI
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: result.message || 'Failed to remove coupon',
+                });
+            }
+        } catch (error) {
+            console.error('Error removing coupon:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to remove coupon. Please try again.',
+            });
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Restore selected address
+        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+        if (selectedAddress) {
+            const addressInput = document.querySelector(`input[name="selectedAddress"][value="${selectedAddress._id}"]`);
+            if (addressInput) {
+                addressInput.checked = true;
+                selectAddress(selectedAddress._id, selectedAddress);
+            }
+        }
+
+        // Restore shipping method with proper initialization
+        const savedShippingMethod = sessionStorage.getItem('selectedShippingMethod') || 'Standard';
+        const savedShippingCost = sessionStorage.getItem('shippingCost') || 100;
+        
+        // Set the radio button and UI
+        const radio = document.querySelector(`input[name="shipping"][value="${savedShippingMethod}"]`);
+        if (radio) {
+            radio.checked = true;
+            radio.parentElement.classList.add('selected');
+            
+            // Update cost display
+            document.getElementById('shippingCost').textContent = `₹${savedShippingCost}`;
+            
+            // Update total amount
+            const cartTotal = <%= cartTotal %>;
+            const discountAmount = <%= couponApplied ? discountAmount : 0 %>;
+            const totalAmount = cartTotal + Number(savedShippingCost) - discountAmount;
+            document.getElementById('totalAmount').textContent = `₹${totalAmount}`;
+        }
+
+        // Ensure only one shipping method is selected
+        document.querySelectorAll('.shipping-option-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        if (radio) {
+            radio.parentElement.classList.add('selected');
+        }
+
+        // Setup real-time validation for address form in checkout
+        const addressForm = document.getElementById('addressForm');
+        if (addressForm) {
+            // Add input event listeners to all form fields
+            const nameInput = addressForm.querySelector('input[name="name"]');
+            const streetInput = addressForm.querySelector('input[name="street"]');
+            const cityInput = addressForm.querySelector('input[name="city"]');
+            const stateInput = addressForm.querySelector('input[name="state"]');
+            const zipInput = addressForm.querySelector('input[name="zip"]');
+            const countryInput = addressForm.querySelector('input[name="country"]');
+            
+            // Name validation
+            if (nameInput) {
+                nameInput.addEventListener('input', function() {
+                    if (validateName(this.value.trim())) {
+                        clearValidationError('name');
+                    } else {
+                        showValidationError('name', 'Name must contain only letters and be at least 2 characters long');
+                    }
+                });
+            }
+
+            // Street validation
+            if (streetInput) {
+                streetInput.addEventListener('input', function() {
+                    if (validateStreet(this.value.trim())) {
+                        clearValidationError('street');
+                    } else {
+                        showValidationError('street', 'Street address is required');
+                    }
+                });
+            }
+
+            // City validation
+            if (cityInput) {
+                cityInput.addEventListener('input', function() {
+                    if (validateCity(this.value.trim())) {
+                        clearValidationError('city');
+                    } else {
+                        showValidationError('city', 'City must contain only letters');
+                    }
+                });
+            }
+
+            // State validation
+            if (stateInput) {
+                stateInput.addEventListener('input', function() {
+                    if (validateState(this.value.trim())) {
+                        clearValidationError('state');
+                    } else {
+                        showValidationError('state', 'State must contain only letters');
+                    }
+                });
+            }
+
+            // Zip validation
+            if (zipInput) {
+                zipInput.addEventListener('input', function() {
+                    if (validateZip(this.value.trim())) {
+                        clearValidationError('zip');
+                    } else {
+                        showValidationError('zip', 'Zip code must be exactly 6 digits');
+                    }
+                });
+            }
+
+            // Country validation
+            if (countryInput) {
+                countryInput.addEventListener('input', function() {
+                    if (validateCountry(this.value.trim())) {
+                        clearValidationError('country');
+                    } else {
+                        showValidationError('country', 'Country must contain only letters');
+                    }
+                });
+            }
+        }
+    });
 </script>

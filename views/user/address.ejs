@@ -258,320 +258,374 @@ button[disabled] {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 
-    // Address validation functions
-    function validateName(name) {
-        const regex = /^[a-zA-Z ]+$/;
-        return regex.test(name) && name.trim().length > 1;
+// Address validation functions
+function validateName(name) {
+    const regex = /^[a-zA-Z ]+$/;
+    return regex.test(name) && name.trim().length > 1;
+}
+
+function validateStreet(street) {
+    return street.trim().length > 0;
+}
+
+function validateCity(city) {
+    const regex = /^[a-zA-Z ]+$/;
+    return regex.test(city) && city.trim().length > 0;
+}
+
+function validateState(state) {
+    const regex = /^[a-zA-Z ]+$/;
+    return regex.test(state) && state.trim().length > 0;
+}
+
+function validateZip(zip) {
+    const regex = /^\d{6}$/;
+    return regex.test(zip);
+}
+
+function validateCountry(country) {
+    const regex = /^[a-zA-Z ]+$/;
+    return regex.test(country) && country.trim().length > 0;
+}
+
+// Show validation error
+function showValidationError(field, message) {
+    const errorElement = document.getElementById(`${field}Error`);
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        document.getElementById(`address${field.charAt(0).toUpperCase() + field.slice(1)}`).classList.add('is-invalid');
+    }
+}
+
+// Clear validation error
+function clearValidationError(field) {
+    const errorElement = document.getElementById(`${field}Error`);
+    if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+        document.getElementById(`address${field.charAt(0).toUpperCase() + field.slice(1)}`).classList.remove('is-invalid');
+    }
+}
+
+// Validate entire form
+function validateAddressForm(formData) {
+    let isValid = true;
+
+    // Validate name
+    if (!validateName(formData.name)) {
+        showValidationError('name', 'Name must contain only letters and be at least 2 characters long');
+        isValid = false;
+    } else {
+        clearValidationError('name');
     }
 
-    function validateStreet(street) {
-        return street.trim().length > 0;
+    // Validate street
+    if (!validateStreet(formData.street)) {
+        showValidationError('street', 'Street address is required');
+        isValid = false;
+    } else {
+        clearValidationError('street');
     }
 
-    function validateCity(city) {
-        const regex = /^[a-zA-Z ]+$/;
-        return regex.test(city) && city.trim().length > 0;
+    // Validate city
+    if (!validateCity(formData.city)) {
+        showValidationError('city', 'City must contain only letters');
+        isValid = false;
+    } else {
+        clearValidationError('city');
     }
 
-    function validateState(state) {
-        const regex = /^[a-zA-Z ]+$/;
-        return regex.test(state) && state.trim().length > 0;
+    // Validate state
+    if (!validateState(formData.state)) {
+        showValidationError('state', 'State must contain only letters');
+        isValid = false;
+    } else {
+        clearValidationError('state');
     }
 
-    function validateZip(zip) {
-        const regex = /^\d{6}$/;
-        return regex.test(zip);
+    // Validate zip
+    if (!validateZip(formData.zip)) {
+        showValidationError('zip', 'Zip code must be exactly 6 digits');
+        isValid = false;
+    } else {
+        clearValidationError('zip');
     }
 
-    function validateCountry(country) {
-        const regex = /^[a-zA-Z ]+$/;
-        return regex.test(country) && country.trim().length > 0;
+    // Validate country
+    if (!validateCountry(formData.country)) {
+        showValidationError('country', 'Country must contain only letters');
+        isValid = false;
+    } else {
+        clearValidationError('country');
     }
 
-    // Show validation error
-    function showValidationError(field, message) {
-        const errorElement = document.getElementById(`${field}Error`);
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            document.getElementById(`address${field.charAt(0).toUpperCase() + field.slice(1)}`).classList.add('is-invalid');
-        }
-    }
+    return isValid;
+}
 
-    // Clear validation error
-    function clearValidationError(field) {
-        const errorElement = document.getElementById(`${field}Error`);
-        if (errorElement) {
-            errorElement.textContent = '';
-            errorElement.style.display = 'none';
-            document.getElementById(`address${field.charAt(0).toUpperCase() + field.slice(1)}`).classList.remove('is-invalid');
-        }
-    }
-
-    // Validate entire form
-    function validateAddressForm(formData) {
-        let isValid = true;
-
-        // Validate name
-        if (!validateName(formData.name)) {
-            showValidationError('name', 'Name must contain only letters and be at least 2 characters long');
-            isValid = false;
-        } else {
-            clearValidationError('name');
-        }
-
-        // Validate street
-        if (!validateStreet(formData.street)) {
-            showValidationError('street', 'Street address is required');
-            isValid = false;
-        } else {
-            clearValidationError('street');
-        }
-
-        // Validate city
-        if (!validateCity(formData.city)) {
-            showValidationError('city', 'City must contain only letters');
-            isValid = false;
-        } else {
-            clearValidationError('city');
-        }
-
-        // Validate state
-        if (!validateState(formData.state)) {
-            showValidationError('state', 'State must contain only letters');
-            isValid = false;
-        } else {
-            clearValidationError('state');
-        }
-
-        // Validate zip
-        if (!validateZip(formData.zip)) {
-            showValidationError('zip', 'Zip code must be exactly 6 digits');
-            isValid = false;
-        } else {
-            clearValidationError('zip');
-        }
-
-        // Validate country
-        if (!validateCountry(formData.country)) {
-            showValidationError('country', 'Country must contain only letters');
-            isValid = false;
-        } else {
-            clearValidationError('country');
-        }
-
-        return isValid;
-    }
-
-    // Function to create address card HTML
-    function createAddressCard(address) {
-        return `
-            <div class="address-card" id="address-${address._id}">
-                <p class="address-id">${address.name}</p>
-                <p class="address-text">${address.street}, ${address.city}, ${address.state}, ${address.zip}, ${address.country}</p>
-                <div class="address-actions">
-                    <button class="address-action-btn edit" onclick="openAddressModal('edit', ${JSON.stringify(address).replace(/"/g, '&quot;')})">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                    <button class="address-action-btn delete" onclick="confirmDeleteAddress('${address._id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+// Function to create address card HTML
+function createAddressCard(address) {
+    return `
+        <div class="address-card" id="address-${address._id}">
+            <p class="address-id">${address.name}</p>
+            <p class="address-text">${address.street}, ${address.city}, ${address.state}, ${address.zip}, ${address.country}</p>
+            <div class="address-actions">
+                <button class="address-action-btn edit" onclick="openAddressModal('edit', ${JSON.stringify(address).replace(/"/g, '&quot;')})">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button class="address-action-btn delete" onclick="confirmDeleteAddress('${address._id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
-        `;
-    }
-
+        </div>
+    `;
+}
 
 // Function to update address list
 function updateAddressList(address, isNew = false) {
-        const addressList = document.querySelector('.address-list');
-        if (isNew) {
-            // Add new address card at the beginning
-            addressList.insertAdjacentHTML('afterbegin', createAddressCard(address));
-        } else {
-            // Update existing address card
-            const addressCard = document.getElementById(`address-${address._id}`);
-            if (addressCard) {
-                addressCard.outerHTML = createAddressCard(address);
-            }
+    const addressList = document.querySelector('.address-list');
+    if (isNew) {
+        // Add new address card at the beginning
+        addressList.insertAdjacentHTML('afterbegin', createAddressCard(address));
+    } else {
+        // Update existing address card
+        const addressCard = document.getElementById(`address-${address._id}`);
+        if (addressCard) {
+            addressCard.outerHTML = createAddressCard(address);
         }
     }
+}
 
+// Add real-time validation functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add input event listeners to all form fields for real-time validation
+    const addressName = document.getElementById('addressName');
+    const addressStreet = document.getElementById('addressStreet');
+    const addressCity = document.getElementById('addressCity');
+    const addressState = document.getElementById('addressState');
+    const addressZip = document.getElementById('addressZip');
+    const addressCountry = document.getElementById('addressCountry');
 
+    // Name validation
+    addressName.addEventListener('input', function() {
+        if (validateName(this.value.trim())) {
+            clearValidationError('name');
+        } else {
+            showValidationError('name', 'Name must contain only letters and be at least 2 characters long');
+        }
+    });
 
+    // Street validation
+    addressStreet.addEventListener('input', function() {
+        if (validateStreet(this.value.trim())) {
+            clearValidationError('street');
+        } else {
+            showValidationError('street', 'Street address is required');
+        }
+    });
 
+    // City validation
+    addressCity.addEventListener('input', function() {
+        if (validateCity(this.value.trim())) {
+            clearValidationError('city');
+        } else {
+            showValidationError('city', 'City must contain only letters');
+        }
+    });
 
+    // State validation
+    addressState.addEventListener('input', function() {
+        if (validateState(this.value.trim())) {
+            clearValidationError('state');
+        } else {
+            showValidationError('state', 'State must contain only letters');
+        }
+    });
 
-    // Open address modal
-    document.getElementById('openAddressModal').onclick = function() {
-        document.getElementById('addressModal').style.display = 'block';
-        document.getElementById('addressForm').reset();
-        document.getElementById('modalTitle').textContent = 'Add New Address';
-        document.getElementById('addressId').value = '';
+    // Zip validation
+    addressZip.addEventListener('input', function() {
+        if (validateZip(this.value.trim())) {
+            clearValidationError('zip');
+        } else {
+            showValidationError('zip', 'Zip code must be exactly 6 digits');
+        }
+    });
+
+    // Country validation
+    addressCountry.addEventListener('input', function() {
+        if (validateCountry(this.value.trim())) {
+            clearValidationError('country');
+        } else {
+            showValidationError('country', 'Country must contain only letters');
+        }
+    });
+});
+
+// Open address modal
+document.getElementById('openAddressModal').onclick = function() {
+    document.getElementById('addressModal').style.display = 'block';
+    document.getElementById('addressForm').reset();
+    document.getElementById('modalTitle').textContent = 'Add New Address';
+    document.getElementById('addressId').value = '';
+    // Clear any previous validation errors
+    ['name', 'street', 'city', 'state', 'zip', 'country'].forEach(field => {
+        clearValidationError(field);
+    });
+};
+
+// Close address modal
+document.getElementById('closeAddressModal').onclick = function() {
+    document.getElementById('addressModal').style.display = 'none';
+};
+
+// Open address modal in edit mode
+function openAddressModal(mode, address) {
+    document.getElementById('addressModal').style.display = 'block';
+    if (mode === 'edit') {
+        document.getElementById('modalTitle').textContent = 'Edit Address';
+        document.getElementById('addressId').value = address._id;
+        document.getElementById('addressName').value = address.name;
+        document.getElementById('addressStreet').value = address.street;
+        document.getElementById('addressCity').value = address.city;
+        document.getElementById('addressState').value = address.state;
+        document.getElementById('addressZip').value = address.zip;
+        document.getElementById('addressCountry').value = address.country;
         // Clear any previous validation errors
         ['name', 'street', 'city', 'state', 'zip', 'country'].forEach(field => {
             clearValidationError(field);
         });
-    };
-
-     // Close address modal
-     document.getElementById('closeAddressModal').onclick = function() {
-        document.getElementById('addressModal').style.display = 'none';
-    };
-
-     // Open address modal in edit mode
-     function openAddressModal(mode, address) {
-        document.getElementById('addressModal').style.display = 'block';
-        if (mode === 'edit') {
-            document.getElementById('modalTitle').textContent = 'Edit Address';
-            document.getElementById('addressId').value = address._id;
-            document.getElementById('addressName').value = address.name;
-            document.getElementById('addressStreet').value = address.street;
-            document.getElementById('addressCity').value = address.city;
-            document.getElementById('addressState').value = address.state;
-            document.getElementById('addressZip').value = address.zip;
-            document.getElementById('addressCountry').value = address.country;
-            // Clear any previous validation errors
-            ['name', 'street', 'city', 'state', 'zip', 'country'].forEach(field => {
-                clearValidationError(field);
-            });
-        }
     }
-    // Delete address functionality
-    let addressToDelete = null;
+}
 
-    function confirmDeleteAddress(addressId) {
-        addressToDelete = addressId;
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to revert this!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                deleteAddress();
-            }
-        });
-    }
+// Delete address functionality
+let addressToDelete = null;
 
-
-
-
-
-
-
-    async function deleteAddress() {
-        if (!addressToDelete) return;
-
-        try {
-            const response = await fetch(`/address/delete/${addressToDelete}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Remove the address card from the DOM
-                const addressCard = document.getElementById(`address-${addressToDelete}`);
-                if (addressCard) {
-                    addressCard.remove();
-                }
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: data.message,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-                window.location.reload();
-            } else {
-                throw new Error(data.message || 'Failed to delete address');
-            }
-        } catch (error) {
-            console.error("Error deleting address:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Failed to delete address.',
-            });
-        }
-    }
-
-    // Form submission handler with validation
-    document.getElementById('addressForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const submitBtn = form.querySelector('button[type="submit"]');
-        
-        // Disable the submit button to prevent multiple clicks
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        
-        try {
-            // Create form data object
-            const formData = {
-                id: form.addressId.value,
-                name: form.name.value.trim(),
-                street: form.street.value.trim(),
-                city: form.city.value.trim(),
-                state: form.state.value.trim(),
-                zip: form.zip.value.trim(),
-                country: form.country.value.trim()
-            };
-
-            // Validate form
-            if (!validateAddressForm(formData)) {
-                throw new Error('Please correct the form errors');
-            }
-
-            const response = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: data.message,
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    // Update the UI with the new/updated address
-                    updateAddressList(data.address, !formData.id);
-                    // Close the modal
-                    document.getElementById('addressModal').style.display = 'none';
-                    window.location.reload()
-                });
-            } else {
-                throw new Error(data.message || 'Failed to save address');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'An unexpected error occurred',
-            });
-        } finally {
-            // Re-enable the submit button
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Save Address';
+function confirmDeleteAddress(addressId) {
+    addressToDelete = addressId;
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            deleteAddress();
         }
     });
+}
+
+async function deleteAddress() {
+    if (!addressToDelete) return;
+
+    try {
+        const response = await fetch(`/address/delete/${addressToDelete}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove the address card from the DOM
+            const addressCard = document.getElementById(`address-${addressToDelete}`);
+            if (addressCard) {
+                addressCard.remove();
+            }
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+            window.location.reload();
+        } else {
+            throw new Error(data.message || 'Failed to delete address');
+        }
+    } catch (error) {
+        console.error("Error deleting address:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: error.message || 'Failed to delete address.',
+        });
+    }
+}
+
+// Form submission handler with validation
+document.getElementById('addressForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Disable the submit button to prevent multiple clicks
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    
+    try {
+        // Create form data object
+        const formData = {
+            id: form.addressId.value,
+            name: form.name.value.trim(),
+            street: form.street.value.trim(),
+            city: form.city.value.trim(),
+            state: form.state.value.trim(),
+            zip: form.zip.value.trim(),
+            country: form.country.value.trim()
+        };
+
+        // Validate form
+        if (!validateAddressForm(formData)) {
+            throw new Error('Please correct the form errors');
+        }
+
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                // Update the UI with the new/updated address
+                updateAddressList(data.address, !formData.id);
+                // Close the modal
+                document.getElementById('addressModal').style.display = 'none';
+                window.location.reload()
+            });
+        } else {
+            throw new Error(data.message || 'Failed to save address');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'An unexpected error occurred',
+        });
+    } finally {
+        // Re-enable the submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Save Address';
+    }
+});
 
 
 </script>
