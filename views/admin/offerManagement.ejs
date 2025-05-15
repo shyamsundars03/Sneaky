@@ -523,8 +523,8 @@
                         <% offers.forEach(offer => { %>
                             <tr data-id="<%= offer._id %>">
                                 <td><%= offer.category.name %></td>
-                                <td><%= new Date(offer.startDate).toLocaleDateString() %></td>
-                                <td><%= new Date(offer.endDate).toLocaleDateString() %></td>
+                                <td><%= new Date(offer.startDate).toLocaleDateString('en-IN', {timeZone: 'Asia/Kolkata'}) %></td>
+                                <td><%= new Date(offer.endDate).toLocaleDateString('en-IN', {timeZone: 'Asia/Kolkata' }) %></td>
                                 <td><%= offer.discountPercentage %>%</td>
                                 <td>
                                     <% const currentDate = new Date(); 

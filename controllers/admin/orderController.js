@@ -10,46 +10,46 @@ const loadOrderManagement = async (req, res) => {
         const limit = 5;
         const skip = (page - 1) * limit;
 
-        const orders = await Order.find({})
-            .populate('user', 'name email')
-            .populate('items.product', 'productName price')
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
-
-            const processedOrders = orders.map(order => {
-                const orderObj = order.toObject();
+        // Filter null users at query level
+        const query = { user: { $ne: null } };
+        
+        const [orders, totalOrders] = await Promise.all([
+            Order.find(query)
+                .populate('user', 'name email')
+                .populate('items.product', 'productName price')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }),
                 
-                // Calculate active amounts (excluding cancelled and returned items)
-                let activeAmount = 0;
-                
-                order.items.forEach(item => {
-                    if (item.status !== 'Cancelled' && item.status !== 'Returned') {
-                        activeAmount += (item.price * item.quantity);
-                    }
-                });
-                
-                // Add shipping cost and subtract discount
-                const finalAmount = activeAmount + (order.shippingCost || 0) - (order.discountAmount || 0);
-                
-                return {
-                    ...orderObj,
-                    activeAmount: finalAmount
-                };
-            });
+            Order.countDocuments(query) // Count with same filter
+        ]);
 
-
-
-
-            const validOrders = processedOrders.filter(order => order.user !== null);
-            const totalOrders = await Order.countDocuments({});
-            const totalPages = Math.ceil(totalOrders / limit);
+        const processedOrders = orders.map(order => {
+            const orderObj = order.toObject();
+            let activeAmount = 0;
             
+            order.items.forEach(item => {
+                if (item.status !== 'Cancelled' && item.status !== 'Returned') {
+                    activeAmount += (item.price * item.quantity);
+                }
+            });
+            
+            const finalAmount = activeAmount + (order.shippingCost || 0) - (order.discountAmount || 0);
+            
+            return {
+                ...orderObj,
+                activeAmount: finalAmount
+            };
+        });
+
+        const totalPages = Math.ceil(totalOrders / limit);
+        
         res.render("orderManagement", {
-            orders: validOrders,
+            orders: processedOrders,
             currentPage: page,
             totalPages,
             totalOrders,
+            limit
         });
     } catch (error) {
         console.error("Error loading order management page:", error);

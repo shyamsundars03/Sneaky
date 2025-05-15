@@ -223,12 +223,15 @@
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
+            text-decoration: none;
         }
 
         .pagination-btn:hover:not(.active) {
             background: #f8f9fa;
         }
-
+a{
+    text-decoration: none !important;
+}
         /* Footer Styles */
         footer {
             background: #1e1e1e;
@@ -382,19 +385,35 @@
 
         <!-- Pagination -->
         <div class="pagination">
-            <div class="pagination-text">Showing <%= orders.length %> of <%= totalOrders %> entries</div>
-            <% if (currentPage > 1) { %>
-                <a href="/admin/orderManagement?page=<%= currentPage - 1 %>" class="pagination-btn">Previous</a>
-            <% } %>
-            <% for (let i = 1; i <= totalPages; i++) { %>
-                <a href="/admin/orderManagement?page=<%= i %>" class="pagination-btn <%= i === currentPage ? 'active' : '' %>">
-                    <%= i %>
-                </a>
-            <% } %>
-            <% if (currentPage < totalPages) { %>
-                <a href="/admin/orderManagement?page=<%= currentPage + 1 %>" class="pagination-btn">Next</a>
-            <% } %>
-        </div>
+    <div class="pagination-text">    Showing <%= (currentPage-1)*limit + 1 %> to 
+    <%= Math.min(currentPage*limit, totalOrders) %> of 
+    <%= totalOrders %> entries</div>
+    
+    <% if (currentPage > 1) { %>
+        <a href="/admin/orderManagement?page=1" class="pagination-btn">First</a>
+        <a href="/admin/orderManagement?page=<%= currentPage - 1 %>" class="pagination-btn">Previous</a>
+    <% } %>
+    
+    <% const maxPagesToShow = 5;
+       let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow/2));
+       let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+       
+       if (endPage - startPage + 1 < maxPagesToShow) {
+           startPage = Math.max(1, endPage - maxPagesToShow + 1);
+       }
+       
+       for (let i = startPage; i <= endPage; i++) { %>
+        <a href="/admin/orderManagement?page=<%= i %>" 
+           class="pagination-btn <%= i === currentPage ? 'active' : '' %>">
+            <%= i %>
+        </a>
+    <% } %>
+    
+    <% if (currentPage < totalPages) { %>
+        <a href="/admin/orderManagement?page=<%= currentPage + 1 %>" class="pagination-btn">Next</a>
+        <a href="/admin/orderManagement?page=<%= totalPages %>" class="pagination-btn">Last</a>
+    <% } %>
+</div>
     </main>
 
     <footer>
