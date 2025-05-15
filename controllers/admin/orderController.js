@@ -70,8 +70,15 @@ const loadSingleAdminOrder = async (req, res) => {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
 
+                // Create a safe user object
+        const safeUser = order.user || {
+            name: 'Deleted User',
+            email: 'N/A',
+            phone: 'N/A'
+        };
         // Transform order data
         const orderObj = order.toObject();
+        orderObj.user = safeUser;
         
         // Calculate totals correctly
         // Subtotal should include ALL items regardless of status
