@@ -70,21 +70,20 @@ const loadSingleAdminOrder = async (req, res) => {
             return res.status(404).render("page-404", { message: "Order not found." });
         }
 
-                // Create a safe user object
+
         const safeUser = order.user || {
             name: 'Deleted User',
             email: 'N/A',
             phone: 'N/A'
         };
-        // Transform order data
+
         const orderObj = order.toObject();
-        orderObj.user = safeUser;
+          orderObj.user = safeUser;
         
-        // Calculate totals correctly
-        // Subtotal should include ALL items regardless of status
+
         const subTotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Calculate cancelled and returned amounts separately
+ 
         const cancelledAmount = order.items
             .filter(item => item.status === 'Cancelled')
             .reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -93,9 +92,9 @@ const loadSingleAdminOrder = async (req, res) => {
             .filter(item => item.status === 'Returned')
             .reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Fix image paths
+      
         orderObj.items = orderObj.items.map(item => {
-            // Fix image path
+        
             if (item.product?.productImage?.[0]) {
                 item.product.productImage[0] = item.product.productImage[0]
                     .replace(/\\/g, '/')
@@ -105,21 +104,21 @@ const loadSingleAdminOrder = async (req, res) => {
             return item;
         });
 
-        // Calculate grand total correctly
+
         const shippingCost = order.shippingCost || 0;
         const discountAmount = order.discountAmount || 0;
         
-        // Count active items
+ 
         const activeItemsCount = order.items.filter(item => 
             item.status !== 'Cancelled' && item.status !== 'Returned'
         ).length;
         
-        // If all items are cancelled or returned, grand total should be 0
+
         let grandTotal;
         if (activeItemsCount === 0) {
             grandTotal = 0;
         } else {
-            // Grand total = subtotal - cancelled - returned + shipping - discount
+
             grandTotal = subTotal - cancelledAmount - returnedAmount + shippingCost - discountAmount;
         }
 
@@ -162,7 +161,7 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Validate status transition - include 'Pending' status
+  
         const validTransitions = {
             'Pending': ['Ordered', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
             'Ordered': ['Processing', 'Shipped', 'Delivered', 'Cancelled'],
@@ -181,7 +180,7 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Update status and dates
+     
         order.status = status;
         const now = new Date();
         
@@ -190,7 +189,7 @@ const updateOrderStatus = async (req, res) => {
         if (status === 'Cancelled') order.cancelledDate = now;
         if (status === 'Returned') order.returnedDate = now;
 
-        // Update item statuses
+
         order.items.forEach(item => {
             if (item.status !== 'Cancelled' && item.status !== 'Returned' && 
                 item.status !== 'Return Requested') {
@@ -217,7 +216,7 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Update Individual Item Status
+
 const updateItemStatus = async (req, res) => {
     const session = await mongoose.startSession()
     session.startTransaction()
@@ -243,7 +242,7 @@ const updateItemStatus = async (req, res) => {
         })
       }
   
-      // Validate status transition - include 'Pending' status
+
       const validTransitions = {
         Pending: ["Ordered", "Processing", "Shipped", "Delivered", "Cancelled"],
         Ordered: ["Processing", "Shipped", "Delivered", "Cancelled"],
@@ -261,7 +260,7 @@ const updateItemStatus = async (req, res) => {
         })
       }
   
-      // Update item status
+
       item.status = status
       const now = new Date()
   
@@ -271,7 +270,7 @@ const updateItemStatus = async (req, res) => {
         item.cancelledDate = now
         item.cancelled = true
   
-        // Restore stock for cancelled item
+  
         await Product.updateOne(
           {
             _id: item.product,
@@ -285,8 +284,7 @@ const updateItemStatus = async (req, res) => {
         item.returnedDate = now
         item.returned = true
       }
-  
-      // Check if all items have the same status to update the overall order status
+ 
       const allItemsHaveSameStatus = order.items.every((i) => i.status === status)
       if (allItemsHaveSameStatus) {
         order.status = status
@@ -323,7 +321,7 @@ const cancelOrder = async (req, res) => {
       .populate("user")
       .populate({
         path: "items.product",
-        select: "_id sizes",
+        select: "_id sizes price quantity ",
       })
       .session(session)
 
@@ -335,7 +333,7 @@ const cancelOrder = async (req, res) => {
       })
     }
 
-    // Restore product stock (size-specific)
+
     const bulkOps = order.items.map((item) => ({
       updateOne: {
         filter: {
@@ -349,12 +347,11 @@ const cancelOrder = async (req, res) => {
     }))
     await Product.bulkWrite(bulkOps, { session })
 
-    // Process refund if payment was completed
-    // For COD orders, only process refund if the order was already delivered
+
     const shouldProcessRefund =
       order.paymentMethod !== "COD" || (order.paymentMethod === "COD" && order.status === "Delivered")
 
-    // For COD orders that haven't been delivered yet, NEVER process a refund
+  
     if (order.paymentMethod === "COD" && order.status !== "Delivered") {
       console.log(`No refund processed for COD order ${order.transactionId} - payment not yet collected`)
     }
@@ -381,7 +378,7 @@ const cancelOrder = async (req, res) => {
         console.log(`Processed refund of ₹${order.totalAmount} for ${order.paymentMethod} order ${order.transactionId}`)
       }
     } else {
-      // No refund processed
+
       console.log(`No refund processed for order ${order.transactionId}:`)
       console.log(`- shouldProcessRefund: ${shouldProcessRefund}`)
       console.log(`- refundProcessed: ${order.refundProcessed}`)
@@ -390,19 +387,19 @@ const cancelOrder = async (req, res) => {
       console.log(`- orderStatus: ${order.status}`)
     }
 
-    // Update order status and all items
+
     order.status = "Cancelled"
     order.cancellationReason = reason || "Admin cancelled"
     order.cancelledDate = new Date()
 
-    // Mark all items as cancelled
+
     order.items.forEach((item) => {
       item.status = "Cancelled"
       item.cancelled = true
       item.cancellationReason = reason || "Admin cancelled order"
     })
 
-    // Set grand total to 0 when all items are cancelled
+
     order.grandTotal = 0
 
     await order.save({ session })
@@ -429,7 +426,7 @@ const cancelOrder = async (req, res) => {
   }
 }
 
-// Cancel Individual Item
+
 const cancelOrderItem = async (req, res) => {
   const session = await mongoose.startSession()
   session.startTransaction()
@@ -461,7 +458,7 @@ const cancelOrderItem = async (req, res) => {
       })
     }
 
-    // Prevent cancelling already cancelled or returned items
+
     if (item.status === "Cancelled" || item.status === "Returned") {
       await session.abortTransaction()
       return res.status(400).json({
@@ -470,7 +467,6 @@ const cancelOrderItem = async (req, res) => {
       })
     }
 
-    // Include 'Pending' in cancellable statuses
     const cancellableStatuses = ["Pending", "Ordered", "Processing", "Shipped"]
     if (!cancellableStatuses.includes(item.status)) {
       await session.abortTransaction()
@@ -480,7 +476,7 @@ const cancelOrderItem = async (req, res) => {
       })
     }
 
-    // Restore stock
+
     await Product.updateOne(
       {
         _id: item.product._id,
@@ -490,21 +486,20 @@ const cancelOrderItem = async (req, res) => {
       { session },
     )
 
-    // Calculate refund amount
+
     const itemAmount = item.price * item.quantity
 
-    // Check if this is the last active item in the order
+
     const activeItems = order.items.filter(
       (i) => i.status !== "Cancelled" && i.status !== "Returned" && i._id.toString() !== itemId.toString(),
     )
 
     const isLastItem = activeItems.length === 0
 
-    // For COD orders, only process refund if the order was already delivered
+
     const shouldProcessRefund =
       order.paymentMethod !== "COD" || (order.paymentMethod === "COD" && order.status === "Delivered")
 
-    // For COD orders that haven't been delivered yet, NEVER process a refund
     if (order.paymentMethod === "COD" && order.status !== "Delivered") {
       console.log(`No refund processed for COD order ${order.transactionId} - payment not yet collected`)
     }

@@ -861,11 +861,9 @@
                 form.reset();
                 form.dataset.mode = mode;
 
-                // Set today's date as default for start date
                 const today = new Date();
                 document.getElementById('startDate').valueAsDate = today;
                 
-                // Set min for end date to be tomorrow
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 document.getElementById('endDate').min = tomorrow.toISOString().split('T')[0];
@@ -916,7 +914,7 @@
                     form.elements.minPurchase.value = coupon.minPurchase;
                     form.elements.description.value = coupon.description || '';
                     
-                    // Format dates for input fields
+                   
                     const startDate = new Date(coupon.startDate);
                     const endDate = new Date(coupon.endDate);
                     
@@ -938,7 +936,7 @@
 
         // Validate coupon code format
         function validateCouponCode(code) {
-            // First character must be a letter, followed by letters, numbers or symbols
+
             const regex = /^[A-Za-z][A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$/;
             return regex.test(code);
         }
@@ -960,7 +958,7 @@
             
             let isValid = true;
 
-            // Validate coupon code
+           
             if (!code) {
                 showFormError('codeError', 'Coupon code is required');
                 isValid = false;
@@ -973,14 +971,14 @@
             }
 
             // Validate discount percentage
-            if (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 100) {
-                showFormError('discountPercentageError', 'Discount must be between 1% and 100%');
+            if (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 60) {
+                showFormError('discountPercentageError', 'Discount must be between 1% and 60%');
                 isValid = false;
             }
 
             // Validate minimum purchase
-            if (isNaN(minPurchase) || minPurchase < 0) {
-                showFormError('minPurchaseError', 'Minimum purchase must be 0 or more');
+            if (isNaN(minPurchase) || minPurchase < 2000) {
+                showFormError('minPurchaseError', 'Minimum purchase must be 2000 or more');
                 isValid = false;
             }
 
