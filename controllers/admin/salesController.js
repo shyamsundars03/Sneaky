@@ -82,9 +82,12 @@ const loadSales = async (req, res) => {
             query.deliveredDate = { $gte: startDate, $lte: endDate };
         }
 
-        const orders = await Order.find(query).populate('user', 'name').sort({ deliveredDate: -1 });
-        const summary = await calculateSalesSummary(query);
+        const orders = await Order.find(query)
+            .populate('user', 'name')
+            .sort({ deliveredDate: -1 });  // This is the key change - sorts by delivery date
 
+        const summary = await calculateSalesSummary(query);
+        
         res.render("sales", {
             filterFrom: dateRange.from || from || '',
             filterTo: dateRange.to || to || '',
@@ -325,10 +328,25 @@ const downloadPDF = async (req, res) => {
             discountAmount: order.discountAmount || 0
         }));
 
+       // Generate filename based on date range
+        let filename = 'sales-report';
+        if (from && to) {
+            const start = formatDateForFilename(new Date(from));
+            const end = formatDateForFilename(new Date(to));
+            filename += `_${start}-${end}`;
+        } else if (period !== 'custom') {
+            filename += `_${period}`;
+        }
+
         const filePath = await generateSalesReport(pdfData, summary, { from, to });
-        res.download(filePath, 'sales-report.pdf', (err) => {
+        
+        // Send file with custom filename
+        res.download(filePath, `${filename}.pdf`, (err) => {
             if (err) console.error('Error sending PDF:', err);
-            
+            // Clean up the file after download
+            fs.unlink(filePath, (unlinkErr) => {
+                if (unlinkErr) console.error('Error deleting PDF:', unlinkErr);
+            });
         });
     } catch (error) {
         console.error("Error generating PDF:", error);
@@ -370,16 +388,39 @@ const downloadExcel = async (req, res) => {
             discountAmount: order.discountAmount || 0
         }));
 
+       
+        // Generate filename based on date range
+        let filename = 'sales-report';
+        if (from && to) {
+            const start = formatDateForFilename(new Date(from));
+            const end = formatDateForFilename(new Date(to));
+            filename += `_${start}-${end}`;
+        } else if (period !== 'custom') {
+            filename += `_${period}`;
+        }
+
         const filePath = await generateExcelReport(reportData, summary, { from, to });
-        res.download(filePath, 'sales-report.xlsx', (err) => {
+        
+        // Send file with custom filename
+        res.download(filePath, `${filename}.xlsx`, (err) => {
             if (err) console.error('Error sending Excel:', err);
-            
+            // Clean up the file after download
+            fs.unlink(filePath, (unlinkErr) => {
+                if (unlinkErr) console.error('Error deleting Excel:', unlinkErr);
+            });
         });
     } catch (error) {
         console.error("Error generating Excel:", error);
         res.status(500).send('Failed to generate Excel');
     }
 };
+
+// Helper function to format dates for filenames (DD-MM-YYYY format)
+function formatDateForFilename(date) {
+    const pad = num => num.toString().padStart(2, '0');
+    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+}
+
 
 module.exports = {
     loadSales,

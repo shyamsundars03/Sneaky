@@ -13,9 +13,9 @@ const loadOrder = async (req, res) => {
         const userId = req.user._id;
         const searchTerm = req.query.search || '';
         const page = parseInt(req.query.page) || 1;
-        const limit = 5; // Items per page
+        const limit = 5; 
 
-        // Build query
+  
         const query = {
             user: userId,
             $or: [
@@ -24,25 +24,22 @@ const loadOrder = async (req, res) => {
             ]
         };
 
-        // Get total count
         const totalOrders = await Order.countDocuments(query);
-        
-        // Calculate pagination values
+
         const totalPages = Math.ceil(totalOrders / limit);
         const skip = (page - 1) * limit;
 
-        // Get orders with pagination
+  
         const orders = await Order.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .populate("items.product");
 
-// Process orders to calculate active quantities and amounts
+
 const processedOrders = orders.map(order => {
     const orderObj = order.toObject();
-    
-    // Calculate active quantities (excluding cancelled and returned items)
+
     let activeQuantity = 0;
     let activeAmount = 0;
     
@@ -170,8 +167,7 @@ const loadOrderSuccess = async (req, res) => {
     try {
         const order = await Order.findById(req.params.orderId);
         if (!order) return res.redirect('/orders');
-        
-        // Clear checkout session data
+       
         if (req.session.checkoutData) {
             delete req.session.checkoutData;
         }
@@ -194,7 +190,7 @@ const loadOrderFailed = async (req, res) => {
         const order = await Order.findById(req.params.orderId);
         if (!order) return res.redirect('/orders');
         
-        // Clear checkout session data but keep cart intact
+
         if (req.session.checkoutData) {
             delete req.session.checkoutData;
         }
@@ -228,7 +224,7 @@ const cancelOrder = async (req, res) => {
       })
     }
 
-    // Verify order belongs to user
+   
     const order = await Order.findOne({
       _id: orderId,
       user: req.user._id,
@@ -280,13 +276,11 @@ const cancelOrder = async (req, res) => {
     }))
     await Product.bulkWrite(bulkOps, { session })
 
-    // Process refund to wallet ONLY for non-COD orders
-    // For COD orders, ONLY process refund if the order was already delivered
-    // This ensures we don't refund money that hasn't been collected yet
+  
     const shouldProcessRefund =
       order.paymentMethod !== "COD" || (order.paymentMethod === "COD" && order.status === "Delivered")
 
-    // For COD orders that haven't been delivered yet, NEVER process a refund
+
     if (order.paymentMethod === "COD" && order.status !== "Delivered") {
       console.log(`No refund processed for COD order ${order.transactionId} - payment not yet collected`)
     }
@@ -418,7 +412,7 @@ const cancelOrderItem = async (req, res) => {
       })
     }
 
-    // Validate item can be cancelled - include 'Pending' status
+    // Validating item can be cancelled - include 'Pending' status
     const cancellableStatuses = ["Pending", "Ordered", "Processing", "Shipped"]
     if (!cancellableStatuses.includes(item.status)) {
       await session.abortTransaction()
@@ -438,23 +432,24 @@ const cancelOrderItem = async (req, res) => {
       { session },
     )
 
-    // Calculate refund amount
+  
     const itemAmount = item.price * item.quantity
 
-    // Check if this is the last active item in the order
     const activeItems = order.items.filter(
       (i) => i.status !== "Cancelled" && i.status !== "Returned" && i._id.toString() !== itemId,
     )
 
     const isLastItem = activeItems.length === 0
 
-    // Process refund to wallet ONLY for non-COD orders
-    // For COD orders, ONLY process refund if the order was already delivered
-    // This ensures we don't refund money that hasn't been collected yet
+
+
+
+
+
+
     const shouldProcessRefund =
       order.paymentMethod !== "COD" || (order.paymentMethod === "COD" && order.status === "Delivered")
 
-    // For COD orders that haven't been delivered yet, NEVER process a refund
     if (order.paymentMethod === "COD" && order.status !== "Delivered") {
       console.log(`No refund processed for COD order ${order.transactionId} - payment not yet collected`)
     }
@@ -493,12 +488,19 @@ const cancelOrderItem = async (req, res) => {
       item.refundProcessed = true
       console.log(`Processed refund of ₹${refundAmount} for ${order.paymentMethod} order ${order.transactionId}`)
     } else {
-      // No refund processed - either COD order not delivered yet or other reason
+     
       console.log(
         `No refund processed for item in order ${order.transactionId} - shouldProcessRefund: ${shouldProcessRefund}`,
       )
       console.log(`Payment method: ${order.paymentMethod}, Order status: ${order.status}`)
     }
+
+
+
+
+
+
+    
 
     // Update item status
     item.status = "Cancelled"
@@ -520,7 +522,7 @@ const cancelOrderItem = async (req, res) => {
         order.paymentStatus = "Refunded"
       }
     } else {
-      // Recalculate grand total
+   
       const activeItemsTotal = activeItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
       order.grandTotal = activeItemsTotal + order.shippingCost - (order.discountAmount || 0)
     }
@@ -573,7 +575,7 @@ const returnOrder = async (req, res) => {
         const order = await Order.findOne({
             _id: orderId,
             user: req.user._id,
-            status: "Delivered", // Only delivered orders can be returned
+            status: "Delivered", 
         })
         .populate("items.product")
         .session(session);
@@ -593,7 +595,7 @@ const returnOrder = async (req, res) => {
         // Update all items status
         order.items.forEach((item) => {
             if (item.status === "Delivered") {
-                // Only update delivered items
+             
                 item.status = "Return Requested";
                 item.returnReason = reason.trim();
             }
@@ -652,7 +654,6 @@ const returnOrderItem = async (req, res) => {
             });
         }
   
-        // Validate order is delivered
         if (order.status !== "Delivered") {
             await session.abortTransaction();
             return res.status(400).json({
@@ -663,7 +664,7 @@ const returnOrderItem = async (req, res) => {
   
         const item = order.items[itemIndex];
   
-        // Validate item can be returned
+  
         if (item.status !== "Delivered") {
             await session.abortTransaction();
             return res.status(400).json({
@@ -676,7 +677,6 @@ const returnOrderItem = async (req, res) => {
         item.status = "Return Requested";
         item.returnReason = reason;
   
-        // Update order status if not already
         if (order.status !== "Return Requested") {
             order.status = "Return Requested";
             order.returnReason = `Return requested for ${item.product.productName}: ${reason}`;
@@ -719,12 +719,11 @@ const downloadInvoice = async (req, res) => {
     try {
         const orderId = req.params.orderId;
         
-        // Check if user is authorized to download this invoice
+
         if (!req.user) {
             return res.redirect('/signin');
         }
-        
-        // Verify the order belongs to the user
+
         const order = await Order.findOne({ 
             _id: orderId,
             user: req.user._id
@@ -738,7 +737,7 @@ const downloadInvoice = async (req, res) => {
         
         const filePath = await generateUserInvoice(orderId);
 
-        // Send the file for download
+  
         res.download(filePath, `SNEAKY-Invoice-${order.transactionId}.pdf`, (err) => {
             if (err) {
                 console.error('Error sending invoice:', err);
@@ -748,16 +747,7 @@ const downloadInvoice = async (req, res) => {
                     });
                 }
             }
-            
-            // Optionally delete the file after sending
-            // Uncomment if you want to delete the file after download
-            /*
-            setTimeout(() => {
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) console.error('Error deleting invoice file:', unlinkErr);
-                });
-            }, 1000);
-            */
+ 
         });
     } catch (error) {
         console.error("Error generating invoice:", error);

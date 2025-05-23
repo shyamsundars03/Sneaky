@@ -10,16 +10,16 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    passReqToCallback: true // Important for accessing session
+    passReqToCallback: true 
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
         const email = profile._json.email;
         
-        // Check if user exists
+       
         let user = await User.findOne({ email });
         
         if (user) {
-            // Update Google ID if missing
+          
             if (!user.googleId) {
                 user.googleId = profile.id;
                 await user.save();
@@ -27,7 +27,7 @@ passport.use(new GoogleStrategy({
             return done(null, user);
         }
         
-        // Create new user with referral code
+     
         const referralCode = await generateReferralCode();
         const referredBy = req.session.referralCode || null;
         
@@ -53,7 +53,7 @@ passport.use(new GoogleStrategy({
         
         await user.save();
         
-        // Apply bonus to referrer if exists
+        
         if (referredBy) {
             const referrer = await User.findOne({ referralCode: referredBy });
             if (referrer) {
@@ -75,7 +75,6 @@ passport.use(new GoogleStrategy({
     }
 }));
 
-// Keep existing serialize/deserialize
 passport.serializeUser((user, done) => {
     done(null, user.id);
 });

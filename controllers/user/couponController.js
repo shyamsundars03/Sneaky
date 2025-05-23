@@ -24,11 +24,11 @@ const validateCoupon = async (req, res) => {
             });
         }
 
-        // Check if user already used this coupon
+      
         const existingOrder = await Order.findOne({ 
             user: userId, 
             couponCode: coupon.code,
-            paymentStatus: 'Completed' // Only count completed orders
+            paymentStatus: 'Completed' 
         });
 
         if (existingOrder) {
@@ -38,7 +38,7 @@ const validateCoupon = async (req, res) => {
             });
         }
 
-        // Check minimum purchase
+      
         if (totalAmount < coupon.minPurchase) {
             return res.json({
                 valid: false,

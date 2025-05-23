@@ -259,7 +259,7 @@ async function updateProducts() {
         if (sortOption !== 'bestMatch') params.set('sort', sortOption);
         params.set('page', currentPage);
 
-        // Make the AJAX request
+       
         const response = await fetch(`/shop?${params.toString()}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',

@@ -41,7 +41,7 @@ const loadSignup = async (req, res) => {
 
 const loadSignin = async (req, res) => {
     try {
-        // || req.session.signupSession
+        // sessionn started
         if(req.session.loginSession ){
             return res.redirect("/")
         } else {
@@ -64,8 +64,7 @@ const otpSend = async (req, res) => {
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
         req.session.otpTime = 75; 
         req.session.otpStartTime = Date.now();
-        
-        console.log("otpSend used");
+
         await sendotp(generatedOtp, req.session.tempUser.email);
         
         sendotp(generatedOtp, req.session.tempUser .email).catch(err => {
@@ -80,7 +79,7 @@ const otpSend = async (req, res) => {
                 $set: { 
                     otp: hashedOtp, 
                     expiresAt: new Date(Date.now() + 75 * 1000),
-                    purpose: 'signup'  // Track OTP purpose
+                    purpose: 'signup'  
                 } 
             },
             { upsert: true }
@@ -95,9 +94,7 @@ const otpSend = async (req, res) => {
 
 const otpPost = async (req, res) => {
     try {
-        console.log("Session User:", req.session.user);
 
-        // Check if we have a temp user (signup flow)
         if (!req.session.tempUser || !req.session.tempUser.email) {
             return res.status(400).json({ 
                 ok: false,
@@ -105,7 +102,7 @@ const otpPost = async (req, res) => {
             });
         }
 
-        // Find the OTP record
+ 
         const findOtp = await otpCollection.findOne({ 
             email: req.session.tempUser.email 
         });
@@ -117,7 +114,7 @@ const otpPost = async (req, res) => {
             });
         }
 
-        // Check OTP expiration
+
         if (findOtp.expiresAt < new Date()) {
             return res.status(400).json({ 
                 ok: false,
@@ -125,7 +122,6 @@ const otpPost = async (req, res) => {
             });
         }
 
-        // Validate OTP
         const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
         if (!isOtpValid) {
             return res.status(400).json({ 
@@ -134,7 +130,7 @@ const otpPost = async (req, res) => {
             });
         }
 
-        // Final check if user already exists
+  
         const userExists = await usercollection.findOne({ 
             email: req.session.tempUser.email 
         });
@@ -145,7 +141,7 @@ const otpPost = async (req, res) => {
             });
         }
 
-        // Create new user
+  
         const newUser = new usercollection({
             name: req.session.tempUser.name,
             email: req.session.tempUser.email,
@@ -158,7 +154,7 @@ const otpPost = async (req, res) => {
 
         await newUser.save();
 
-        // Handle referral bonus if applicable
+       
         if (req.session.tempUser.referredBy) {
             const referrer = await usercollection.findOne({ 
                 referralCode: req.session.tempUser.referredBy 
@@ -176,11 +172,9 @@ const otpPost = async (req, res) => {
             }
         }
 
-        // Clean up
         await otpCollection.deleteMany({ email: req.session.tempUser.email });
         delete req.session.tempUser;
 
-        // Set user session
         req.session.user = {
             _id: newUser._id,
             name: newUser.name,
@@ -214,7 +208,7 @@ const signinPost = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find the user by email
+
         const user = await usercollection.findOne({ email });
 
         if (!user) {
@@ -226,21 +220,20 @@ const signinPost = async (req, res) => {
             return res.status(403).json({ success: false, message: "You have been blocked." });
         }
 
-        // Check if the password matches
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
             return res.status(401).json({ success: false, message: "Invalid password." });
         }
 
-        // Set the user session
+
         req.session.user = {
             _id: user._id,
             email: user.email,
             name: user.name,
         };
 
-        console.log("Session after login:", req.session.user); // Debug log
+        console.log("Session after login:", req.session.user); 
 
         res.status(200).json({ success: true, message: "Login successful!" });
     } catch (error) {
@@ -253,7 +246,7 @@ const signinPost = async (req, res) => {
 
 const signupPost = async (req, res) => {
     try {
-        // Check if user already exists
+ 
         const userExists = await usercollection.findOne({ email: req.body.email });
         if (userExists) {
             return res.status(409).json({ 
@@ -262,11 +255,10 @@ const signupPost = async (req, res) => {
             });
         }
 
-        // Hash password and generate referral code
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
         const referralCode = await generateReferralCode();
 
-        // Store ALL signup data in session
+ 
         req.session.tempUser = {
             name: req.body.username,
             email: req.body.email,
@@ -274,10 +266,9 @@ const signupPost = async (req, res) => {
             password: hashedPassword,
             referralCode: referralCode,
             referredBy: req.body.referralCode || null,
-            isSignupFlow: true  // Flag to identify signup flow
+            isSignupFlow: true  
         };
 
-        // Initialize OTP session
         req.session.otpSession = true;
         req.session.otpError = null;
 
@@ -301,7 +292,7 @@ const googleCallback = async (req, res) => {
     try {
         if (!req.user) return res.redirect('/signin');
         
-        // Set session
+  
         req.session.user = {
             _id: req.user._id,
             name: req.user.name,
@@ -309,7 +300,7 @@ const googleCallback = async (req, res) => {
         };
         req.session.loginSession = true;
         
-        // Clear referral code from session if exists
+ 
         if (req.session.referralCode) {
             delete req.session.referralCode;
         }
@@ -325,21 +316,19 @@ const googleCallback = async (req, res) => {
 const blockedUser = async (req, res) => {
     try {
         if (!req.session.user || !req.session.user.email) {
-            return res.redirect('/signin'); // Redirect to signin if no session exists
+            return res.redirect('/signin'); 
         }
 
         const user = await usercollection.findOne({ email: req.session.user.email });
         if (user && user.isActive === false) {
            
         req.session.loginSession = false;
-
-        
+ 
         req.session.user = null;
 
-       
         res.redirect('/signin');
         } else {
-            return res.redirect("/"); // Redirect to home if the user is not blocked
+            return res.redirect("/"); 
         }
     } catch (error) {
         console.error("Error in blockedUser:", error);
@@ -414,16 +403,15 @@ const loadAbout = async (req, res) => {
 };
 
 
-// Helper function to calculate final price
 const calculateFinalPrice = (product, activeOffers) => {
-    // Convert to plain object if it's a Mongoose document
+
     const productObj = product.toObject ? product.toObject() : product;
     
     let finalPrice = productObj.offerPrice;
     let hasCategoryOffer = false;
     let categoryDiscount = 0;
 
-    // Check for active category offer
+    // active category offer
     const categoryOffer = activeOffers.find(offer => 
         offer.category._id.toString() === productObj.category._id.toString()
     );
@@ -447,19 +435,16 @@ const calculateFinalPrice = (product, activeOffers) => {
 
 const loadShop = async (req, res) => {
     try {
-        // Check if this is an AJAX request
-               const isAjax = req.xhr || 
-                     req.headers['x-requested-with'] === 'XMLHttpRequest' || 
-                     req.headers.accept?.includes('application/json');
 
-
+        const isAjax = req.xhr || 
+        req.headers['x-requested-with'] === 'XMLHttpRequest' || 
+        req.headers.accept?.includes('application/json');
 
         // Extract query parameters
         const page = parseInt(req.query.page) || 1;
         const limit = 6;
         const skip = (page - 1) * limit;
-        
-        // Filtering parameters (support both GET and POST for AJAX)
+
         const categoryIds = req.query.category ? req.query.category.split(',') : 
                          (req.body.category || []);
         const selectedSizes = req.query.size ? req.query.size.split(',') : 
@@ -469,45 +454,44 @@ const loadShop = async (req, res) => {
         const searchTerm = req.query.search || req.body.search || '';
         const sortOption = req.query.sort || req.body.sort || 'bestMatch';
         
-        // Build the initial search query
         const searchQuery = {
             isDeleted: false,
             isListed: true
         };
 
-        // Add category filter
+
         if (categoryIds.length > 0) {
             searchQuery.category = { $in: categoryIds };
         }
 
-        // Add size filter
+   
         if (selectedSizes.length > 0) {
             searchQuery['sizes.size'] = { $in: selectedSizes };
         }
 
-        // Add search term filter
+  
         if (searchTerm) {
             searchQuery.productName = { $regex: searchTerm, $options: 'i' };
         }
 
-        // Get active offers
+ 
         const currentDate = new Date();
         const activeOffers = await Offer.find({
             startDate: { $lte: currentDate },
             endDate: { $gte: currentDate }
         }).populate('category');
 
-        // First get all products matching the non-price filters
+ 
         let products = await Product.find(searchQuery)
             .populate('category')
             .lean();
 
-        // Calculate final prices for all products
+ 
         products = products.map(product => 
             calculateFinalPrice(product, activeOffers)
         );
 
-        // Apply price filtering based on finalPrice
+     
         if (!isNaN(minPrice)) {
             products = products.filter(p => p.finalPrice >= minPrice);
         }
@@ -515,7 +499,6 @@ const loadShop = async (req, res) => {
             products = products.filter(p => p.finalPrice <= maxPrice);
         }
 
-        // Apply sorting
         switch (sortOption) {
             case 'nameAsc':
                 products.sort((a, b) => a.productName.localeCompare(b.productName));
@@ -533,20 +516,19 @@ const loadShop = async (req, res) => {
                 products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         }
 
-        // Get total count after all filtering
+
         const totalProducts = products.length;
         const totalPages = Math.ceil(totalProducts / limit);
 
-        // Apply pagination
         const paginatedProducts = products.slice(skip, skip + limit);
 
-        // Fix image paths
+     
         const fixedProducts = paginatedProducts.map(product => {
             const fixedImages = product.productImage.map(img => {
-                // Make sure we have a valid image path
+                // valid image path
                 if (!img) return '/images/placeholder.jpg';
                 
-                // Handle both relative and absolute paths
+                // relative and absolute path
                 if (img.startsWith('http')) return img;
                 return img.replace(/\\/g, '/').replace(/^public\//, '/');
             });
@@ -557,7 +539,7 @@ const loadShop = async (req, res) => {
             };
         });
 
-        // Prepare response data
+        //  response data obj
         const responseData = {
             success: true,
             products: fixedProducts,
@@ -574,12 +556,12 @@ const loadShop = async (req, res) => {
             }
         };
 
-        // Handle AJAX requests
+
         if (isAjax) {
             return res.json(responseData);
         }
 
-        // Regular request - render full page
+   
         const categories = await Category.find({ isDeleted: false });
         
         res.render("shop", {
@@ -610,7 +592,7 @@ const loadShop = async (req, res) => {
     } catch (error) {
         console.error('Error in loadShop:', error);
         
-        // Check if this is an AJAX request
+    
        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
             return res.status(500).json({ 
                 success: false,
@@ -686,7 +668,7 @@ const loadSingleProduct = async (req, res) => {
             return res.status(404).render("user/page-404", { 
                 error: "Product not found", 
                 user: req.session.user,
-                searchTerm: '' // Add this
+                
             });
         }
 
@@ -694,25 +676,25 @@ const loadSingleProduct = async (req, res) => {
             product.size = []; 
         }
 
- // Get active offers
+ // active offers
  const currentDate = new Date();
  const activeOffers = await Offer.find({
      startDate: { $lte: currentDate },
      endDate: { $gte: currentDate }
  }).populate('category');
 
- // Calculate final price
+ // final price
  product = calculateFinalPrice(product, activeOffers);
 
-        // Get related products
+        // related products
         let relatedProducts = await Product.find({
             _id: { $ne: productId },
-            category: product.category._id, // Use the category ID
+            category: product.category._id, 
             isDeleted: false,
             isListed: true
-        }).populate('category').limit(4); // Limit to 4 related products
+        }).populate('category').limit(4); 
 
-        // Calculate final prices for related products
+        // final prices for related products
         relatedProducts = relatedProducts.map(relatedProduct => 
             calculateFinalPrice(relatedProduct, activeOffers)
         );
@@ -738,14 +720,14 @@ res.render("singleProduct", {
     product: fixedProduct,
     relatedProducts: fixedRelatedProducts,
     user: req.session.user,
-    searchTerm: '' 
+   
 });
     } catch (error) {
         console.error('Error in loadSingleProduct:', error);
         res.status(500).render("shop", { 
             error: "Failed to load product", 
             user: req.session.user,
-            searchTerm: '' // Add this
+            searchTerm: '' 
         });
     }
 };
@@ -753,13 +735,11 @@ res.render("singleProduct", {
 
 const logout = async (req, res) => {
     try {
-        // Set loginSession to false instead of destroying the session
+     
         req.session.loginSession = false;
 
-        // Optionally, you can also clear the user data from the session
         req.session.user = null;
 
-        // Redirect to the home page
         res.redirect('/');
     } catch (error) {
         console.error("Error in logout:", error);
@@ -818,20 +798,18 @@ const changeEmail = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found." });
         }
 
-        // Check if the new email already exists
         const emailExists = await usercollection.findOne({ email: newEmail });
         if (emailExists) {
             return res.status(409).json({ success: false, message: "Email already in use." });
         }
 
-        // Generate OTP
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
         req.session.otpSession = true;
         req.session.otpError = null;
         req.session.otpTime = 75;
         req.session.otpStartTime = Date.now();
 
-        // Send OTP to the new email
+
         sendotp(generatedOtp, newEmail);
         const hashedOtp = await encryptPassword(generatedOtp);
         await otpCollection.updateOne(
@@ -840,7 +818,6 @@ const changeEmail = async (req, res) => {
             { upsert: true }
         );
 
-        // Store the new email in session for verification
         req.session.tempEmail = newEmail;
 
         res.status(200).json({ success: true, message: "OTP sent successfully.", redirectUrl: `/verify-otp?scenario=change-email` });

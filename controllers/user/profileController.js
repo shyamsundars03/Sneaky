@@ -110,7 +110,7 @@ const updateProfile = async (req, res) => {
         const { username, phone } = req.body;
         const user = await User.findById(req.user._id);
 
-        // Google user handling
+
         if (user.googleId) {
             if (phone !== user.phone) {
                 const updatedUser = await User.findByIdAndUpdate(
@@ -122,7 +122,7 @@ const updateProfile = async (req, res) => {
                 
                 // Update session
                 req.session.user.phone = updatedUser.phone;
-                await req.session.save(); // Explicitly save session
+                await req.session.save(); 
                 
                 return res.json({ 
                     success: true, 
@@ -193,7 +193,7 @@ const saveAddress = async (req, res) => {
         const userId = req.user._id;
 
         if (id) {
-            // Update existing address
+       
             const updatedAddress = await Address.findByIdAndUpdate(
                 id, 
                 { name, street, city, state, zip, country },
@@ -205,7 +205,7 @@ const saveAddress = async (req, res) => {
                 address: updatedAddress
             });
         } else {
-            // Add new address
+           
             const newAddress = new Address({
                 userId,
                 name,

@@ -854,21 +854,26 @@ tfoot td {
                 </td>
                 <td class="item-total">₹<%= (item.price * item.quantity).toFixed(2) %></td>
                 <td>
-                    <% if (item.status !== 'Cancelled' && item.status !== 'Returned' && 
-                          item.status !== 'Return Requested' && 
-                          ['Ordered', 'Processing', 'Shipped','Pending'].includes(item.status)) { %>
-                        <button class="cancel-item-btn" 
-                                data-item-id="<%= item._id %>" 
-                                data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
-                            Cancel
-                        </button>
-                    <% } else if (item.status === 'Delivered') { %>
-                        <button class="return-item-btn" 
-                                data-item-index="<%= index %>" 
-                                data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
-                            Return
-                        </button>
-                    <% } %>
+                   <% if (
+      item.status !== 'Cancelled' &&
+      item.status !== 'Returned' &&
+      item.status !== 'Return Requested' &&
+      ['Ordered', 'Processing', 'Shipped', 'Pending'].includes(item.status) &&
+      order.status !== 'Payment Processing'
+) { %>
+    <button class="cancel-item-btn" 
+            data-item-id="<%= item._id %>" 
+            data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
+        Cancel
+    </button>
+<% } else if (item.status === 'Delivered') { %>
+    <button class="return-item-btn" 
+            data-item-index="<%= index %>" 
+            data-product-name="<%= item.product ? item.product.productName : 'Product' %>">
+        Return
+    </button>
+<% } %>
+
                 </td>
             </tr>
             <% if (item.cancellationReason) { %>

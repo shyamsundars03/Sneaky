@@ -285,10 +285,15 @@ const updateItemStatus = async (req, res) => {
         item.returned = true
       }
  
-      const allItemsHaveSameStatus = order.items.every((i) => i.status === status)
-      if (allItemsHaveSameStatus) {
-        order.status = status
-      }
+        const allItemsHaveSameStatus = order.items.every((i) => i.status === status);
+        if (allItemsHaveSameStatus) {
+            order.status = status;
+
+            if (status === "Shipped") order.shippedDate = now;
+            if (status === "Delivered") order.deliveredDate = now;
+            if (status === "Cancelled") order.cancelledDate = now;
+            if (status === "Returned") order.returnedDate = now;
+        }
   
       await order.save({ session })
       await session.commitTransaction()

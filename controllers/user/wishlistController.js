@@ -19,14 +19,13 @@ const loadWishlist = async (req, res) => {
 
 
 
- // Transform wishlist items
-        // Filter out unlisted products
+
         if (wishlist) {
             wishlist.wishlistItems = wishlist.wishlistItems.filter(item => 
                 item.product && item.product.isListed
             );
             
-            // Transform product images
+       
             wishlist.wishlistItems.forEach(item => {
                 if (item.product.productImage && item.product.productImage[0]) {
                     item.product.productImage[0] = item.product.productImage[0]
@@ -62,7 +61,7 @@ const toggleWishlist = async (req, res) => {
         }
 
         let wishlist = await Wishlist.findOne({ user: userId });
-        let finalPrice = null; // Initialize finalPrice
+        let finalPrice = null; 
 
         if (!wishlist) {
             wishlist = new Wishlist({
@@ -76,13 +75,13 @@ const toggleWishlist = async (req, res) => {
         );
 
         if (existingItemIndex !== -1) {
-            // Remove the product from the wishlist
+ 
             wishlist.wishlistItems.splice(existingItemIndex, 1);
         } else {
-            // Calculate final price only when adding to wishlist
+
             finalPrice = product.offerPrice || product.price;
 
-            // Check for active category offers if product has a category
+  
             if (product.category) {
                 try {
                     const currentDate = new Date();
@@ -103,7 +102,7 @@ const toggleWishlist = async (req, res) => {
                     }
                 } catch (offerError) {
                     console.error("Error checking offers:", offerError);
-                    // Continue with existing finalPrice if offer check fails
+                    
                 }
             }
 
@@ -120,7 +119,7 @@ const toggleWishlist = async (req, res) => {
         res.json({ 
             success: true, 
             message: existingItemIndex !== -1 ? "Removed from Wishlist!" : "Added to Wishlist!",
-            price: existingItemIndex === -1 ? finalPrice : null // Only send price when adding
+            price: existingItemIndex === -1 ? finalPrice : null 
         });
     } catch (error) {
         console.error("Error toggling wishlist:", error);

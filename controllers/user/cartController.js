@@ -37,7 +37,7 @@ const validateCartQuantities = async (cart) => {
         adjustedItems: []
     };
 
-    validation.updatedCart.cartTotal = 0; // Reset total for recalculation
+    validation.updatedCart.cartTotal = 0; 
 
     for (const item of validation.updatedCart.cartItems) {
         const product = await Product.findById(item.product._id || item.product)
@@ -75,7 +75,7 @@ const validateCartQuantities = async (cart) => {
                     newQuantity: sizeObj.stock,
                     price: currentPrice
                 });
-                // Update the item price to current price
+               
                 item.price = currentPrice;
             } else {
                 validation.outOfStockItems.push({
@@ -85,11 +85,11 @@ const validateCartQuantities = async (cart) => {
                 });
             }
         } else {
-            // Update the item price to current price
+      
             item.price = currentPrice;
         }
 
-        // Only add to total if item is valid
+      
         if (!validation.outOfStockItems.some(i => 
             i.productName === product.productName && i.size === item.size
         )) {
@@ -97,7 +97,7 @@ const validateCartQuantities = async (cart) => {
         }
     }
 
-    // Filter out unavailable items
+ 
     validation.updatedCart.cartItems = validation.updatedCart.cartItems.filter(item => 
         !validation.outOfStockItems.some(outItem => 
             outItem.productName === (item.product?.productName || 'Unknown') && 
@@ -138,16 +138,18 @@ const loadCart = async (req, res) => {
         const validCartItems = [];
         let cartTotal = 0;
 
+
+        // Skip unavailable products
         for (const item of cart.cartItems) {
             if (!item.product || !item.product.isListed || item.product.isDeleted) {
-                continue; // Skip unavailable products
+                continue; 
             }
 
             // Get current price
             const currentPrice = await calculateCurrentPrice(item.product);
             const itemTotal = currentPrice * item.quantity;
             
-            // Transform image path
+            
             if (item.product.productImage?.[0]) {
                 item.product.productImage[0] = item.product.productImage[0]
                     .replace(/\\/g, '/')
@@ -250,7 +252,6 @@ const addToCart = async (req, res) => {
 
         await cart.save();
 
-        // Return success but don't include price in response
         res.json({ 
             success: true,
             message: "Product added to cart"
@@ -284,7 +285,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Find item by BOTH productId AND size
+        
         const item = cart.cartItems.find(item => 
             item.product._id.toString() === productId && 
             item.size === size
@@ -300,7 +301,7 @@ const updateQuantity = async (req, res) => {
         // Get current price for this item
         const currentPrice = await calculateCurrentPrice(item.product);
 
-        // Check size availability
+        
         const sizeObj = item.product.sizes.find(s => s.size === item.size);
         if (!sizeObj) {
             return res.status(400).json({ 
@@ -309,7 +310,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Update quantity
+      
         if (action === 'increase') {
             if (item.quantity + 1 > sizeObj.stock) {
                 return res.status(400).json({ 
@@ -333,7 +334,7 @@ const updateQuantity = async (req, res) => {
         // Calculate item total
         const itemTotal = currentPrice * item.quantity;
 
-        // Calculate cart total - we need to process items sequentially
+        // Calculate cart total 
         let cartTotal = 0;
         for (const cartItem of cart.cartItems) {
             const itemPrice = await calculateCurrentPrice(cartItem.product);
@@ -381,7 +382,7 @@ const removeFromCart = async (req, res) => {
             });
         }
 
-        // Find the index of the item to remove
+        // index of the item to remove
         const itemIndex = cart.cartItems.findIndex(item => 
             item._id.toString() === itemId
         );
@@ -435,7 +436,7 @@ const proceedToCheckout = async (req, res) => {
             });
         }
 
-        // Validate quantities and get current prices
+        // Validating quantities and get current prices
         const validation = await validateCartQuantities(cart);
 
         // Initialize checkout session with current prices
@@ -445,7 +446,7 @@ const proceedToCheckout = async (req, res) => {
                     product: item.product._id,
                     size: item.size,
                     quantity: item.quantity,
-                    price: item.price // Ensure we store the current price
+                    price: item.price 
                 })),
                 total: validation.updatedCart.cartTotal
             },
@@ -453,7 +454,7 @@ const proceedToCheckout = async (req, res) => {
         };
 
         if (!validation.isValid) {
-            // Save the updated cart if changes were made
+           
             cart.cartItems = validation.updatedCart.cartItems;
             cart.cartTotal = validation.updatedCart.cartTotal;
             await cart.save();
@@ -485,7 +486,6 @@ const proceedToCheckout = async (req, res) => {
             });
         }
 
-        // If everything is valid, proceed to checkout
         res.json({
             success: true,
             redirect: '/checkout1'

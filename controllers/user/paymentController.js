@@ -37,7 +37,7 @@ const processCOD = async (req, res) => {
         const discountAmount = Number(checkoutData.discountAmount) || 0;
         const totalAmount = subtotal + shippingCost - discountAmount;
 
-        // Check COD limit (7000)
+  
         if (totalAmount > 7000) {
             await session.abortTransaction();
             return res.status(400).json({ 
@@ -47,9 +47,9 @@ const processCOD = async (req, res) => {
             });
         }
 
-        // Check if there's already a pending order for this session
+  
         if (req.session.pendingOrder) {
-            // Use the existing order instead of creating a new one
+
             const existingOrder = await Order.findById(req.session.pendingOrder.orderId);
             
             if (existingOrder && existingOrder.status === 'Payment Processing') {
@@ -60,12 +60,12 @@ const processCOD = async (req, res) => {
                 existingOrder.orderedDate = new Date();
                 await existingOrder.save({ session });
                 
-                // Clear session data
+              
                 delete req.session.pendingOrder;
                 delete req.session.checkoutData;
                 await req.session.save();
                 
-                // Clear cart
+         
                 await Cart.findOneAndDelete({ user: userId }).session(session);
                 
                 await session.commitTransaction();
@@ -78,7 +78,7 @@ const processCOD = async (req, res) => {
             }
         }
 
-        // Create a new order if no pending order exists
+        // new order if no pending order exists
         const order = new Order({
             user: userId,
             items: checkoutData.cart.items,
@@ -115,9 +115,9 @@ const processCOD = async (req, res) => {
         // Clear cart
         await Cart.findOneAndDelete({ user: userId }).session(session);
 
-        // Clear checkout session
+     
         delete req.session.checkoutData;
-        delete req.session.pendingOrder; // Also clear any pending order
+        delete req.session.pendingOrder; 
         await req.session.save();
 
         await session.commitTransaction();
@@ -169,7 +169,7 @@ const processWallet = async (req, res) => {
             throw new Error(`Insufficient wallet balance. Available: ₹${user.wallet.balance.toFixed(2)}, Required: ₹${totalAmount.toFixed(2)}`);
         }
 
-        // Create order
+        // order
         const order = new Order({
             user: userId,
             items: checkoutData.cart.items,
@@ -193,7 +193,7 @@ const processWallet = async (req, res) => {
 
         await order.save({ session });
 
-        // Deduct from wallet
+        // Deduct
         const previousBalance = user.wallet.balance;
         user.wallet.balance -= totalAmount;
         user.wallet.transactions.push({
@@ -265,15 +265,15 @@ const processRazorpay = async (req, res) => {
         const discountAmount = Number(checkoutData.discountAmount) || 0;
         const totalAmount = subtotal + shippingCost - discountAmount;
 
-        // Check if there's already a pending order for this session
+
         if (req.session.pendingOrder) {
-            // Use the existing order instead of creating a new one
+     
             const existingOrder = await Order.findById(req.session.pendingOrder.orderId);
             
             if (existingOrder && existingOrder.status === 'Payment Processing') {
-                // Create Razorpay order for the existing order
+        
                 const razorpayOrder = await razorpay.orders.create({
-                    amount: Math.round(totalAmount * 100), // Convert to paise
+                    amount: Math.round(totalAmount * 100), 
                     currency: 'INR',
                     receipt: `order_${existingOrder._id}`,
                     notes: {
@@ -296,7 +296,7 @@ const processRazorpay = async (req, res) => {
             }
         }
 
-        // Create a new order if no pending order exists
+
         const order = new Order({
             user: userId,
             items: checkoutData.cart.items,
@@ -314,17 +314,16 @@ const processRazorpay = async (req, res) => {
 
         await order.save({ session });
 
-        // Create Razorpay order
+    
         const razorpayOrder = await razorpay.orders.create({
-            amount: Math.round(totalAmount * 100), // Convert to paise
-            currency: 'INR',
+            amount: Math.round(totalAmount * 100), 
             receipt: `order_${order._id}`,
             notes: {
                 orderId: order._id.toString()
             }
         });
 
-        // Store order details in session
+
         req.session.pendingOrder = {
             orderId: order._id.toString(),
             razorpayOrderId: razorpayOrder.id,
@@ -359,7 +358,7 @@ const verifyRazorpay = async (req, res) => {
     session.startTransaction();
 
     try {
-        // Validate all required fields
+      
         const requiredFields = ['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature', 'orderId'];
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
@@ -428,8 +427,7 @@ const verifyRazorpay = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Payment verification failed:", error);
-        
-        // Update order status to failed if orderId exists
+     
         if (req.body && req.body.orderId) {
             try {
                 await Order.findByIdAndUpdate(req.body.orderId, {
@@ -470,7 +468,7 @@ const retryPayment = async (req, res) => {
             throw new Error("This order cannot be retried");
         }
 
-        // Convert amount to paise
+
         const amount = Math.round(order.totalAmount * 100);
         
         // Create Razorpay order
@@ -489,7 +487,7 @@ const retryPayment = async (req, res) => {
         order.razorpayOrderId = razorpayOrder.id;
         await order.save({ session });
 
-        // Store in session for verification
+        //  for verification
         req.session.retryPayment = {
             orderId: orderId,
             razorpayOrderId: razorpayOrder.id
@@ -498,7 +496,7 @@ const retryPayment = async (req, res) => {
 
         await session.commitTransaction();
 
-        // Return response
+      
         res.json({
             success: true,
             orderId: order._id,
@@ -525,7 +523,7 @@ const verifyRetryPayment = async (req, res) => {
     session.startTransaction();
     
     try {
-        // Validate all required fields
+     
         const requiredFields = ['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature', 'orderId'];
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
@@ -535,7 +533,7 @@ const verifyRetryPayment = async (req, res) => {
 
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
         
-        // Verify signature
+   
         const generatedSignature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
             .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -545,7 +543,7 @@ const verifyRetryPayment = async (req, res) => {
             throw new Error("Payment verification failed - signature mismatch");
         }
 
-        // Update order status
+    
         const order = await Order.findById(orderId).session(session);
         if (!order) {
             throw new Error("Order not found");
@@ -557,7 +555,7 @@ const verifyRetryPayment = async (req, res) => {
         order.orderedDate = new Date();
         await order.save({ session });
 
-        // Reduce stock if not already done
+      
         if (!order.stockReduced) {
             const bulkOps = order.items.map(item => ({
                 updateOne: {
@@ -593,7 +591,7 @@ const verifyRetryPayment = async (req, res) => {
         await session.abortTransaction();
         console.error("Retry Payment Verification Error:", error);
         
-        // Update order status to failed
+        
         if (req.body && req.body.orderId) {
             try {
                 await Order.findByIdAndUpdate(req.body.orderId, {
@@ -620,7 +618,7 @@ const verifyRetryPayment = async (req, res) => {
 const validateCoupon = async (req, res) => {
     try {
         const { couponCode, totalAmount } = req.body;
-        const userId = req.user._id; // Get user ID from authenticated user
+        const userId = req.user._id; 
         
         if (!couponCode || !totalAmount) {
             return res.json({ 
@@ -640,11 +638,11 @@ const validateCoupon = async (req, res) => {
             return res.json({ valid: false, message: "Coupon has expired" });
         }
 
-        // Check if user already used this coupon
+ 
         const existingOrder = await Order.findOne({ 
             user: userId, 
             couponCode: coupon.code,
-            paymentStatus: { $in: ['Completed', 'Pending'] } // Include pending orders too
+            paymentStatus: { $in: ['Completed', 'Pending'] } 
         });
 
         if (existingOrder) {
@@ -724,19 +722,19 @@ const saveFailedOrder = async (req, res) => {
     }
 };
 
-// Cleanup failed orders (can be run as a scheduled job)
+// Cleanup failed orders 
 const cleanupFailedOrders = async () => {
     try {
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); 
         
-        // Find orders that are stuck in "Payment Processing"
+        
         const staleOrders = await Order.find({
             status: 'Payment Processing',
             paymentStatus: 'Pending',
-            createdAt: { $lt: oneHourAgo } // Older than 1 hour
+            createdAt: { $lt: oneHourAgo } 
         });
         
-        // Update them to Failed instead of deleting
+  
         for (const order of staleOrders) {
             order.status = 'Failed';
             order.paymentStatus = 'Failed';

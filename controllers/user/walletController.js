@@ -27,12 +27,12 @@ const loadWallet = async (req, res) => {
       return res.status(404).render("page-404", { message: "User not found." });
     }
 
-    // Ensure wallet exists
+    //  wallet exists
     if (!user.wallet) {
       user.wallet = { balance: 0, transactions: [] };
     }
 
-    // Manually sort transactions
+    //  sort transactions
     const sortedTransactions = user.wallet.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totalTransactions = sortedTransactions.length;
@@ -81,15 +81,15 @@ const addFundsRazorpay = async (req, res) => {
       });
     }
     
-    // Create a unique receipt ID
+ 
     const receiptId = `wallet_${userId.toString().slice(-6)}_${Date.now().toString().slice(-8)}`;
 
     // Create Razorpay order
     const options = {
-      amount: Math.round(amount * 100), // Convert to paise
+      amount: Math.round(amount * 100), 
       currency: "INR",
       receipt: receiptId,
-      payment_capture: 1, // Auto-capture payment
+      payment_capture: 1, 
       notes: {
         userId: userId.toString(),
         purpose: "wallet_topup",
@@ -141,12 +141,12 @@ const verifyRazorpayPayment = async (req, res) => {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
     const userId = req.user._id;
 
-    // Validate required fields
+  
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
       throw new Error("Missing payment verification details");
     }
 
-    // Get amount from session if not provided in request
+
     let paymentAmount = amount;
     if (!paymentAmount && req.session.walletTopup) {
       paymentAmount = req.session.walletTopup.amount;
@@ -156,7 +156,7 @@ const verifyRazorpayPayment = async (req, res) => {
       throw new Error("Payment amount not found");
     }
 
-    // Verify signature
+
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -172,7 +172,7 @@ const verifyRazorpayPayment = async (req, res) => {
       throw new Error("User not found");
     }
 
-    // Ensure wallet exists
+    // wallet exists
     if (!user.wallet) {
       user.wallet = { balance: 0, transactions: [] };
     }
@@ -217,11 +217,11 @@ const verifyRazorpayPayment = async (req, res) => {
   }
 };
 
-// Function to extract orderId from transaction description
+// extract orderId from transaction description
 function extractOrderIdFromDescription(description) {
   if (!description) return null;
   
-  // Try different patterns to extract order ID
+
   const patterns = [
     /order\s*[#:]?\s*([a-zA-Z0-9]{8,})/i,  // Matches "Order #ABC123XYZ"
     /(?:order|transaction)\s*ID:\s*(\w+)/i, // Matches "Order ID: ABC123"
@@ -232,11 +232,11 @@ function extractOrderIdFromDescription(description) {
   for (const pattern of patterns) {
     const match = description.match(pattern);
     if (match && match[1]) {
-      // If it looks like an ObjectId, verify format
+      
       if (/^[a-f0-9]{24}$/i.test(match[1])) {
         return match[1];
       }
-      // Otherwise take first 8+ character match
+     
       return match[1].substring(0, 24);
     }
   }

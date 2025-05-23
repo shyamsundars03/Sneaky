@@ -463,12 +463,12 @@
 
 </body>
 <script>
-// This is the JavaScript part that needs to be updated in sales.ejs
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Debugging flag
+   
     const DEBUG = true;
     
-    // Current page and items per page
+
     let currentPage = 1;
     const itemsPerPage = 10;
     let totalOrders = 0;
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (DEBUG) console.log(message);
     }
 
-    // Show alert function
+
     function showAlert(message, type = 'success') {
         log(`Showing alert: ${message}`);
         const alertContainer = document.getElementById('alertContainer');
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // Update summary cards
+
     function updateSummaryCards(summary) {
         document.getElementById('totalAmount').textContent = `₹${parseFloat(summary.totalAmount).toFixed(2)}`;
         document.getElementById('totalDiscount').textContent = `₹${parseFloat(summary.totalDiscount).toFixed(2)}`;
@@ -510,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('avgOrderValue').textContent = `₹${parseFloat(summary.avgOrderValue).toFixed(2)}`;
     }
 
-    // Render the sales table
+
     function renderTable() {
         const tableBody = document.getElementById('salesTableBody');
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Render pagination
+
     function renderPagination() {
         const totalPages = Math.ceil(totalOrders / itemsPerPage);
         const paginationInfo = document.getElementById('paginationInfo');
@@ -557,10 +557,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         paginationInfo.textContent = `Showing ${start} to ${end} of ${totalOrders} entries`;
         
-        // Clear existing buttons
+  
         paginationButtons.innerHTML = '';
         
-        // Previous button
+  
         const prevBtn = document.createElement('button');
         prevBtn.className = 'page-btn prev-btn';
         prevBtn.textContent = 'Previous';
@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         paginationButtons.appendChild(prevBtn);
         
-        // Page number buttons
+ 
         for (let i = 1; i <= totalPages; i++) {
             const pageBtn = document.createElement('button');
             pageBtn.className = `page-btn ${currentPage === i ? 'active' : ''}`;
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
             paginationButtons.appendChild(pageBtn);
         }
         
-        // Next button
+
         const nextBtn = document.createElement('button');
         nextBtn.className = 'page-btn next-btn';
         nextBtn.textContent = 'Next';
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paginationButtons.appendChild(nextBtn);
     }
 
-    // Fetch sales data from server
+
     async function fetchSalesData() {
         try {
             showLoadingIndicator();
@@ -625,14 +625,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 filteredOrders = data.orders;
                 totalOrders = filteredOrders.length;
-                currentPage = 1; // Reset to first page on new filter
+                currentPage = 1; 
                 
-                // Update UI with current filters
+         
                 document.getElementById('timePeriod').value = currentFilters.period || 'custom';
                 document.getElementById('fromDate').value = currentFilters.from || '';
                 document.getElementById('toDate').value = currentFilters.to || '';
-                
-                // Update download links with current filters
+
                 updateDownloadLinks();
                 
                 renderTable();
@@ -651,7 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Update download links with current filters
+
     function updateDownloadLinks() {
         const params = new URLSearchParams();
         if (currentFilters.from) params.append('from', currentFilters.from);
@@ -665,9 +664,8 @@ document.addEventListener('DOMContentLoaded', function() {
         excelBtn.href = `/admin/sales/download/excel?${params.toString()}`;
     }
 
-    // Initialize event listeners
     function initEventListeners() {
-        // Time period selector
+     
         document.getElementById('timePeriod').addEventListener('change', function() {
             const period = this.value;
             currentFilters.period = period;
@@ -678,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Calculate date range for the period
+
             const today = new Date();
             const fromDate = new Date();
             
@@ -697,10 +695,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     break;
             }
             
-            // Format dates as YYYY-MM-DD
+     
             const format = (date) => {
                 const pad = num => num.toString().padStart(2, '0');
-                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
             };
             
             currentFilters.from = format(fromDate);
@@ -714,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchSalesData();
         });
 
-        // Apply date button
+
         document.getElementById('applyDateBtn').addEventListener('click', function() {
             const fromDate = document.getElementById('fromDate').value;
             const toDate = document.getElementById('toDate').value;
@@ -736,7 +734,6 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchSalesData();
         });
 
-        // Clear filters button
         document.getElementById('clearFiltersBtn').addEventListener('click', function() {
             currentFilters = {
                 from: '',
@@ -753,7 +750,6 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchSalesData();
         });
 
-        // Download buttons - update URLs before download
         document.getElementById('downloadPDFBtn').addEventListener('click', function(e) {
             e.preventDefault();
             const params = new URLSearchParams(currentFilters);
@@ -767,9 +763,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize the page
+
     function init() {
-        // Initialize with server-rendered data if available
+   
         if (typeof initialOrders !== 'undefined' && Array.isArray(initialOrders)) {
             filteredOrders = initialOrders.map(order => ({
                 ...order,
@@ -784,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initEventListeners();
     }
 
-    // Simple loading indicator functions
+
     function showLoadingIndicator() {
         document.getElementById('salesTableBody').innerHTML = `
             <tr>
@@ -796,10 +792,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function hideLoadingIndicator() {
-        // Handled by renderTable()
+        
     }
 
-    // Initialize the page
+    
     init();
 });
 </script>

@@ -43,9 +43,9 @@ router.post("/forgot-password", userController.forgotPassword);
 router.post("/reset-password", userController.resetPassword);
 
 // New routes for change email flow
-router.get("/change-email", userController.loadChangeEmail); // Render change-email.ejs
-router.post("/change-email", userController.changeEmail); // Handle email change request
-router.post("/verify-otp", userController.verifyOtp2); // Reuse OTP verification
+router.get("/change-email", userController.loadChangeEmail); 
+router.post("/change-email", userController.changeEmail); 
+router.post("/verify-otp", userController.verifyOtp2); 
 router.get("/verify-otp", userController.loadVerifyotp2); 
 router.post("/resend-otp2", userController.resendOtp2);
 // OTP
@@ -144,14 +144,14 @@ router.get('/auth/google/callback',
     userController.googleCallback
 );
 
-// Debug route to check user data
-router.get('/debug/user', (req, res) => {
-    res.json({
-        session: req.session,
-        user: req.user,
-        sessionUser: req.session.user
-    });
-});
+
+// router.get('/debug/user', (req, res) => {
+//     res.json({
+//         session: req.session,
+//         user: req.user,
+//         sessionUser: req.session.user
+//     });
+// });
 
 
 // Wallet routes

@@ -971,8 +971,8 @@
             }
 
             // Validate discount percentage
-            if (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 60) {
-                showFormError('discountPercentageError', 'Discount must be between 1% and 60%');
+            if (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 100) {
+                showFormError('discountPercentageError', 'Discount must be between 1% and 100%');
                 isValid = false;
             }
 
