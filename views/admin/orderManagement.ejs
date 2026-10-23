@@ -432,25 +432,30 @@ a{
             const container = document.querySelector('.order-title');
             container.parentNode.insertBefore(searchBox, container);
             
+            // Search with 1-second debounce
+            let orderSearchTimer;
             searchBox.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('tbody tr');
-                
-                rows.forEach(row => {
-                    const orderNumber = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                    const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                    const paymentMethod = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                    const orderDate = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                clearTimeout(orderSearchTimer);
+                orderSearchTimer = setTimeout(function () {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('tbody tr');
                     
-                    if (orderNumber.includes(searchTerm) || 
-                        productName.includes(searchTerm) || 
-                        paymentMethod.includes(searchTerm) || 
-                        orderDate.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
+                    rows.forEach(row => {
+                        const orderNumber = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                        const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                        const paymentMethod = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                        const orderDate = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                        
+                        if (orderNumber.includes(searchTerm) || 
+                            productName.includes(searchTerm) || 
+                            paymentMethod.includes(searchTerm) || 
+                            orderDate.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                }, 1000);
             });
         });
 

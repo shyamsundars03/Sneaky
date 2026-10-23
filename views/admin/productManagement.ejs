@@ -599,7 +599,7 @@
 
         <div class="header-actions">
             <input type="text" class="search-box" name="search" placeholder="Search Products"
-                value="<%= searchQuery || '' %>" onchange="handleSearch(this.value)">
+                value="<%= searchQuery || '' %>" oninput="handleSearch(this.value)">
             <button class="add-product" onclick="openModal('productFormModal', 'add')">Add Product</button>
         </div>
 
@@ -855,11 +855,16 @@
             }, 5000);
         }
 
+        // Search functionality with 1-second debounce
+        let productSearchTimer;
         function handleSearch(value) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('search', value);
-            url.searchParams.set('page', '1'); // Reset to first page when searching
-            window.location.href = url.toString();
+            clearTimeout(productSearchTimer);
+            productSearchTimer = setTimeout(function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('search', value);
+                url.searchParams.set('page', '1');
+                window.location.href = url.toString();
+            }, 1000);
         }
 
 

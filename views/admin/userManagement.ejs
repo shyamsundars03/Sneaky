@@ -307,22 +307,25 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Search functionality
-// Search functionality
-const searchBox = document.getElementById('searchBox');
+        // Search functionality with 1-second debounce
+        const searchBox = document.getElementById('searchBox');
 
-// Set the search box value from the URL query parameter
-const urlParams = new URLSearchParams(window.location.search);
-const searchTerm = urlParams.get('search') || '';
-searchBox.value = searchTerm;
+        // Set the search box value from the URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchTerm = urlParams.get('search') || '';
+        searchBox.value = searchTerm;
 
-searchBox.addEventListener('input', function (e) {
-    const searchTerm = e.target.value.trim();
-    const url = new URL(window.location.href);
-    url.searchParams.set('search', searchTerm);
-    url.searchParams.set('page', 1); // Reset to the first page when searching
-    window.location.href = url.toString();
-});
+        let searchDebounceTimer;
+        searchBox.addEventListener('input', function (e) {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(function () {
+                const term = e.target.value.trim();
+                const url = new URL(window.location.href);
+                url.searchParams.set('search', term);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
+            }, 1000);
+        });
 
         // Toggle block/unblock status
 

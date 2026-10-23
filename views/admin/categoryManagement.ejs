@@ -738,22 +738,26 @@
             }
         });
 
-        // Search functionality
+        // Search functionality with 1-second debounce
         const searchBox = document.querySelector('.search-box');
+        let categorySearchTimer;
         searchBox.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                const categoryName = row.querySelector('td:first-child').textContent.toLowerCase();
-                const description = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            clearTimeout(categorySearchTimer);
+            categorySearchTimer = setTimeout(function () {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('tbody tr');
                 
-                if (categoryName.includes(searchTerm) || description.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+                rows.forEach(row => {
+                    const categoryName = row.querySelector('td:first-child').textContent.toLowerCase();
+                    // const description = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                    
+                    if (categoryName.includes(searchTerm) ) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }, 1000);
         });
     </script>
 </body>

@@ -677,9 +677,14 @@
         function initEventListeners() {
             log('Initializing event listeners...');
             
-            // Search input
-            document.getElementById('searchInput')?.addEventListener('change', function() {
-                handleSearch(this.value);
+            // Search input with 1-second debounce
+            let offerSearchTimer;
+            document.getElementById('searchInput')?.addEventListener('input', function() {
+                const val = this.value;
+                clearTimeout(offerSearchTimer);
+                offerSearchTimer = setTimeout(function () {
+                    handleSearch(val);
+                }, 1000);
             });
 
             // Add Offer Button
