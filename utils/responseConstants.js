@@ -1,13 +1,4 @@
-/**
- * Centralized HTTP status codes and response messages.
- *
- * Import in any controller:
- *   const { STATUS, MSG } = require('../../utils/responseConstants');
- *
- * Then use:
- *   res.status(STATUS.OK).json({ success: true, message: MSG.LOGIN_SUCCESS });
- *   res.status(STATUS.NOT_FOUND).json({ success: false, message: MSG.USER_NOT_FOUND });
- */
+
 
 // ─── HTTP Status Codes ────────────────────────────────────────────────────────
 const STATUS = {
