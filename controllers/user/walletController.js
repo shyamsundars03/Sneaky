@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { STATUS, MSG } = require('../../utils/responseConstants');
+const AppError = require('../../utils/AppError');
 
 // Initialize Razorpay with proper error handling
 let razorpay;
@@ -128,7 +129,7 @@ const addFundsRazorpay = async (req, res) => {
     console.error("Error creating Razorpay order:", error);
     res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: MSG.WALLET_TOPUP_FAILED + ': ' + error.message
+      message: MSG.WALLET_TOPUP_FAILED
     });
   }
 };
@@ -144,7 +145,7 @@ const verifyRazorpayPayment = async (req, res) => {
 
   
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-      throw new Error("Missing payment verification details");
+      throw new AppError(MSG.PAYMENT_FIELDS_MISSING, STATUS.BAD_REQUEST);
     }
 
 
@@ -154,7 +155,7 @@ const verifyRazorpayPayment = async (req, res) => {
     }
 
     if (!paymentAmount) {
-      throw new Error("Payment amount not found");
+      throw new AppError(MSG.MISSING_FIELDS, STATUS.BAD_REQUEST);
     }
 
 
@@ -164,13 +165,13 @@ const verifyRazorpayPayment = async (req, res) => {
       .digest("hex");
 
     if (generatedSignature !== razorpay_signature) {
-      throw new Error("Payment verification failed - signature mismatch");
+      throw new AppError(MSG.PAYMENT_SIGNATURE_MISMATCH, STATUS.BAD_REQUEST);
     }
 
     // Update user's wallet
     const user = await User.findById(userId).session(session);
     if (!user) {
-      throw new Error("User not found");
+      throw new AppError(MSG.USER_NOT_FOUND, STATUS.NOT_FOUND);
     }
 
     // wallet exists
@@ -204,14 +205,14 @@ const verifyRazorpayPayment = async (req, res) => {
     res.json({
       success: true,
       balance: user.wallet.balance,
-      message: `₹${paymentAmount} ${MSG.WALLET_TOPUP_SUCCESS}`
+      message: MSG.WALLET_TOPUP_SUCCESS
     });
   } catch (error) {
     await session.abortTransaction();
     console.error("Error verifying payment:", error);
     res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: MSG.WALLET_VERIFY_FAILED + ': ' + error.message
+      message: MSG.WALLET_VERIFY_FAILED
     });
   } finally {
     session.endSession();

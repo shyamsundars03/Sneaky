@@ -763,12 +763,15 @@
                     <% } else if (order.status === 'Shipped') { %>
                         <option value="Shipped" selected>Shipped</option>
                         <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancel</option>
+                        <!-- <option value="Cancelled">Cancel</option> -->
                     <% } else if (order.status === 'Delivered') { %>
                         <option value="Delivered" selected>Delivered</option>
                     <% } else if (order.status === 'Return Requested') { %>
                         <option value="Return Requested" selected>Return Requested</option>
-                        <option value="Returned">Verify Return</option>
+                        <!-- <option value="Returned">Verify Return</option> -->
+                    <% } else if (order.status === 'Partially Returned') { %>
+                        <option value="Partially Returned" selected>Partially Returned</option>
+                        <!-- No "Verify Return" option - use individual item verification instead -->
                     <% } else { %>
                         <option value="<%= order.status %>" selected><%= order.status %></option>
                     <% } %>
@@ -816,6 +819,7 @@
                 <tr>
                     <th>Products</th>
                     <th>Price</th>
+                    <th>Size</th>
                     <th>Quantity</th>
                     <th>Status</th>
                     <th>Total</th>
@@ -836,6 +840,7 @@
                             </div>
                         </td>
                         <td data-label="Price">₹<%= item.price.toFixed(2) %></td>
+                        <td data-label="Size"><strong><%= item.size %></strong></td>
                         <td data-label="Quantity"><%= item.quantity %></td>
                         <td data-label="Status">
                             <% if (!item.cancelled && !item.returned && ['Ordered', 'Processing', 'Shipped'].includes(order.status)) { %>
@@ -867,14 +872,14 @@
                     </tr>
                     <% if (item.cancellationReason) { %>
                         <tr>
-                            <td colspan="6" class="item-reason">
+                            <td colspan="7" class="item-reason">
                                 <strong>Cancellation Reason:</strong> <%= item.cancellationReason %>
                             </td>
                         </tr>
                     <% } %>
                     <% if (item.returnReason) { %>
                         <tr>
-                            <td colspan="6" class="item-reason">
+                            <td colspan="7" class="item-reason">
                                 <strong>Return Reason:</strong> <%= item.returnReason %>
                                 <% if (item.status === 'Return Requested' && !item.returnVerified) { %>
                                     <button class="verify-return-btn" data-item-id="<%= item._id %>">Verify Return</button>
@@ -888,6 +893,14 @@
 
         <!-- Order Totals -->
         <table class="totals" align="right">
+            <%
+            // Check if all items are cancelled or returned
+            let allCancelled = order.items.every(item => item.status === 'Cancelled');
+            let allReturned = order.items.every(item => item.status === 'Returned');
+            // Only show strikethrough if ALL items are CANCELLED (not for returns)
+            let shouldStrikeShipping = allCancelled;
+            %>
+            
             <tr>
                 <td>Sub Total:</td>
                 <td>₹<%= order.subTotal %></td>
@@ -907,9 +920,11 @@
                 </tr>
             <% } %>
             
-            <tr>
+            <tr <%= shouldStrikeShipping ? 'class="deduction"' : '' %>>
                 <td>Shipping Cost:</td>
-                <td>₹<%= order.shippingCost %></td>
+                <td <%= shouldStrikeShipping ? 'style="text-decoration: line-through; color: #dc3545;"' : '' %>>
+                    ₹<%= order.shippingCost %>
+                </td>
             </tr>
             
             <% if (order.discountAmount > 0) { %>

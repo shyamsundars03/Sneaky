@@ -7,6 +7,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { STATUS, MSG } = require('../../utils/responseConstants');
+const AppError = require('../../utils/AppError');
 
 // Initialize Razorpay with proper error handling
 let razorpay;
@@ -26,7 +27,7 @@ const processCOD = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
+            throw new AppError(MSG.CHECKOUT_SESSION_EXPIRED, STATUS.BAD_REQUEST);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -148,7 +149,7 @@ const processWallet = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
+            throw new AppError(MSG.CHECKOUT_SESSION_EXPIRED, STATUS.BAD_REQUEST);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -156,7 +157,7 @@ const processWallet = async (req, res) => {
         const user = await User.findById(userId).session(session);
 
         if (!user) {
-            throw new Error(MSG.USER_NOT_FOUND);
+            throw new AppError(MSG.USER_NOT_FOUND, STATUS.NOT_FOUND);
         }
 
         // Calculate final amount
@@ -167,7 +168,7 @@ const processWallet = async (req, res) => {
 
         // Check wallet balance
         if (user.wallet.balance < totalAmount) {
-            throw new Error(`${MSG.WALLET_INSUFFICIENT} Available: ₹${user.wallet.balance.toFixed(2)}, Required: ₹${totalAmount.toFixed(2)}`);
+            throw new AppError(MSG.WALLET_INSUFFICIENT, STATUS.BAD_REQUEST);
         }
 
         // order
@@ -254,7 +255,7 @@ const processRazorpay = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
+            throw new AppError(MSG.CHECKOUT_SESSION_EXPIRED, STATUS.BAD_REQUEST);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -364,7 +365,7 @@ const verifyRazorpay = async (req, res) => {
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
-            throw new Error(`${MSG.PAYMENT_FIELDS_MISSING}: ${missingFields.join(', ')}`);
+            throw new AppError(MSG.PAYMENT_FIELDS_MISSING, STATUS.BAD_REQUEST);
         }
 
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
@@ -376,13 +377,13 @@ const verifyRazorpay = async (req, res) => {
             .digest('hex');
 
         if (generatedSignature !== razorpay_signature) {
-            throw new Error(MSG.PAYMENT_SIGNATURE_MISMATCH);
+            throw new AppError(MSG.PAYMENT_SIGNATURE_MISMATCH, STATUS.BAD_REQUEST);
         }
 
         // Find the order
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error(MSG.ORDER_NOT_FOUND);
+            throw new AppError(MSG.ORDER_NOT_FOUND, STATUS.NOT_FOUND);
         }
 
         // Update order status
@@ -461,12 +462,12 @@ const retryPayment = async (req, res) => {
         const order = await Order.findById(orderId).session(session);
         
         if (!order) {
-            throw new Error(MSG.ORDER_NOT_FOUND);
+            throw new AppError(MSG.ORDER_NOT_FOUND, STATUS.NOT_FOUND);
         }
         
         // Only allow retry for orders in Payment Processing or Failed status
         if (order.status !== "Payment Processing" && order.status !== "Failed") {
-            throw new Error(MSG.PAYMENT_RETRY_NOT_ALLOWED);
+            throw new AppError(MSG.PAYMENT_RETRY_NOT_ALLOWED, STATUS.BAD_REQUEST);
         }
 
 
@@ -529,7 +530,7 @@ const verifyRetryPayment = async (req, res) => {
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
-            throw new Error(`${MSG.PAYMENT_FIELDS_MISSING}: ${missingFields.join(', ')}`);
+            throw new AppError(MSG.PAYMENT_FIELDS_MISSING, STATUS.BAD_REQUEST);
         }
 
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
@@ -541,13 +542,13 @@ const verifyRetryPayment = async (req, res) => {
             .digest('hex');
 
         if (generatedSignature !== razorpay_signature) {
-            throw new Error(MSG.PAYMENT_SIGNATURE_MISMATCH);
+            throw new AppError(MSG.PAYMENT_SIGNATURE_MISMATCH, STATUS.BAD_REQUEST);
         }
 
     
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error(MSG.ORDER_NOT_FOUND);
+            throw new AppError(MSG.ORDER_NOT_FOUND, STATUS.NOT_FOUND);
         }
 
         order.status = 'Ordered';
@@ -662,7 +663,7 @@ const validateCoupon = async (req, res) => {
         if (totalAmount < coupon.minPurchase) {
             return res.status(STATUS.BAD_REQUEST).json({ 
                 valid: false, 
-                message: `${MSG.COUPON_MIN_PURCHASE} ₹${coupon.minPurchase}`
+                message: MSG.COUPON_MIN_PURCHASE
             });
         }
 
@@ -700,12 +701,12 @@ const saveFailedOrder = async (req, res) => {
         const { orderId, errorDetails } = req.body;
         
         if (!orderId) {
-            throw new Error(MSG.ORDER_NOT_FOUND);
+            throw new AppError(MSG.ORDER_NOT_FOUND, STATUS.NOT_FOUND);
         }
         
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error(MSG.ORDER_NOT_FOUND);
+            throw new AppError(MSG.ORDER_NOT_FOUND, STATUS.NOT_FOUND);
         }
         
         order.status ='Payment Processing';

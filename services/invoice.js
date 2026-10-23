@@ -60,7 +60,20 @@ exports.generateUserInvoice = async (orderId) => {
 
     const shippingCost = order.shippingCost || 0;
     const discountAmount = order.discountAmount || 0;
-    const grandTotal = (subTotal + shippingCost - discountAmount).toFixed(2);
+    
+    // Check if all items are cancelled or returned (no active items)
+    const allItemsCancelled = order.items.every(item => item.status === 'Cancelled');
+    const allItemsReturned = order.items.every(item => item.status === 'Returned');
+    const allItemsCancelledOrReturned = subTotal === 0;
+    
+    // Calculate grand total
+    let grandTotal;
+    if (allItemsCancelledOrReturned) {
+        // When all items are cancelled/returned, grand total should be 0
+        grandTotal = '0.00';
+    } else {
+        grandTotal = (subTotal + shippingCost - discountAmount).toFixed(2);
+    }
 
     // Document definition
     const docDefinition = {
@@ -118,7 +131,7 @@ exports.generateUserInvoice = async (orderId) => {
         },
         createOrderItemsTable(processedItems),
         { text: '\n' },
-        createOrderTotals(subTotal, cancelledAmount, returnedAmount, shippingCost, discountAmount, grandTotal, order.couponCode)
+        createOrderTotals(subTotal, cancelledAmount, returnedAmount, shippingCost, discountAmount, grandTotal, order.couponCode, allItemsCancelled, allItemsReturned)
       ],
       footer: {
         text: [
@@ -252,7 +265,7 @@ function createOrderItemsTable(items) {
   };
 }
 
-function createOrderTotals(subTotal, cancelledAmount, returnedAmount, shippingCost, discountAmount, grandTotal, couponCode) {
+function createOrderTotals(subTotal, cancelledAmount, returnedAmount, shippingCost, discountAmount, grandTotal, couponCode, allItemsCancelled, allItemsReturned) {
   const totalsBody = [
     [{ text: 'Subtotal:', bold: true }, { text: `₹${subTotal.toFixed(2)}`, alignment: 'right' }]
   ];
@@ -271,10 +284,23 @@ function createOrderTotals(subTotal, cancelledAmount, returnedAmount, shippingCo
     ]);
   }
 
-  totalsBody.push([
-    { text: 'Shipping:', bold: true }, 
-    { text: `₹${shippingCost.toFixed(2)}`, alignment: 'right' }
-  ]);
+  // Show shipping cost based on order status:
+  // - If ALL items CANCELLED: show strikethrough red (shipping was refunded)
+  // - If ALL items RETURNED: show normal (shipping was NOT refunded)
+  // - Otherwise: show normal
+  if (allItemsCancelled) {
+    // All items cancelled - shipping was included in refund, show strikethrough
+    totalsBody.push([
+      { text: 'Shipping:', bold: true, decoration: 'lineThrough', color: 'red' }, 
+      { text: `₹${shippingCost.toFixed(2)}`, alignment: 'right', decoration: 'lineThrough', color: 'red' }
+    ]);
+  } else {
+    // All items returned OR mixed status - shipping NOT refunded for returns
+    totalsBody.push([
+      { text: 'Shipping:', bold: true }, 
+      { text: `₹${shippingCost.toFixed(2)}`, alignment: 'right' }
+    ]);
+  }
 
   if (discountAmount > 0) {
     totalsBody.push([

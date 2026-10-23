@@ -172,42 +172,35 @@ console.log("loading check out 1",{
             discountAmount: req.session.checkoutData.discountAmount || 0,
             cartTotal: cartTotal
         });
+
     } catch (error) {
         console.error("Error loading checkout1:", error);
-        res.render("checkout1", {
-            errorMessage: error.message,
-            cart: req.session.checkoutData ? req.session.checkoutData.cart : {},
-            addresses: [],
-            shippingCost: 100,
-            shippingMethod: 'Standard',
-            user: req.user,
-            couponApplied: false,
-            couponCode: '',
-            discountAmount: 0,
-            cartTotal: 0
-        });
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 
 const removeCoupon = async (req, res) => {
     try {
         if (!req.session.checkoutData) {
-            return res.status(400).json({ success: false, message: "Session expired" });
+            return res.status(STATUS.BAD_REQUEST).json({ 
+                success: false, 
+                message: MSG.CHECKOUT_SESSION_EXPIRED 
+            });
         }
 
         req.session.checkoutData.couponCode = null;
         req.session.checkoutData.discountAmount = 0;
         await req.session.save();
 
-        res.json({ 
+        res.status(STATUS.OK).json({ 
             success: true,
-            message: 'Coupon removed successfully'
+            message: MSG.COUPON_REMOVED
         });
     } catch (error) {
         console.error('Error removing coupon:', error);
-        res.status(500).json({ 
+        res.status(STATUS.INTERNAL_ERROR).json({ 
             success: false, 
-            message: 'Failed to remove coupon'
+            message: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -274,7 +267,7 @@ console.log("loading checkout 2",{
         req.session.checkoutData.step = 2;
     } catch (error) {
         console.error("Error loading checkout2:", error);
-        res.status(500).render("page-404");
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 // Load Checkout Step 3
@@ -352,7 +345,7 @@ const loadCheckout3 = async (req, res) => {
 
     } catch (error) {
         console.error("Error loading checkout3:", error);
-        res.status(500).render("page-404");
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 // Save Checkout Step 1 Data

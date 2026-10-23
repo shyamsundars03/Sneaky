@@ -614,7 +614,7 @@ const verifyReturn = async (req, res) => {
             await session.abortTransaction();
             return res.status(400).json({
                 success: false,
-                message: "Order not found or not in Return Requested status.",
+                message: "Order not found or not in Return Requested status. Use individual item verification for partially returned orders.",
             });
         }
   
@@ -622,28 +622,22 @@ const verifyReturn = async (req, res) => {
         if (!order.refundProcessed) {
             const user = await User.findById(order.user._id).session(session);
             if (user) {
-                // Calculate refund amount based on returned items only
+                // Calculate refund amount based on returned items only (EXCLUDE shipping for returns)
                 let refundAmount = 0;
-                let allItemsReturned = true;
                 
                 order.items.forEach(item => {
                     if (item.status === "Return Requested") {
                         refundAmount += item.price * item.quantity;
-                    } else if (item.status !== "Cancelled" && item.status !== "Returned") {
-                        allItemsReturned = false;
                     }
                 });
                 
-                // If all items are returned or cancelled, include shipping cost in refund
-                if (allItemsReturned) {
-                    refundAmount += order.shippingCost || 0;
-                }
+                // NOTE: Shipping cost is NEVER included in return refunds
   
                 user.wallet.balance += refundAmount;
                 user.wallet.transactions.push({
                     type: "refund",
                     amount: refundAmount,
-                    description: `Refund for returned items in order #${order.transactionId}${allItemsReturned ? ' (including shipping)' : ''}`,
+                    description: `Refund for returned order #${order.transactionId}`,
                     date: new Date(),
                     orderId: order._id,
                 });
@@ -765,15 +759,11 @@ const verifyItemReturn = async (req, res) => {
         
         const isLastItem = activeItems.length === 0;
         
-        // Calculate refund amount
+        // Calculate refund amount (EXCLUDE shipping for returns)
         let refundAmount = itemAmount;
-        let refundDescription = `Refund for returned item ${item.product.productName} from order #${order.transactionId}`;
+        let refundDescription = `Refund for ${item.product.productName} from order #${order.transactionId}`;
         
-        // If this is the last item, include shipping cost in refund
-        if (isLastItem) {
-            refundAmount += order.shippingCost || 0;
-            refundDescription = `Refund for returned order #${order.transactionId} (including shipping)`;
-        }
+        // NOTE: Shipping cost is NEVER included in return refunds (unlike cancellations)
 
         // Process refund to wallet
         const user = await User.findById(order.user._id).session(session);
@@ -810,6 +800,9 @@ const verifyItemReturn = async (req, res) => {
             i.status === 'Returned' || i.status === 'Cancelled'
         );
         
+        // Count returned items to determine status
+        const returnedItemsCount = order.items.filter(i => i.status === 'Returned').length;
+        
         // Update order status and grand total
         if (allItemsReturnedOrCancelled) {
             // If all items are returned (none are cancelled), set status to Returned
@@ -830,6 +823,11 @@ const verifyItemReturn = async (req, res) => {
             order.refundProcessed = true;
             order.paymentStatus = 'Refunded';
         } else {
+            // Some items still active - set status to "Partially Returned" if at least one item is returned
+            if (returnedItemsCount > 0) {
+                order.status = 'Partially Returned';
+            }
+            
             // Recalculate grand total for remaining active items
             const activeItemsTotal = activeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             order.grandTotal = activeItemsTotal + order.shippingCost - (order.discountAmount || 0);

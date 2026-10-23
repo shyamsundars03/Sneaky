@@ -6,6 +6,7 @@ const { generateInvoice } = require('../../services/invoiceService');
 const { generateUserInvoice } = require('../../services/invoice');
 const fs = require('fs');
 const { STATUS, MSG } = require('../../utils/responseConstants');
+const AppError = require('../../utils/AppError');
 // Load orders page
 const loadOrder = async (req, res) => {
     try {
@@ -657,7 +658,8 @@ const returnOrderItem = async (req, res) => {
             });
         }
   
-        if (order.status !== "Delivered") {
+        // Allow returns for "Delivered" or "Partially Returned" orders
+        if (order.status !== "Delivered" && order.status !== "Partially Returned") {
             await session.abortTransaction()
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,

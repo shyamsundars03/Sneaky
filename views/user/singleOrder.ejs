@@ -828,6 +828,7 @@ tfoot td {
             <th>Image</th>
             <th>Product Name</th>
             <th>Price</th>
+            <th>Size</th>
             <th>Quantity</th>
             <th>Status</th>
             <th>Total</th>
@@ -846,6 +847,7 @@ tfoot td {
                 </td>
                 <td><%= item.product ? item.product.productName : 'Product Unavailable' %></td>
                 <td>₹<%= item.price.toFixed(2) %></td>
+                <td><strong><%= item.size %></strong></td>
                 <td><%= item.quantity %></td>
                 <td>
                     <span class="status <%= item.status.toLowerCase().replace(' ', '-') %>">
@@ -878,14 +880,14 @@ tfoot td {
             </tr>
             <% if (item.cancellationReason) { %>
                 <tr>
-                    <td colspan="7" class="item-reason">
+                    <td colspan="8" class="item-reason">
                         <strong>Cancellation Reason:</strong> <%= item.cancellationReason %>
                     </td>
                 </tr>
             <% } %>
             <% if (item.returnReason) { %>
                 <tr>
-                    <td colspan="7" class="item-reason">
+                    <td colspan="8" class="item-reason">
                         <strong>Return Reason:</strong> <%= item.returnReason %>
                     </td>
                 </tr>
@@ -904,39 +906,49 @@ tfoot td {
             <% } %>
         <% }); %>
         
+        <%
+        // Check if all items are cancelled or returned
+        let allCancelled = order.items.every(item => item.status === 'Cancelled');
+        let allReturned = order.items.every(item => item.status === 'Returned');
+        // Only show strikethrough if ALL items are CANCELLED (not for returns)
+        let shouldStrikeShipping = allCancelled;
+        %>
+        
         <tr>
-            <td colspan="6" class="text-right">Sub Total:</td>
+            <td colspan="7" class="text-right">Sub Total:</td>
             <td class="text-right">₹<%= order.subtotal %></td>
         </tr>
         
         <% if (cancelledAmount > 0) { %>
             <tr class="deduction">
-                <td colspan="6" class="text-right">Cancelled Items:</td>
+                <td colspan="7" class="text-right">Cancelled Items:</td>
                 <td class="text-right">-₹<%= cancelledAmount.toFixed(2) %></td>
             </tr>
         <% } %>
         
         <% if (returnedAmount > 0) { %>
             <tr class="deduction">
-                <td colspan="6" class="text-right">Returned Items:</td>
+                <td colspan="7" class="text-right">Returned Items:</td>
                 <td class="text-right">-₹<%= returnedAmount.toFixed(2) %></td>
             </tr>
         <% } %>
         
-        <tr>
-            <td colspan="6" class="text-right">Shipping Cost:</td>
-            <td class="text-right">₹<%= order.shippingCost %></td>
+        <tr <%= shouldStrikeShipping ? 'class="deduction"' : '' %>>
+            <td colspan="7" class="text-right">Shipping Cost:</td>
+            <td class="text-right" <%= shouldStrikeShipping ? 'style="text-decoration: line-through; color: #dc3545;"' : '' %>>
+                ₹<%= order.shippingCost %>
+            </td>
         </tr>
         
         <% if (order.discountAmount > 0) { %>
             <tr>
-                <td colspan="6" class="text-right">Discount (<%= order.couponCode %>):</td>
+                <td colspan="7" class="text-right">Discount (<%= order.couponCode %>):</td>
                 <td class="text-right">-₹<%= order.discountAmount %></td>
             </tr>
         <% } %>
         
         <tr class="total-row">
-            <td colspan="6" class="text-right">Grand Total:</td>
+            <td colspan="7" class="text-right">Grand Total:</td>
             <td class="text-right">₹<%= order.grandTotal %></td>
         </tr>
     </tfoot>
