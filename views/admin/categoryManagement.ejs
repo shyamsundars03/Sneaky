@@ -410,6 +410,29 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        <% if (totalPages > 1) { %>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 2rem;">
+            <% if (currentPage > 1) { %>
+                <a href="/admin/categoryManagement?page=<%= currentPage - 1 %>" 
+                   style="padding: 0.5rem 1rem; background: var(--primary-color); color: white; text-decoration: none; border-radius: 4px;">
+                    Previous
+                </a>
+            <% } %>
+            
+            <span style="color: #666;">
+                Page <%= currentPage %> of <%= totalPages %>
+            </span>
+            
+            <% if (currentPage < totalPages) { %>
+                <a href="/admin/categoryManagement?page=<%= currentPage + 1 %>" 
+                   style="padding: 0.5rem 1rem; background: var(--primary-color); color: white; text-decoration: none; border-radius: 4px;">
+                    Next
+                </a>
+            <% } %>
+        </div>
+        <% } %>
     </main>
 
     <!-- Category Form Modal -->

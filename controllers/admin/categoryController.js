@@ -5,7 +5,7 @@ const { STATUS, MSG } = require("../../utils/responseConstants");
 const loadCategoryManagement = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 4;
+        const limit = 10;
         const skip = (page - 1) * limit;
 
         const categoryData = await Category.find({})
