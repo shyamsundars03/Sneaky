@@ -1,9 +1,11 @@
 const Offer = require('../../models/offerSchema');
 const Category = require('../../models/categorySchema');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 const validateOffer = (offerData) => {
     const errors = [];
-    
+
     if (!offerData.category) {
         errors.push('Category is required');
     }
@@ -25,7 +27,7 @@ const validateOffer = (offerData) => {
     return errors;
 };
 
-const loadOfferManagement = async (req, res) => {
+const loadOfferManagement = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 10;
@@ -47,7 +49,6 @@ const loadOfferManagement = async (req, res) => {
         const totalOffers = await Offer.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalOffers / limit);
 
-        // Get all categories for dropdown
         const categories = await Category.find({ isListed: true }, 'name');
 
         res.render('offerManagement', {
@@ -60,14 +61,7 @@ const loadOfferManagement = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in loadOfferManagement:', error);
-        res.render('offerManagement', {
-            error: 'Failed to load offer data',
-            offers: [],
-            currentPage: 1,
-            totalPages: 0,
-            totalOffers: 0,
-            categories: []
-        });
+        next(new AppError(MSG.OFFER_LOAD_FAILED, STATUS.INTERNAL_ERROR));
     }
 };
 
@@ -75,11 +69,9 @@ const addOffer = async (req, res) => {
     try {
         const { category, discountPercentage, startDate, endDate } = req.body;
 
-
-
         const categoryExists = await Category.findOne({ _id: category, isListed: true });
         if (!categoryExists) {
-            return res.status(400).json({ success: false, error: 'Category not found or unlisted' });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.CATEGORY_NOT_FOUND });
         }
 
         const offerData = {
@@ -91,22 +83,21 @@ const addOffer = async (req, res) => {
 
         const errors = validateOffer(offerData);
         if (errors.length > 0) {
-            return res.status(400).json({ success: false, error: errors[0] });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: errors[0] });
         }
 
-        // Check if offer already exists for this category
         const existingOffer = await Offer.findOne({ category: offerData.category });
         if (existingOffer) {
-            return res.status(400).json({ success: false, error: 'Offer already exists for this category' });
+            return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.OFFER_EXISTS });
         }
 
         const newOffer = new Offer(offerData);
         await newOffer.save();
 
-        res.json({ success: true, message: 'Offer added successfully' });
+        res.status(STATUS.CREATED).json({ success: true, message: MSG.OFFER_ADDED });
     } catch (error) {
         console.error('Error in addOffer:', error);
-        res.status(500).json({ success: false, error: 'Failed to add offer' });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.OFFER_ADD_FAILED });
     }
 };
 
@@ -116,20 +107,13 @@ const updateOffer = async (req, res) => {
         const { category, discountPercentage, startDate, endDate } = req.body;
 
         if (!offerId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Offer ID is required'
-            });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: MSG.MISSING_FIELDS });
         }
 
-        // Check category exists (only if category is being updated)
         if (category) {
             const categoryExists = await Category.findOne({ _id: category, isListed: true });
             if (!categoryExists) {
-                return res.status(400).json({ 
-                    success: false, 
-                    error: 'Category not found or unlisted' 
-                });
+                return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.CATEGORY_NOT_FOUND });
             }
         }
 
@@ -142,51 +126,34 @@ const updateOffer = async (req, res) => {
 
         const errors = validateOffer(offerData);
         if (errors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: errors[0]
-            });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: errors[0] });
         }
 
         const existingOffer = await Offer.findById(offerId);
         if (!existingOffer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Offer not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.OFFER_NOT_FOUND });
         }
 
-        // Check if offer already exists for this category (excluding current offer)
         if (category) {
-            const duplicateOffer = await Offer.findOne({ 
+            const duplicateOffer = await Offer.findOne({
                 category: offerData.category,
                 _id: { $ne: offerId }
             });
             if (duplicateOffer) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Offer already exists for this category'
-                });
+                return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.OFFER_EXISTS });
             }
         }
 
-        const updatedOffer = await Offer.findByIdAndUpdate(
-            offerId,
-            offerData,
-            { new: true }
-        ).populate('category');
+        const updatedOffer = await Offer.findByIdAndUpdate(offerId, offerData, { new: true }).populate('category');
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
-            message: 'Offer updated successfully',
+            message: MSG.OFFER_UPDATED,
             offer: updatedOffer
         });
     } catch (error) {
         console.error('Error in updateOffer:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update offer'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.OFFER_UPDATE_FAILED });
     }
 };
 
@@ -196,24 +163,15 @@ const deleteOffer = async (req, res) => {
         const offer = await Offer.findById(offerId);
 
         if (!offer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Offer not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.OFFER_NOT_FOUND });
         }
 
         await Offer.findByIdAndDelete(offerId);
 
-        res.json({
-            success: true,
-            message: 'Offer deleted successfully'
-        });
+        res.status(STATUS.OK).json({ success: true, message: MSG.OFFER_DELETED });
     } catch (error) {
         console.error('Error in deleteOffer:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to delete offer'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.OFFER_DELETE_FAILED });
     }
 };
 
@@ -223,22 +181,13 @@ const getOfferById = async (req, res) => {
         const offer = await Offer.findById(offerId).populate('category');
 
         if (!offer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Offer not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.OFFER_NOT_FOUND });
         }
 
-        res.json({
-            success: true,
-            offer: offer
-        });
+        res.status(STATUS.OK).json({ success: true, offer });
     } catch (error) {
         console.error('Error in getOfferById:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to load offer data'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.OFFER_LOAD_FAILED });
     }
 };
 

@@ -1,6 +1,8 @@
 const Category = require("../../models/categorySchema");
+const AppError = require("../../utils/AppError");
+const { STATUS, MSG } = require("../../utils/responseConstants");
 
-const loadCategoryManagement = async (req, res) => {
+const loadCategoryManagement = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 4;
@@ -17,26 +19,26 @@ const loadCategoryManagement = async (req, res) => {
         res.render("categoryManagement", {
             categories: categoryData,
             currentPage: page,
-            totalPages: totalPages,
-            totalCategories: totalCategories
+            totalPages,
+            totalCategories
         });
     } catch (error) {
         console.error(error.message);
-        res.status(500).json({ error: "Internal Server Error" });
+        next(new AppError(MSG.CATEGORY_LOAD_FAILED, STATUS.INTERNAL_ERROR));
     }
 };
 
 const addCategory = async (req, res) => {
     try {
         const { name, description } = req.body;
-        
+
         if (!name || !description) {
-            return res.status(400).json({ error: "Name and description are required" });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: MSG.MISSING_FIELDS });
         }
 
         const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
         if (existingCategory) {
-            return res.status(400).json({ error: "Category already exists" });
+            return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.CATEGORY_EXISTS });
         }
 
         const newCategory = new Category({
@@ -48,13 +50,14 @@ const addCategory = async (req, res) => {
         });
 
         await newCategory.save();
-        res.status(201).json({ 
-            message: "Category added successfully",
-            category: newCategory 
+        res.status(STATUS.CREATED).json({
+            success: true,
+            message: MSG.CATEGORY_ADDED,
+            category: newCategory
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -64,7 +67,7 @@ const updateCategory = async (req, res) => {
         const { name, description, isListed } = req.body;
 
         if (!name || !description) {
-            return res.status(400).json({ error: "Name and description are required" });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: MSG.MISSING_FIELDS });
         }
 
         const existingCategory = await Category.findOne({
@@ -73,30 +76,27 @@ const updateCategory = async (req, res) => {
         });
 
         if (existingCategory) {
-            return res.status(400).json({ error: "Category name already exists" });
+            return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.CATEGORY_EXISTS });
         }
 
         const updatedCategory = await Category.findByIdAndUpdate(
             id,
-            {
-                name,
-                description,
-                isListed: Boolean(isListed)
-            },
+            { name, description, isListed: Boolean(isListed) },
             { new: true }
         );
 
         if (!updatedCategory) {
-            return res.status(404).json({ error: "Category not found" });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.CATEGORY_NOT_FOUND });
         }
 
-        res.json({ 
-            message: "Category updated successfully",
-            category: updatedCategory 
+        res.status(STATUS.OK).json({
+            success: true,
+            message: MSG.CATEGORY_UPDATED,
+            category: updatedCategory
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -106,13 +106,13 @@ const deleteCategory = async (req, res) => {
         const category = await Category.findByIdAndDelete(id);
 
         if (!category) {
-            return res.status(404).json({ error: "Category not found" });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.CATEGORY_NOT_FOUND });
         }
 
-        res.json({ message: "Category deleted successfully" });
+        res.status(STATUS.OK).json({ success: true, message: MSG.CATEGORY_DELETED });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -122,19 +122,20 @@ const toggleCategoryStatus = async (req, res) => {
         const category = await Category.findById(id);
 
         if (!category) {
-            return res.status(404).json({ error: "Category not found" });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.CATEGORY_NOT_FOUND });
         }
 
         category.isListed = !category.isListed;
         await category.save();
 
-        res.json({ 
-            message: "Category status updated successfully",
-            isListed: category.isListed 
+        res.status(STATUS.OK).json({
+            success: true,
+            message: MSG.CATEGORY_UPDATED,
+            isListed: category.isListed
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
 

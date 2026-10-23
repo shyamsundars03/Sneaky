@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../../config/cloudinary');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 // Initialize Cloudinary storage
 const storage = new CloudinaryStorage({
@@ -39,11 +41,11 @@ const upload = multer({
 const updateProfileImage = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: "User not authenticated." });
+      return res.status(STATUS.UNAUTHORIZED).json({ success: false, message: MSG.NOT_AUTHENTICATED });
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded." });
+      return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.PROFILE_IMAGE_REQUIRED });
     }
 
     const imageUrl = req.file.path;
@@ -64,26 +66,26 @@ const updateProfileImage = async (req, res) => {
     req.user.profileImage = imageUrl;
     req.session.user.profileImage = imageUrl;
 
-    return res.json({ 
-      success: true, 
-      message: "Profile image uploaded successfully!",
-      imageUrl: imageUrl
+    return res.status(STATUS.OK).json({
+      success: true,
+      message: MSG.PROFILE_IMAGE_UPDATED,
+      imageUrl
     });
 
   } catch (error) {
     console.error("Error updating profile image:", error);
-    
-    let errorMessage = "Error updating profile image.";
+
+    let errorMessage = MSG.INTERNAL_ERROR;
     if (error.message.includes('File too large')) {
       errorMessage = "Image size should be less than 5MB.";
     } else if (error.message.includes('Only images')) {
       errorMessage = "Only jpeg, jpg, png, and svg images are allowed.";
     }
 
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
       message: errorMessage,
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -100,7 +102,7 @@ const loadProfile = async (req, res) => {
         });
     } catch (error) {
         console.error('Error loading profile:', error);
-        res.status(500).render('page-404');
+        res.status(STATUS.INTERNAL_ERROR).render('page-404');
     }
 };
 
@@ -139,7 +141,7 @@ const updateProfile = async (req, res) => {
         if (phone !== user.phone) updateData.phone = phone;
 
         if (Object.keys(updateData).length === 0) {
-            return res.json({ success: false, message: "No changes made" });
+            return res.status(STATUS.OK).json({ success: false, message: MSG.PROFILE_NO_CHANGES });
         }
 
         const updatedUser = await User.findByIdAndUpdate(
@@ -156,9 +158,9 @@ const updateProfile = async (req, res) => {
         };
         await req.session.save();
 
-        res.json({ 
+        res.status(STATUS.OK).json({
             success: true,
-            message: "Profile updated!",
+            message: MSG.PROFILE_UPDATED,
             user: {
                 name: updatedUser.name,
                 phone: updatedUser.phone
@@ -167,9 +169,9 @@ const updateProfile = async (req, res) => {
 
     } catch (error) {
         console.error("Update error:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -182,7 +184,7 @@ const loadAddress = async (req, res) => {
         res.render("address", { addresses, user: req.user });
     } catch (error) {
         console.error("Error loading addresses:", error);
-        res.status(500).render("page-404");
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 
@@ -199,35 +201,25 @@ const saveAddress = async (req, res) => {
                 { name, street, city, state, zip, country },
                 { new: true }
             );
-            return res.json({ 
-                success: true, 
-                message: "Address updated successfully!",
+            return res.status(STATUS.OK).json({
+                success: true,
+                message: MSG.ADDRESS_UPDATED,
                 address: updatedAddress
             });
         } else {
-           
-            const newAddress = new Address({
-                userId,
-                name,
-                street,
-                city,
-                state,
-                zip,
-                country,
-            });
+            const newAddress = new Address({ userId, name, street, city, state, zip, country });
             await newAddress.save();
-            return res.json({ 
-                success: true, 
-                message: "Address added successfully!",
+            return res.status(STATUS.CREATED).json({
+                success: true,
+                message: MSG.ADDRESS_ADDED,
                 address: newAddress
             });
         }
     } catch (error) {
         console.error("Error saving address:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Failed to save address.",
-            error: error.message 
+        return res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -238,22 +230,21 @@ const deleteAddress = async (req, res) => {
         const addressId = req.params.id;
         const deletedAddress = await Address.findByIdAndDelete(addressId);
         if (!deletedAddress) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Address not found." 
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: MSG.ADDRESS_NOT_FOUND
             });
         }
-        res.json({ 
-            success: true, 
-            message: "Address deleted successfully!",
-            addressId: addressId
+        res.status(STATUS.OK).json({
+            success: true,
+            message: MSG.ADDRESS_DELETED,
+            addressId
         });
     } catch (error) {
         console.error("Error deleting address:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to delete address.",
-            error: error.message 
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MSG.INTERNAL_ERROR
         });
     }
 };

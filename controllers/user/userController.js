@@ -8,6 +8,8 @@ const sendotp = require('../../helper/sendOtp')
 const passport = require('passport');
 const { generateReferralCode, applyReferralBonus } = require('../../services/referralService');
 const User = require('../../models/userSchema');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 async function encryptPassword(password) {
     const saltRounds = 10;
@@ -25,7 +27,7 @@ async function comparePassword(enteredPassword, storedPassword) {
 
 
 
-const loadSignup = async (req, res) => {
+const loadSignup = async (req, res, next) => {
     try {
         if(req.session.loginSession ){
             return res.redirect("/")
@@ -35,11 +37,11 @@ const loadSignup = async (req, res) => {
         }
     } catch (error){
         console.log(error)
-        next(new AppError('Sorry...Something went wrong', 500));
+        next(new AppError(MSG.INTERNAL_ERROR, STATUS.INTERNAL_ERROR));
     }
 };
 
-const loadSignin = async (req, res) => {
+const loadSignin = async (req, res, next) => {
     try {
         // sessionn started
         if(req.session.loginSession ){
@@ -50,7 +52,7 @@ const loadSignin = async (req, res) => {
         } 
     } catch (error){
         console.log(error)
-        next(new AppError('Sorry...Something went wrong', 500));
+        next(new AppError(MSG.INTERNAL_ERROR, STATUS.INTERNAL_ERROR));
     }
 };
 
@@ -58,7 +60,7 @@ const loadSignin = async (req, res) => {
 const otpSend = async (req, res) => {
     try {
         if (!req.session.tempUser || !req.session.tempUser.isSignupFlow) {
-            return res.status(400).json({ error: "Invalid signup flow" });
+            return res.status(STATUS.BAD_REQUEST).json({ error: "Invalid signup flow" });
         }
 
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -88,7 +90,7 @@ const otpSend = async (req, res) => {
         res.redirect("/otp");
     } catch (error) {
         console.error("Error in otpSend:", error);
-        res.status(500).json({ error: "Failed to send OTP" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.OTP_SEND_FAILED });
     }
 };
 
@@ -96,9 +98,9 @@ const otpPost = async (req, res) => {
     try {
 
         if (!req.session.tempUser || !req.session.tempUser.email) {
-            return res.status(400).json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 ok: false,
-                error: "Session expired or user not logged in" 
+                message: MSG.SESSION_EXPIRED
             });
         }
 
@@ -108,25 +110,25 @@ const otpPost = async (req, res) => {
         });
 
         if (!findOtp) {
-            return res.status(400).json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 ok: false,
-                error: "OTP not found" 
+                message: MSG.OTP_INVALID
             });
         }
 
 
         if (findOtp.expiresAt < new Date()) {
-            return res.status(400).json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 ok: false,
-                error: "OTP has expired" 
+                message: MSG.OTP_EXPIRED
             });
         }
 
         const isOtpValid = await comparePassword(req.body.otp, findOtp.otp);
         if (!isOtpValid) {
-            return res.status(400).json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 ok: false,
-                error: "Invalid OTP" 
+                message: MSG.OTP_INVALID
             });
         }
 
@@ -135,9 +137,9 @@ const otpPost = async (req, res) => {
             email: req.session.tempUser.email 
         });
         if (userExists) {
-            return res.status(409).json({ 
+            return res.status(STATUS.CONFLICT).json({ 
                 ok: false,
-                error: "User already exists" 
+                message: MSG.USER_ALREADY_EXISTS
             });
         }
 
@@ -182,7 +184,7 @@ const otpPost = async (req, res) => {
         };
         req.session.loginSession = true;
 
-        return res.status(200).json({ 
+        return res.status(STATUS.OK).json({ 
             ok: true 
         });
 
@@ -190,15 +192,15 @@ const otpPost = async (req, res) => {
         console.error("Error in otpPost:", error);
         
         if (error.code === 11000) {
-            return res.status(409).json({ 
+            return res.status(STATUS.CONFLICT).json({ 
                 ok: false,
-                error: "User already exists" 
+                message: MSG.USER_ALREADY_EXISTS
             });
         }
         
-        return res.status(500).json({ 
+        return res.status(STATUS.INTERNAL_ERROR).json({ 
             ok: false,
-            error: "An error occurred during OTP verification" 
+            message: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -212,18 +214,18 @@ const signinPost = async (req, res) => {
         const user = await usercollection.findOne({ email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User not found." });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, message: MSG.USER_NOT_FOUND });
         }
 
 
         if (!user.isActive) {
-            return res.status(403).json({ success: false, message: "You have been blocked." });
+            return res.status(STATUS.FORBIDDEN).json({ success: false, message: MSG.USER_BLOCKED });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
-            return res.status(401).json({ success: false, message: "Invalid password." });
+            return res.status(STATUS.UNAUTHORIZED).json({ success: false, message: MSG.LOGIN_INVALID_PASSWORD });
         }
 
 
@@ -235,10 +237,10 @@ const signinPost = async (req, res) => {
 
         console.log("Session after login:", req.session.user); 
 
-        res.status(200).json({ success: true, message: "Login successful!" });
+        res.status(STATUS.OK).json({ success: true, message: MSG.LOGIN_SUCCESS });
     } catch (error) {
         console.error("Error during login:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -249,9 +251,9 @@ const signupPost = async (req, res) => {
  
         const userExists = await usercollection.findOne({ email: req.body.email });
         if (userExists) {
-            return res.status(409).json({ 
+            return res.status(STATUS.CONFLICT).json({ 
                 success: false,
-                error: 'User already exists. Please sign in.'
+                message: MSG.USER_ALREADY_EXISTS
             });
         }
 
@@ -272,16 +274,16 @@ const signupPost = async (req, res) => {
         req.session.otpSession = true;
         req.session.otpError = null;
 
-        return res.status(200).json({ 
+        return res.status(STATUS.OK).json({ 
             success: true,
             redirect: '/otpsend'
         });
 
     } catch (error) {
         console.error("Signup error:", error);
-        return res.status(500).json({ 
+        return res.status(STATUS.INTERNAL_ERROR).json({ 
             success: false,
-            error: 'Something went wrong during signup'
+            message: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -332,7 +334,7 @@ const blockedUser = async (req, res) => {
         }
     } catch (error) {
         console.error("Error in blockedUser:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(STATUS.INTERNAL_ERROR).send(MSG.INTERNAL_ERROR);
     }
 };
 
@@ -341,7 +343,7 @@ const resendOtp = async (req, res) => {
     try {
 
         if (!req.session.tempUser || !req.session.tempUser.email) {
-            return res.status(400).json({ success: false, message: "User data not found in session." });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.SESSION_EXPIRED });
         }
 
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -354,10 +356,10 @@ const resendOtp = async (req, res) => {
             { upsert: true }
         );
         console.log("resendOTP used");
-        res.json({ success: true });
+        res.json({ success: true, message: MSG.OTP_SENT });
     } catch (error) {
         console.error("Error in resendOtp:", error);
-        res.status(500).json({ success: false });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.OTP_SEND_FAILED });
     }
 };
 
@@ -384,12 +386,12 @@ const otpTime = (req, res) => {
             const remainingTime = Math.max(req.session.otpTime - elapsedTime, 0);
             res.status(200).json({ success: true, remainingTime });
         } else {
-            res.status(200).json({ success: true, remainingTime: 0 });
+            res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
         }
         console.log("otptime used");
     } catch (error) {
         console.error("Error in otpTime:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -398,7 +400,7 @@ const loadAbout = async (req, res) => {
         return res.render("about", { user: req.session.user }); 
     } catch (error) {
         console.log("About page not found");
-        res.status(500).send("Server error");
+        res.status(STATUS.INTERNAL_ERROR).send(MSG.INTERNAL_ERROR);
     }
 };
 
@@ -754,7 +756,7 @@ const forgotPassword = async (req, res) => {
         const user = await usercollection.findOne({ email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User  not found." });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, message: MSG.USER_NOT_FOUND });
         }
 
         req.session.user = { email: user.email };
@@ -772,10 +774,10 @@ const forgotPassword = async (req, res) => {
             { upsert: true }
         );
 
-        res.status(200).json({ success: true, message: "OTP sent successfully." });
+        res.status(STATUS.OK).json({ success: true, message: MSG.OTP_SENT });
     } catch (error) {
         console.error("Error in forgotPassword:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -785,7 +787,7 @@ const loadChangeEmail = async (req, res) => {
         res.render("change-email", { user: req.session.user });
     } catch (error) {
         console.error("Error in loadChangeEmail:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -795,12 +797,12 @@ const changeEmail = async (req, res) => {
         const user = await usercollection.findOne({ email: req.session.user.email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User not found." });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, message: MSG.USER_NOT_FOUND });
         }
 
         const emailExists = await usercollection.findOne({ email: newEmail });
         if (emailExists) {
-            return res.status(409).json({ success: false, message: "Email already in use." });
+            return res.status(STATUS.CONFLICT).json({ success: false, message: MSG.EMAIL_IN_USE });
         }
 
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -820,10 +822,10 @@ const changeEmail = async (req, res) => {
 
         req.session.tempEmail = newEmail;
 
-        res.status(200).json({ success: true, message: "OTP sent successfully.", redirectUrl: `/verify-otp?scenario=change-email` });
+        res.status(STATUS.OK).json({ success: true, message: MSG.OTP_SENT, redirectUrl: `/verify-otp?scenario=change-email` });
     } catch (error) {
         console.error("Error in changeEmail:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -832,7 +834,7 @@ const loadChangePassword = async (req, res) => {
         res.render("change-password", { user: req.session.user });
     } catch (error) {
         console.error("Error in loadChangePassword:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -842,13 +844,13 @@ const changePassword = async (req, res) => {
         const user = await usercollection.findOne({ email: req.session.user.email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User  not found." });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, message: MSG.USER_NOT_FOUND });
         }
 
         // Verify the old password
         const isOldPasswordValid = await comparePassword(oldPassword, user.password);
         if (!isOldPasswordValid) {
-            return res.status(400).json({ success: false, message: "Old password is incorrect." });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.PASSWORD_OLD_WRONG });
         }
 
         // Update the password
@@ -858,10 +860,10 @@ const changePassword = async (req, res) => {
             { $set: { password: hashedNewPassword } }
         );
 
-        res.status(200).json({ success: true, message: "Password updated successfully." });
+        res.status(STATUS.OK).json({ success: true, message: MSG.PASSWORD_UPDATED });
     } catch (error) {
         console.error("Error in changePassword:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -872,13 +874,13 @@ const verifyOtp2 = async (req, res) => {
         const findOtp = await otpCollection.findOne({ email });
 
         if (!findOtp || findOtp.expiresAt < new Date()) {
-            return res.status(400).json({ success: false, message: "OTP has expired." });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.OTP_EXPIRED });
         }
 
         const isOtpValid = await comparePassword(otp, findOtp.otp);
 
         if (!isOtpValid) {
-            return res.status(400).json({ success: false, message: "Invalid OTP." });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.OTP_INVALID });
         }
 
         // Handle change email scenario
@@ -889,14 +891,14 @@ const verifyOtp2 = async (req, res) => {
             );
             req.session.user.email = req.session.tempEmail; // Update session email
             delete req.session.tempEmail;
-            return res.status(200).json({ success: true, message: "Email updated successfully." });
+            return res.status(STATUS.OK).json({ success: true, message: MSG.EMAIL_UPDATED });
         }
 
         // Handle forgot password scenario
-        res.status(200).json({ success: true, message: "OTP verified successfully." });
+        res.status(STATUS.OK).json({ success: true, message: MSG.OTP_VERIFIED });
     } catch (error) {
         console.error("Error in verifyOtp2:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
@@ -905,7 +907,7 @@ const resetPassword = async (req, res) => {
         const { newPassword, confirmPassword } = req.body;
 
         if (newPassword !== confirmPassword) {
-            return res.status(400).json({ success: false, message: "Passwords do not match." });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: MSG.PASSWORD_MISMATCH });
         }
 
         const hashedPassword = await encryptPassword(newPassword);
@@ -915,22 +917,22 @@ const resetPassword = async (req, res) => {
         );
 
         req.session.destroy();
-        res.status(200).json({ success: true, message: "Password reset successfully." });
+        res.status(STATUS.OK).json({ success: true, message: MSG.PASSWORD_RESET });
     } catch (error) {
         console.error("Error in resetPassword:", error);
-        res.status(500).json({ success: false, message: "Internal server error." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.INTERNAL_ERROR });
     }
 };
 
 
-const loadForgotPassword = async (req, res) => {
+const loadForgotPassword = async (req, res, next) => {
     try {
 
         res.render("forgot-password"); 
 
     } catch (error){
         console.log(error)
-        next(new AppError('Sorry...Something went wrong', 500));
+        next(new AppError(MSG.INTERNAL_ERROR, STATUS.INTERNAL_ERROR));
     }
 };
 const loadVerifyotp2 = async (req, res) => {

@@ -2,6 +2,9 @@ const Order = require('../../models/orderSchema');
 const User = require('../../models/userSchema');
 const Product = require('../../models/productSchema');
 const mongoose = require('mongoose');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
+
 
 // Load Order Management Page
 const loadOrderManagement = async (req, res) => {
@@ -53,7 +56,7 @@ const loadOrderManagement = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading order management page:", error);
-        res.status(500).render("page-404"); 
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 
@@ -67,7 +70,7 @@ const loadSingleAdminOrder = async (req, res) => {
             });
 
         if (!order) {
-            return res.status(404).render("page-404", { message: "Order not found." });
+            return res.status(STATUS.NOT_FOUND).render("page-404", { message: MSG.ORDER_NOT_FOUND });
         }
 
 
@@ -136,7 +139,7 @@ const loadSingleAdminOrder = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading admin order:", error);
-        res.status(500).render("page-404", { message: "Failed to load order details." });
+        res.status(STATUS.INTERNAL_ERROR).render("page-404", { message: MSG.ORDER_LOAD_FAILED });
     }
 };
 
@@ -155,9 +158,9 @@ const updateOrderStatus = async (req, res) => {
 
         if (!order) {
             await session.abortTransaction();
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Order not found.' 
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: MSG.ORDER_NOT_FOUND
             });
         }
 
@@ -171,12 +174,12 @@ const updateOrderStatus = async (req, res) => {
             'Return Requested': ['Returned']
         };
 
-        if (!validTransitions[order.status] || 
+        if (!validTransitions[order.status] ||
             !validTransitions[order.status].includes(status)) {
             await session.abortTransaction();
-            return res.status(400).json({ 
-                success: false, 
-                message: `Invalid status transition from ${order.status} to ${status}.` 
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MSG.ORDER_INVALID_TRANSITION
             });
         }
 
@@ -200,16 +203,16 @@ const updateOrderStatus = async (req, res) => {
         await order.save({ session });
         await session.commitTransaction();
         
-        res.status(200).json({ 
-            success: true, 
-            message: `Order status updated to ${status}.`
+        res.status(STATUS.OK).json({
+            success: true,
+            message: MSG.ORDER_STATUS_UPDATED
         });
     } catch (error) {
         await session.abortTransaction();
         console.error('Error updating order status:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update order status.' 
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MSG.INTERNAL_ERROR
         });
     } finally {
         session.endSession();
@@ -227,18 +230,18 @@ const updateItemStatus = async (req, res) => {
       const order = await Order.findById(orderId).session(session)
       if (!order) {
         await session.abortTransaction()
-        return res.status(404).json({
+        return res.status(STATUS.NOT_FOUND).json({
           success: false,
-          message: "Order not found.",
+          message: MSG.ORDER_NOT_FOUND,
         })
       }
   
       const item = order.items.id(itemId)
       if (!item) {
         await session.abortTransaction()
-        return res.status(404).json({
+        return res.status(STATUS.NOT_FOUND).json({
           success: false,
-          message: "Item not found in order.",
+          message: MSG.ITEM_NOT_FOUND,
         })
       }
   
@@ -254,9 +257,9 @@ const updateItemStatus = async (req, res) => {
   
       if (!validTransitions[item.status] || !validTransitions[item.status].includes(status)) {
         await session.abortTransaction()
-        return res.status(400).json({
+        return res.status(STATUS.BAD_REQUEST).json({
           success: false,
-          message: `Invalid status transition from ${item.status} to ${status}.`,
+          message: MSG.ORDER_INVALID_TRANSITION,
         })
       }
   
@@ -298,16 +301,16 @@ const updateItemStatus = async (req, res) => {
       await order.save({ session })
       await session.commitTransaction()
   
-      res.status(200).json({
+      res.status(STATUS.OK).json({
         success: true,
-        message: `Item status updated to ${status}.`,
+        message: MSG.ORDER_STATUS_UPDATED,
       })
     } catch (error) {
       await session.abortTransaction()
       console.error("Error updating item status:", error)
-      res.status(500).json({
+      res.status(STATUS.INTERNAL_ERROR).json({
         success: false,
-        message: "Failed to update item status.",
+        message: MSG.INTERNAL_ERROR,
       })
     } finally {
       session.endSession()
@@ -332,9 +335,9 @@ const cancelOrder = async (req, res) => {
 
     if (!order) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Order not found.",
+        message: MSG.ORDER_NOT_FOUND,
       })
     }
 
@@ -415,16 +418,16 @@ const cancelOrder = async (req, res) => {
       message += " Amount refunded to customer's wallet."
     }
 
-    res.status(200).json({
+    res.status(STATUS.OK).json({
       success: true,
       message,
     })
   } catch (error) {
     await session.abortTransaction()
     console.error("Error cancelling order:", error)
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: "Failed to cancel order.",
+      message: MSG.ORDER_CANCEL_FAILED,
     })
   } finally {
     session.endSession()
@@ -448,18 +451,18 @@ const cancelOrderItem = async (req, res) => {
 
     if (!order) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Order not found.",
+        message: MSG.ORDER_NOT_FOUND,
       })
     }
 
     const item = order.items.id(itemId)
     if (!item) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Item not found in order.",
+        message: MSG.ITEM_NOT_FOUND,
       })
     }
 
@@ -578,16 +581,16 @@ const cancelOrderItem = async (req, res) => {
       message += ` ₹${refundAmount} refunded to customer's wallet.`
     }
 
-    res.status(200).json({
+    res.status(STATUS.OK).json({
       success: true,
       message,
     })
   } catch (error) {
     await session.abortTransaction()
     console.error("Error cancelling item:", error)
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: "Failed to cancel item.",
+      message: MSG.ORDER_CANCEL_FAILED,
     })
   } finally {
     session.endSession()
@@ -700,16 +703,16 @@ const verifyReturn = async (req, res) => {
         await order.save({ session });
         await session.commitTransaction();
   
-        res.status(200).json({
+        res.status(STATUS.OK).json({
             success: true,
-            message: "Return verified. Refund processed and stock updated.",
+            message: MSG.RETURN_VERIFIED,
         });
     } catch (error) {
         await session.abortTransaction();
         console.error("Error verifying return:", error);
-        res.status(500).json({
+        res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            message: "Failed to verify return.",
+            message: MSG.RETURN_VERIFY_FAILED,
         });
     } finally {
         session.endSession();

@@ -4,6 +4,8 @@ const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
 const moment = require('moment');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 
 // Add this function to your dashboardController.js
@@ -218,8 +220,8 @@ const loadDashboard = async (req, res) => {
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        res.status(500).render("dashboard", { 
-            error: "Failed to load dashboard data",
+        res.status(STATUS.INTERNAL_ERROR).render("dashboard", {
+            error: MSG.INTERNAL_ERROR,
             totalRevenue: 0,
             totalOrders: 0,
             activeUsers: 0,
@@ -230,7 +232,7 @@ const loadDashboard = async (req, res) => {
             filterFrom: '',
             filterTo: '',
             period: 'today',
-            getChartColor // Add this line to pass the function in error case too
+            getChartColor
         });
     }
 };

@@ -51,7 +51,7 @@ const loadProductManagement = async (req, res) => {
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
 
-      
+
         if (page < 1) {
             return res.status(400).render('productManagement', {
                 error: 'Invalid page number',
@@ -60,7 +60,7 @@ const loadProductManagement = async (req, res) => {
                 currentPage: 1,
                 totalPages: 0,
                 totalProducts: 0,
-                product: null 
+                product: null
             });
         }
 
@@ -90,7 +90,10 @@ const loadProductManagement = async (req, res) => {
                 productImage: fixedImages
             };
         });
-        const categories = await Category.find({ isDeleted: false , isListed: true });
+        const categories = await Category.find({ isDeleted: false, isListed: true });
+
+        console.log("taotal products", fixedProducts)
+
         res.render('productManagement', {
             products: fixedProducts,
             currentPage: page,
@@ -98,7 +101,7 @@ const loadProductManagement = async (req, res) => {
             totalProducts,
             categories,
             searchQuery: search,
-            product: null 
+            product: null
         });
     } catch (error) {
         console.error('Error in loadProductManagement:', error);
@@ -109,7 +112,7 @@ const loadProductManagement = async (req, res) => {
             currentPage: 1,
             totalPages: 0,
             totalProducts: 0,
-            product: null 
+            product: null
         });
     }
 };
@@ -120,9 +123,9 @@ const addProduct = async (req, res) => {
 
         // Validate required fields
         if (!productName || !description || !category || !price) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required fields' 
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields'
             });
         }
 
@@ -135,9 +138,9 @@ const addProduct = async (req, res) => {
 
         // Validate at least one size is selected
         if (sizeDetails.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'At least one size is required' 
+            return res.status(400).json({
+                success: false,
+                error: 'At least one size is required'
             });
         }
 
@@ -154,9 +157,9 @@ const addProduct = async (req, res) => {
 
         // Validate all 4 images are provided
         if (productImages.length < 4) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'All 4 product images are required' 
+            return res.status(400).json({
+                success: false,
+                error: 'All 4 product images are required'
             });
         }
 
@@ -174,15 +177,15 @@ const addProduct = async (req, res) => {
 
         // Calculate offer price if discount is provided
         if (discount && !isNaN(discount) && discount > 0) {
-            productData.offerPrice = Math.round(parseFloat(price) * (1 - parseFloat(discount)/100));
+            productData.offerPrice = Math.round(parseFloat(price) * (1 - parseFloat(discount) / 100));
         }
 
         // Validate product data
         const errors = await validateProduct(productData);
         if (errors.length > 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: errors[0] 
+            return res.status(400).json({
+                success: false,
+                error: errors[0]
             });
         }
 
@@ -190,18 +193,18 @@ const addProduct = async (req, res) => {
         const newProduct = new Product(productData);
         await newProduct.save();
 
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: 'Product added successfully',
-            productId: newProduct._id 
+            productId: newProduct._id
         });
 
     } catch (error) {
         console.error('Error in addProduct:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             error: 'Failed to add product',
-            details: error.message 
+            details: error.message
         });
     }
 };
@@ -210,7 +213,7 @@ const addProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const productId = req.params.id;
-       
+
         if (!productId) {
             return res.status(400).json({
                 success: false,
@@ -236,7 +239,7 @@ const updateProduct = async (req, res) => {
 
         // Calculate offer price if discount is provided
         if (req.body.discount && !isNaN(req.body.discount)) {
-            productData.offerPrice = Math.round(parseFloat(req.body.price) * (1 - parseFloat(req.body.discount)/100));
+            productData.offerPrice = Math.round(parseFloat(req.body.price) * (1 - parseFloat(req.body.discount) / 100));
         } else {
             productData.offerPrice = undefined;
         }
@@ -259,7 +262,7 @@ const updateProduct = async (req, res) => {
 
         // Handle image updates
         const updatedImages = [...existingProduct.productImage];
-        
+
         // Process new uploaded files
         for (let i = 0; i < 4; i++) {
             const fileField = `productImages_${i}`;
@@ -269,13 +272,13 @@ const updateProduct = async (req, res) => {
                 updatedImages[i] = '/' + relativePath.replace(/\\/g, '/');
             }
         }
-        
+
         // Handle removed images
         if (req.body.removedImages) {
-            const removedIndexes = Array.isArray(req.body.removedImages) 
-                ? req.body.removedImages.map(Number) 
+            const removedIndexes = Array.isArray(req.body.removedImages)
+                ? req.body.removedImages.map(Number)
                 : [Number(req.body.removedImages)];
-                
+
             removedIndexes.forEach(index => {
                 if (index >= 0 && index < 4) {
                     updatedImages[index] = '';

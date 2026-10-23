@@ -4,6 +4,7 @@ const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
 const { generateSalesReport } = require('../../services/pdfGenerator');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 
 // Helper functions
@@ -113,8 +114,8 @@ const loadSales = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading sales page:", error);
-        res.status(500).render("sales", {
-            error: "Failed to load sales data",
+        res.status(STATUS.INTERNAL_ERROR).render("sales", {
+            error: MSG.INTERNAL_ERROR,
             filterFrom: '',
             filterTo: '',
             filterPeriod: 'custom',
@@ -186,9 +187,9 @@ const getSalesData = async (req, res) => {
         });
     } catch (error) {
         console.error("Error getting sales data:", error);
-        res.status(500).json({
+        res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            error: error.message
+            error: MSG.INTERNAL_ERROR
         });
     }
 };
@@ -350,7 +351,7 @@ const downloadPDF = async (req, res) => {
         });
     } catch (error) {
         console.error("Error generating PDF:", error);
-        res.status(500).send('Failed to generate PDF');
+        res.status(STATUS.INTERNAL_ERROR).send(MSG.INTERNAL_ERROR);
     }
 };
 
@@ -411,7 +412,7 @@ const downloadExcel = async (req, res) => {
         });
     } catch (error) {
         console.error("Error generating Excel:", error);
-        res.status(500).send('Failed to generate Excel');
+        res.status(STATUS.INTERNAL_ERROR).send(MSG.INTERNAL_ERROR);
     }
 };
 

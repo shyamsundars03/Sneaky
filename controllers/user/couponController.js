@@ -1,5 +1,6 @@
 const Coupon = require('../../models/couponSchema');
 const Order = require('../../models/orderSchema');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 const validateCoupon = async (req, res) => {
     try {
@@ -18,9 +19,9 @@ const validateCoupon = async (req, res) => {
 
 
         if (!coupon) {
-            return res.json({ 
-                valid: false, 
-                message: 'Invalid or expired coupon code' 
+            return res.status(STATUS.BAD_REQUEST).json({
+                valid: false,
+                message: MSG.COUPON_INVALID
             });
         }
 
@@ -32,35 +33,34 @@ const validateCoupon = async (req, res) => {
         });
 
         if (existingOrder) {
-            return res.json({
+            return res.status(STATUS.BAD_REQUEST).json({
                 valid: false,
-                message: 'You have already used this coupon'
+                message: MSG.COUPON_ALREADY_USED
             });
         }
 
       
         if (totalAmount < coupon.minPurchase) {
-            return res.json({
+            return res.status(STATUS.BAD_REQUEST).json({
                 valid: false,
-                message: `Minimum purchase of ₹${coupon.minPurchase} required for this coupon`
+                message: `${MSG.COUPON_MIN_PURCHASE} Minimum purchase: ₹${coupon.minPurchase}.`
             });
         }
 
         // Calculate discount amount
         const discountAmount = (totalAmount * coupon.discountPercentage) / 100;
 
-        return res.json({
+        return res.status(STATUS.OK).json({
             valid: true,
-            message: 'Coupon applied successfully',
-            discountAmount: discountAmount,
+            message: MSG.COUPON_APPLIED,
+            discountAmount,
             couponCode: coupon.code
         });
-
     } catch (error) {
         console.error('Error validating coupon:', error);
-        return res.status(500).json({
+        return res.status(STATUS.INTERNAL_ERROR).json({
             valid: false,
-            message: 'Error validating coupon'
+            message: MSG.INTERNAL_ERROR
         });
     }
 };

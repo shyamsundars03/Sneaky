@@ -1,8 +1,10 @@
 const Coupon = require('../../models/couponSchema');
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 const validateCoupon = (couponData) => {
     const errors = [];
-    
+
     if (!couponData.code?.trim()) {
         errors.push('Coupon code is required');
     }
@@ -28,7 +30,7 @@ const validateCoupon = (couponData) => {
     return errors;
 };
 
-const loadCouponManagement = async (req, res) => {
+const loadCouponManagement = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 10;
@@ -49,21 +51,18 @@ const loadCouponManagement = async (req, res) => {
         const totalCoupons = await Coupon.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalCoupons / limit);
 
-        // Get existing coupon codes for validation
         const existingCouponCodes = (await Coupon.find({}, 'code')).map(c => c.code);
 
         const currentDate = new Date();
         const enhancedCoupons = coupons.map(coupon => {
-            const isActive = new Date(coupon.startDate) <= currentDate && 
+            const isActive = new Date(coupon.startDate) <= currentDate &&
                            new Date(coupon.endDate) >= currentDate;
             const isUpcoming = new Date(coupon.startDate) > currentDate;
-            
+
             return {
                 ...coupon.toObject(),
-                status: isActive ? 'Active' : 
-                       isUpcoming ? 'Upcoming' : 'Expired',
-                statusClass: isActive ? 'active' : 
-                           isUpcoming ? 'upcoming' : 'expired'
+                status: isActive ? 'Active' : isUpcoming ? 'Upcoming' : 'Expired',
+                statusClass: isActive ? 'active' : isUpcoming ? 'upcoming' : 'expired'
             };
         });
 
@@ -77,20 +76,14 @@ const loadCouponManagement = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in loadCouponManagement:', error);
-        res.render('couponManagement', {
-            error: 'Failed to load coupon data',
-            coupons: [],
-            currentPage: 1,
-            totalPages: 0,
-            totalCoupons: 0
-        });
+        next(new AppError(MSG.COUPON_LOAD_FAILED, STATUS.INTERNAL_ERROR));
     }
 };
 
 const addCoupon = async (req, res) => {
     try {
         const { code, discountPercentage, minPurchase, startDate, endDate, description } = req.body;
-        console.log(startDate)
+
         const couponData = {
             code: code.toUpperCase(),
             discountPercentage: parseFloat(discountPercentage),
@@ -100,7 +93,6 @@ const addCoupon = async (req, res) => {
             description: description || ''
         };
 
-        // Additional validation for dates - use different variable names here
         const startDateObj = new Date(couponData.startDate);
         const endDateObj = new Date(couponData.endDate);
         const today = new Date();
@@ -110,38 +102,36 @@ const addCoupon = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         if (startDateObj < today) {
-            
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Start date cannot be in the past' 
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                error: 'Start date cannot be in the past'
             });
         }
 
         if (endDateObj < startDateObj) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'End date must be after start date' 
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                error: 'End date must be after start date'
             });
         }
 
         const errors = validateCoupon(couponData);
         if (errors.length > 0) {
-            return res.status(400).json({ success: false, error: errors[0] });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: errors[0] });
         }
 
-        // Check if coupon code already exists
         const existingCoupon = await Coupon.findOne({ code: couponData.code });
         if (existingCoupon) {
-            return res.status(400).json({ success: false, error: 'Coupon code already exists' });
+            return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.COUPON_EXISTS });
         }
 
         const newCoupon = new Coupon(couponData);
         await newCoupon.save();
 
-        res.json({ success: true, message: 'Coupon added successfully' });
+        res.status(STATUS.CREATED).json({ success: true, message: MSG.COUPON_ADDED });
     } catch (error) {
         console.error('Error in addCoupon:', error);
-        res.status(500).json({ success: false, error: 'Failed to add coupon' });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.COUPON_ADD_FAILED });
     }
 };
 
@@ -150,9 +140,9 @@ const updateCoupon = async (req, res) => {
         const couponId = req.params.id;
 
         if (!couponId) {
-            return res.status(400).json({
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                error: 'Coupon ID is required'
+                error: MSG.MISSING_FIELDS
             });
         }
 
@@ -169,49 +159,32 @@ const updateCoupon = async (req, res) => {
 
         const errors = validateCoupon(couponData);
         if (errors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: errors[0]
-            });
+            return res.status(STATUS.BAD_REQUEST).json({ success: false, error: errors[0] });
         }
 
         const existingCoupon = await Coupon.findById(couponId);
         if (!existingCoupon) {
-            return res.status(404).json({
-                success: false,
-                error: 'Coupon not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.COUPON_NOT_FOUND });
         }
 
-        // Check if coupon code already exists (excluding current coupon)
-        const duplicateCoupon = await Coupon.findOne({ 
+        const duplicateCoupon = await Coupon.findOne({
             code: couponData.code,
             _id: { $ne: couponId }
         });
         if (duplicateCoupon) {
-            return res.status(400).json({
-                success: false,
-                error: 'Coupon code already exists'
-            });
+            return res.status(STATUS.CONFLICT).json({ success: false, error: MSG.COUPON_EXISTS });
         }
 
-        const updatedCoupon = await Coupon.findByIdAndUpdate(
-            couponId,
-            couponData,
-            { new: true }
-        );
+        const updatedCoupon = await Coupon.findByIdAndUpdate(couponId, couponData, { new: true });
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
-            message: 'Coupon updated successfully',
+            message: MSG.COUPON_UPDATED,
             coupon: updatedCoupon
         });
     } catch (error) {
         console.error('Error in updateCoupon:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update coupon'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.COUPON_UPDATE_FAILED });
     }
 };
 
@@ -221,24 +194,15 @@ const deleteCoupon = async (req, res) => {
         const coupon = await Coupon.findById(couponId);
 
         if (!coupon) {
-            return res.status(404).json({
-                success: false,
-                error: 'Coupon not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.COUPON_NOT_FOUND });
         }
 
         await Coupon.findByIdAndDelete(couponId);
 
-        res.json({
-            success: true,
-            message: 'Coupon deleted successfully'
-        });
+        res.status(STATUS.OK).json({ success: true, message: MSG.COUPON_DELETED });
     } catch (error) {
         console.error('Error in deleteCoupon:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to delete coupon'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.COUPON_DELETE_FAILED });
     }
 };
 
@@ -248,22 +212,13 @@ const getCouponById = async (req, res) => {
         const coupon = await Coupon.findById(couponId);
 
         if (!coupon) {
-            return res.status(404).json({
-                success: false,
-                error: 'Coupon not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.COUPON_NOT_FOUND });
         }
 
-        res.json({
-            success: true,
-            coupon: coupon
-        });
+        res.status(STATUS.OK).json({ success: true, coupon });
     } catch (error) {
         console.error('Error in getCouponById:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to load coupon data'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.COUPON_LOAD_FAILED });
     }
 };
 

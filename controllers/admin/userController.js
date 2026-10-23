@@ -1,5 +1,6 @@
 const User = require('../../models/userSchema');
-
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 const validateUser = async (userData, userId = null) => {
     const errors = [];
@@ -11,7 +12,6 @@ const validateUser = async (userData, userId = null) => {
     if (!userData.email?.trim()) {
         errors.push('Email is required');
     } else {
-      
         const existingUser = await User.findOne({
             email: { $regex: new RegExp(`^${userData.email}$`, 'i') },
             _id: { $ne: userId },
@@ -36,29 +36,20 @@ const toggleUserStatus = async (req, res) => {
         const user = await User.findById(userId);
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.USER_NOT_FOUND });
         }
 
-     
         user.isActive = !user.isActive;
         await user.save();
 
-        res.json({
-            success: true,
-            message: `User ${user.isActive ? 'unblocked' : 'blocked'} successfully`
-        });
+        const message = user.isActive ? MSG.USER_UNBLOCKED_SUCCESS : MSG.USER_BLOCKED_SUCCESS;
+
+        res.status(STATUS.OK).json({ success: true, message });
     } catch (error) {
         console.error('Error in toggleUserStatus:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update user status'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
-
 
 const deleteUser = async (req, res) => {
     try {
@@ -66,28 +57,18 @@ const deleteUser = async (req, res) => {
         const user = await User.findById(userId);
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.USER_NOT_FOUND });
         }
 
-        user.isDeleted = true; 
+        user.isDeleted = true;
         await user.save();
 
-        res.json({
-            success: true,
-            message: 'User deleted successfully'
-        });
+        res.status(STATUS.OK).json({ success: true, message: MSG.USER_DELETED });
     } catch (error) {
         console.error('Error in deleteUser:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to delete user'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.INTERNAL_ERROR });
     }
 };
-
 
 const getUserById = async (req, res) => {
     try {
@@ -95,37 +76,26 @@ const getUserById = async (req, res) => {
         const user = await User.findById(userId);
 
         if (!user || user.isDeleted) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found'
-            });
+            return res.status(STATUS.NOT_FOUND).json({ success: false, error: MSG.USER_NOT_FOUND });
         }
 
-        res.json({
-            success: true,
-            user
-        });
+        res.status(STATUS.OK).json({ success: true, user });
     } catch (error) {
         console.error('Error in getUserById:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to load user data'
-        });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, error: MSG.USER_LOAD_FAILED });
     }
 };
 
-
-const listUsers = async (req, res) => {
+const listUsers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 5; 
+        const limit = 5;
         const skip = (page - 1) * limit;
         const search = req.query.search || '';
 
-     
         if (page < 1) {
-            return res.status(400).render('admin/userManagement', {
-                error: 'Invalid page number',
+            return res.status(STATUS.BAD_REQUEST).render('admin/userManagement', {
+                error: MSG.INVALID_INPUT,
                 users: [],
                 currentPage: 1,
                 totalPages: 0,
@@ -144,17 +114,10 @@ const listUsers = async (req, res) => {
             })
         };
 
-    
-        // console.log('Search Query:', searchQuery);
-
-    
         const users = await User.find(searchQuery)
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 });
-
-     
-        // console.log('Fetched Users:', users);
 
         const totalUsers = await User.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalUsers / limit);
@@ -168,14 +131,7 @@ const listUsers = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in listUsers:', error);
-        res.status(500).render('admin/userManagement', {
-            error: 'Failed to load user data',
-            users: [],
-            currentPage: 1,
-            totalPages: 0,
-            totalUsers: 0,
-            searchQuery: ''
-        });
+        next(new AppError(MSG.USER_LOAD_FAILED, STATUS.INTERNAL_ERROR));
     }
 };
 
@@ -184,6 +140,5 @@ module.exports = {
     toggleUserStatus,
     deleteUser,
     getUserById,
-    listUsers,
-    validateUser,
+    listUsers
 };

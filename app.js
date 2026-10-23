@@ -9,6 +9,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const userRouter = require("./routes/userRouter")
 const adminRouter = require("./routes/adminRouter")
+const errorHandler = require("./middlewares/errorHandler")
 // const { checkPendingStockRestorations } = require('./middlewares/stockMiddleware');
 db()
 const passport = require('passport'); 
@@ -42,18 +43,22 @@ app.use(morgan('dev'))
 
 
 
-app.use("/", userRouter);
-app.use("/admin",adminRouter);
-
+// Set user local for all views
 app.use((req, res, next) => {
     res.locals.user = req.session.user || null; 
     next();
 });
 
+app.use("/", userRouter);
+app.use("/admin",adminRouter);
 
+// 404 handler — must come after all routes
 app.use((req, res, next) => {
-    res.status(404).render("page-404");
+    res.status(404).render("page-404", { user: req.session?.user || null });
 });
+
+// Global error handler — must be last
+app.use(errorHandler);
 
 app.listen(process.env.PORT,()=>{
     console.log("server running")

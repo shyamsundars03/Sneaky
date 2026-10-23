@@ -145,6 +145,21 @@ const loadCheckout1 = async (req, res) => {
         // Use the prices stored in session
         const cartTotal = req.session.checkoutData.cart.total;
 
+
+console.log("loading check out 1",{ 
+            cart: req.session.checkoutData.cart,
+            addresses,
+            shippingCost: req.session.checkoutData.shippingCost || 100,
+            shippingMethod: req.session.checkoutData.shippingMethod || 'Standard',
+            user: req.user,
+            couponApplied: req.session.checkoutData.couponCode ? true : false,
+            couponCode: req.session.checkoutData.couponCode || '',
+            discountAmount: req.session.checkoutData.discountAmount || 0,
+            cartTotal: cartTotal
+        })
+
+
+
         res.render("checkout1", { 
             cart: req.session.checkoutData.cart,
             addresses,
@@ -218,11 +233,29 @@ const loadCheckout2 = async (req, res) => {
         // Check COD eligibility
         const isCODAllowed = total <= 7000;
 
-        console.log("Shipping Cost:", shippingCost);
-        console.log("Discount Amount:", discountAmount);
-        console.log("Cart Total:", subtotal);
-        console.log("Total Amount:", total);
+        // console.log("Shipping Cost:", shippingCost);
+        // console.log("Discount Amount:", discountAmount);
+        // console.log("Cart Total:", subtotal);
+        // console.log("Total Amount:", total);
         
+
+console.log("loading checkout 2",{ 
+            cart: checkoutData.cart,
+            user: req.user,
+            walletBalance: user.wallet?.balance || 0,
+            shippingCost: shippingCost,
+            isCODAllowed,
+            selectedAddress: checkoutData.selectedAddress,
+            shippingMethod: checkoutData.shippingMethod,
+            couponCode: checkoutData.couponCode || '',
+            discountAmount: discountAmount,
+            totalAmount: total,
+            cartTotal: subtotal
+        })
+
+
+
+
         res.render("checkout2", { 
             cart: checkoutData.cart,
             user: req.user,
@@ -283,7 +316,21 @@ const loadCheckout3 = async (req, res) => {
         const totalAmount = cartTotal + shippingCost - discountAmount;
 
 
-       
+       console.log("loading checkout 3",{
+            orderItems: populatedItems,
+            user: req.user,
+            shippingCost: shippingCost,
+            shippingAddress: checkoutData.selectedAddress,
+            shippingMethod: checkoutData.shippingMethod,
+            paymentMethod: checkoutData.paymentMethod,
+            couponCode: checkoutData.couponCode || '',
+            discountAmount: discountAmount,
+            totalAmount: totalAmount,
+            cartTotal: cartTotal,
+            checkoutData: checkoutData ,
+  
+        
+        })
 
 
         res.render("checkout3", {

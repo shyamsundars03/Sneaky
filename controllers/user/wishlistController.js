@@ -1,7 +1,9 @@
 const Wishlist = require("../../models/wishlistSchema");
 const Product = require("../../models/productSchema");
 const usercollection = require("../../models/userSchema");
-const Offer = require("../../models/offerSchema"); 
+const Offer = require("../../models/offerSchema");
+const AppError = require('../../utils/AppError');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 
 // Load Wishlist Page
@@ -41,7 +43,7 @@ const loadWishlist = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading wishlist page:", error);
-        res.status(500).render("page-404");
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 
@@ -54,9 +56,9 @@ const toggleWishlist = async (req, res) => {
         // Get product with populated category
         const product = await Product.findById(productId).populate('category');
         if (!product) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Product not found." 
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: MSG.PRODUCT_NOT_FOUND
             });
         }
 
@@ -116,17 +118,17 @@ const toggleWishlist = async (req, res) => {
 
         await wishlist.save();
 
-        res.json({ 
-            success: true, 
-            message: existingItemIndex !== -1 ? "Removed from Wishlist!" : "Added to Wishlist!",
-            price: existingItemIndex === -1 ? finalPrice : null 
+        res.status(STATUS.OK).json({
+            success: true,
+            message: existingItemIndex !== -1 ? MSG.WISHLIST_REMOVED : MSG.WISHLIST_ADDED,
+            price: existingItemIndex === -1 ? finalPrice : null
         });
     } catch (error) {
         console.error("Error toggling wishlist:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to update the wishlist.",
-            error: error.message 
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MSG.WISHLIST_UPDATE_FAILED,
+            error: error.message
         });
     }
 };
@@ -143,10 +145,10 @@ const getWishlistStatus = async (req, res) => {
         }
 
         const wishlistItems = wishlist.wishlistItems.map(item => item.product.toString());
-        res.json({ success: true, wishlistItems });
+        res.status(STATUS.OK).json({ success: true, wishlistItems });
     } catch (error) {
         console.error("Error fetching wishlist status:", error);
-        res.status(500).json({ success: false, message: "Failed to fetch wishlist status." });
+        res.status(STATUS.INTERNAL_ERROR).json({ success: false, message: MSG.WISHLIST_LOAD_FAILED });
     }
 };
 
