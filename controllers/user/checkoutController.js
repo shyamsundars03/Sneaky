@@ -6,6 +6,7 @@ const Product = require("../../models/productSchema");
 const Coupon = require("../../models/couponSchema");
 const { calculateCurrentPrice } = require('./cartController');
 const mongoose = require('mongoose');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 
 // // Helper function to validate cart items
@@ -78,7 +79,7 @@ const initializeCheckout = async (req) => {
         });
 
     if (!cart || cart.cartItems.length === 0) {
-        throw new Error("Your cart is empty");
+        throw new Error(MSG.CART_EMPTY);
     }
 
     // Validate cart items and get current prices
@@ -111,7 +112,7 @@ const initializeCheckout = async (req) => {
     }
 
     if (validItems.length === 0) {
-        throw new Error("All items in your cart are currently unavailable");
+        throw new Error(MSG.PRODUCT_UNAVAILABLE);
     }
 
     // Initialize session data

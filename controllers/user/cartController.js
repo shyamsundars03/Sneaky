@@ -335,7 +335,7 @@ const updateQuantity = async (req, res) => {
             if (item.quantity <= 1) {
                 return res.status(STATUS.BAD_REQUEST).json({
                     success: false,
-                    message: "Minimum quantity is 1"
+                    message: MSG.MINIMUM_QUANTITY
                 });
             }
             item.quantity -= 1;
@@ -353,7 +353,7 @@ const updateQuantity = async (req, res) => {
             cartTotal += itemPrice * cartItem.quantity;
         }
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             newQuantity: item.quantity,
             newPrice: itemTotal,
@@ -489,7 +489,7 @@ const proceedToCheckout = async (req, res) => {
                 });
             }
 
-            return res.status(400).json({
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
                 needsAttention: true,
                 message: errorMessage,
@@ -498,7 +498,7 @@ const proceedToCheckout = async (req, res) => {
             });
         }
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             redirect: '/checkout1'
         });

@@ -2,6 +2,7 @@ const User = require("../../models/userSchema");
 const mongoose = require("mongoose");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 // Initialize Razorpay with proper error handling
 let razorpay;
@@ -24,7 +25,7 @@ const loadWallet = async (req, res) => {
     const user = await User.findById(userId).lean();
 
     if (!user) {
-      return res.status(404).render("page-404", { message: "User not found." });
+      return res.status(STATUS.NOT_FOUND).render("page-404", { message: MSG.USER_NOT_FOUND });
     }
 
     //  wallet exists
@@ -58,7 +59,7 @@ const loadWallet = async (req, res) => {
     });
   } catch (error) {
     console.error("Error loading wallet:", error);
-    res.status(500).render("page-404", { message: "Failed to load wallet." });
+    res.status(STATUS.INTERNAL_ERROR).render("page-404", { message: MSG.WALLET_LOAD_FAILED });
   }
 };
 
@@ -69,15 +70,15 @@ const addFundsRazorpay = async (req, res) => {
     const userId = req.user._id;
 
     if (!amount || amount < 1) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Minimum amount is ₹1"
+        message: MSG.WALLET_MIN_AMOUNT
       });
     }
     if (amount > 20000) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Maximum amount allowed is ₹20,000"
+        message: MSG.WALLET_MAX_AMOUNT
       });
     }
     
@@ -125,9 +126,9 @@ const addFundsRazorpay = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating Razorpay order:", error);
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: "Failed to initialize payment: " + error.message
+      message: MSG.WALLET_TOPUP_FAILED + ': ' + error.message
     });
   }
 };
@@ -203,14 +204,14 @@ const verifyRazorpayPayment = async (req, res) => {
     res.json({
       success: true,
       balance: user.wallet.balance,
-      message: `₹${paymentAmount} added to wallet successfully`
+      message: `₹${paymentAmount} ${MSG.WALLET_TOPUP_SUCCESS}`
     });
   } catch (error) {
     await session.abortTransaction();
     console.error("Error verifying payment:", error);
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: "Failed to verify payment: " + error.message
+      message: MSG.WALLET_VERIFY_FAILED + ': ' + error.message
     });
   } finally {
     session.endSession();

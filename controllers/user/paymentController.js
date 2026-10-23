@@ -6,6 +6,7 @@ const Coupon = require("../../models/couponSchema");
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 
 // Initialize Razorpay with proper error handling
 let razorpay;
@@ -25,7 +26,7 @@ const processCOD = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error("Session expired. Please restart checkout.");
+            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -40,9 +41,9 @@ const processCOD = async (req, res) => {
   
         if (totalAmount > 7000) {
             await session.abortTransaction();
-            return res.status(400).json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 success: false, 
-                message: "Cash on Delivery available only for orders below ₹7000",
+                message: MSG.COD_LIMIT_EXCEEDED,
                 limitExceeded: true
             });
         }
@@ -122,7 +123,7 @@ const processCOD = async (req, res) => {
 
         await session.commitTransaction();
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             orderId: order._id,
             redirectUrl: `/order-success/${order._id}`
@@ -131,9 +132,9 @@ const processCOD = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("COD processing error:", error);
-        res.status(400).json({
+        res.status(STATUS.BAD_REQUEST).json({
             success: false,
-            message: error.message || "Failed to process COD payment"
+            message: error.message || MSG.COD_PROCESSING_FAILED
         });
     } finally {
         session.endSession();
@@ -147,7 +148,7 @@ const processWallet = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error("Session expired. Please restart checkout.");
+            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -155,7 +156,7 @@ const processWallet = async (req, res) => {
         const user = await User.findById(userId).session(session);
 
         if (!user) {
-            throw new Error("User not found");
+            throw new Error(MSG.USER_NOT_FOUND);
         }
 
         // Calculate final amount
@@ -166,7 +167,7 @@ const processWallet = async (req, res) => {
 
         // Check wallet balance
         if (user.wallet.balance < totalAmount) {
-            throw new Error(`Insufficient wallet balance. Available: ₹${user.wallet.balance.toFixed(2)}, Required: ₹${totalAmount.toFixed(2)}`);
+            throw new Error(`${MSG.WALLET_INSUFFICIENT} Available: ₹${user.wallet.balance.toFixed(2)}, Required: ₹${totalAmount.toFixed(2)}`);
         }
 
         // order
@@ -228,7 +229,7 @@ const processWallet = async (req, res) => {
 
         await session.commitTransaction();
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             orderId: order._id,
             redirectUrl: `/order-success/${order._id}`
@@ -237,9 +238,9 @@ const processWallet = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Wallet processing error:", error);
-        res.status(400).json({
+        res.status(STATUS.BAD_REQUEST).json({
             success: false,
-            message: error.message || "Failed to process wallet payment"
+            message: error.message || MSG.WALLET_PAYMENT_FAILED
         });
     } finally {
         session.endSession();
@@ -253,7 +254,7 @@ const processRazorpay = async (req, res) => {
     
     try {
         if (!req.session.checkoutData) {
-            throw new Error("Session expired. Please restart checkout.");
+            throw new Error(MSG.CHECKOUT_SESSION_EXPIRED);
         }
 
         const checkoutData = req.session.checkoutData;
@@ -333,7 +334,7 @@ const processRazorpay = async (req, res) => {
         await req.session.save();
         await session.commitTransaction();
 
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             orderId: order._id,
             razorpayOrderId: razorpayOrder.id, 
@@ -343,9 +344,9 @@ const processRazorpay = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Razorpay processing error:", error);
-        res.status(400).json({
+        res.status(STATUS.BAD_REQUEST).json({
             success: false,
-            message: error.message || "Failed to process Razorpay payment"
+            message: error.message || MSG.RAZORPAY_PROCESSING_FAILED
         });
     } finally {
         session.endSession();
@@ -363,7 +364,7 @@ const verifyRazorpay = async (req, res) => {
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
-            throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+            throw new Error(`${MSG.PAYMENT_FIELDS_MISSING}: ${missingFields.join(', ')}`);
         }
 
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
@@ -375,13 +376,13 @@ const verifyRazorpay = async (req, res) => {
             .digest('hex');
 
         if (generatedSignature !== razorpay_signature) {
-            throw new Error("Payment verification failed - signature mismatch");
+            throw new Error(MSG.PAYMENT_SIGNATURE_MISMATCH);
         }
 
         // Find the order
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error("Order not found");
+            throw new Error(MSG.ORDER_NOT_FOUND);
         }
 
         // Update order status
@@ -419,7 +420,7 @@ const verifyRazorpay = async (req, res) => {
 
         await session.commitTransaction();
 
-        return res.json({ 
+        return res.status(STATUS.OK).json({ 
             success: true,
             orderId: order._id
         });
@@ -440,9 +441,9 @@ const verifyRazorpay = async (req, res) => {
             }
         }
 
-        return res.status(400).json({ 
+        return res.status(STATUS.BAD_REQUEST).json({ 
             success: false,
-            message: error.message || "Payment verification failed",
+            message: error.message || MSG.PAYMENT_VERIFY_FAILED,
             orderId: req.body.orderId
         });
     } finally {
@@ -460,12 +461,12 @@ const retryPayment = async (req, res) => {
         const order = await Order.findById(orderId).session(session);
         
         if (!order) {
-            throw new Error("Order not found");
+            throw new Error(MSG.ORDER_NOT_FOUND);
         }
         
         // Only allow retry for orders in Payment Processing or Failed status
         if (order.status !== "Payment Processing" && order.status !== "Failed") {
-            throw new Error("This order cannot be retried");
+            throw new Error(MSG.PAYMENT_RETRY_NOT_ALLOWED);
         }
 
 
@@ -497,7 +498,7 @@ const retryPayment = async (req, res) => {
         await session.commitTransaction();
 
       
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
             orderId: order._id,
             razorpayOrderId: razorpayOrder.id,
@@ -508,9 +509,9 @@ const retryPayment = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Retry Payment Error:", error);
-        res.status(400).json({
+        res.status(STATUS.BAD_REQUEST).json({
             success: false,
-            message: error.message || "Failed to retry payment"
+            message: error.message || MSG.PAYMENT_RETRY_FAILED
         });
     } finally {
         session.endSession();
@@ -528,7 +529,7 @@ const verifyRetryPayment = async (req, res) => {
         const missingFields = requiredFields.filter(field => !req.body[field]);
         
         if (missingFields.length > 0) {
-            throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+            throw new Error(`${MSG.PAYMENT_FIELDS_MISSING}: ${missingFields.join(', ')}`);
         }
 
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
@@ -540,13 +541,13 @@ const verifyRetryPayment = async (req, res) => {
             .digest('hex');
 
         if (generatedSignature !== razorpay_signature) {
-            throw new Error("Payment verification failed - signature mismatch");
+            throw new Error(MSG.PAYMENT_SIGNATURE_MISMATCH);
         }
 
     
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error("Order not found");
+            throw new Error(MSG.ORDER_NOT_FOUND);
         }
 
         order.status = 'Ordered';
@@ -581,7 +582,7 @@ const verifyRetryPayment = async (req, res) => {
 
         await session.commitTransaction();
 
-        res.json({ 
+        res.status(STATUS.OK).json({ 
             success: true,
             orderId: order._id,
             redirectUrl: `/order-success/${order._id}`
@@ -604,9 +605,9 @@ const verifyRetryPayment = async (req, res) => {
             }
         }
 
-        res.status(400).json({ 
+        res.status(STATUS.BAD_REQUEST).json({ 
             success: false,
-            message: error.message || "Payment verification failed",
+            message: error.message || MSG.PAYMENT_VERIFY_FAILED,
             orderId: req.body.orderId
         });
     } finally {
@@ -621,21 +622,27 @@ const validateCoupon = async (req, res) => {
         const userId = req.user._id; 
         
         if (!couponCode || !totalAmount) {
-            return res.json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 valid: false, 
-                message: "Coupon code and total amount are required" 
+                message: MSG.MISSING_FIELDS
             });
         }
 
         const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
 
         if (!coupon) {
-            return res.json({ valid: false, message: "Invalid coupon code" });
+            return res.status(STATUS.NOT_FOUND).json({ 
+                valid: false, 
+                message: MSG.COUPON_INVALID
+            });
         }
 
         const currentDate = new Date();
         if (currentDate < coupon.startDate || currentDate > coupon.endDate) {
-            return res.json({ valid: false, message: "Coupon has expired" });
+            return res.status(STATUS.BAD_REQUEST).json({ 
+                valid: false, 
+                message: MSG.COUPON_INVALID
+            });
         }
 
  
@@ -646,16 +653,16 @@ const validateCoupon = async (req, res) => {
         });
 
         if (existingOrder) {
-            return res.json({
+            return res.status(STATUS.BAD_REQUEST).json({
                 valid: false,
-                message: 'You have already used this coupon'
+                message: MSG.COUPON_ALREADY_USED
             });
         }
 
         if (totalAmount < coupon.minPurchase) {
-            return res.json({ 
+            return res.status(STATUS.BAD_REQUEST).json({ 
                 valid: false, 
-                message: `Minimum purchase of ₹${coupon.minPurchase} required` 
+                message: `${MSG.COUPON_MIN_PURCHASE} ₹${coupon.minPurchase}`
             });
         }
 
@@ -669,15 +676,18 @@ const validateCoupon = async (req, res) => {
             await req.session.save();
         }
 
-        res.json({ 
+        res.status(STATUS.OK).json({ 
             valid: true,
             discountAmount,
             finalAmount,
-            message: `Coupon applied! You saved ₹${discountAmount.toFixed(2)}`
+            message: MSG.COUPON_APPLIED
         });
     } catch (error) {
         console.error("Error in coupon validation:", error);
-        res.status(500).json({ valid: false, message: "Error validating coupon" });
+        res.status(STATUS.INTERNAL_ERROR).json({ 
+            valid: false, 
+            message: MSG.COUPON_VALIDATION_FAILED
+        });
     }
 };
 
@@ -690,12 +700,12 @@ const saveFailedOrder = async (req, res) => {
         const { orderId, errorDetails } = req.body;
         
         if (!orderId) {
-            throw new Error("Order ID is required");
+            throw new Error(MSG.ORDER_NOT_FOUND);
         }
         
         const order = await Order.findById(orderId).session(session);
         if (!order) {
-            throw new Error("Order not found");
+            throw new Error(MSG.ORDER_NOT_FOUND);
         }
         
         order.status ='Payment Processing';
@@ -705,7 +715,7 @@ const saveFailedOrder = async (req, res) => {
         
         await session.commitTransaction();
         
-        res.json({ 
+        res.status(STATUS.OK).json({ 
             success: true, 
             orderId: order._id,
             redirectUrl: `/order-failed/${order._id}`
@@ -713,9 +723,9 @@ const saveFailedOrder = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Error saving failed order:", error);
-        res.status(500).json({ 
+        res.status(STATUS.INTERNAL_ERROR).json({ 
             success: false,
-            message: error.message || "Failed to save order status"
+            message: error.message || MSG.PAYMENT_STATUS_UPDATE_FAILED
         });
     } finally {
         session.endSession();

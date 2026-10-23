@@ -5,6 +5,7 @@ const Product = require('../../models/productSchema');
 const { generateInvoice } = require('../../services/invoiceService');
 const { generateUserInvoice } = require('../../services/invoice');
 const fs = require('fs');
+const { STATUS, MSG } = require('../../utils/responseConstants');
 // Load orders page
 const loadOrder = async (req, res) => {
     try {
@@ -73,7 +74,7 @@ const processedOrders = orders.map(order => {
         });
     } catch (error) {
         console.error("Error loading orders:", error);
-        res.status(500).render("page-404");
+        res.status(STATUS.INTERNAL_ERROR).render("page-404");
     }
 };
 
@@ -97,7 +98,7 @@ const loadSingleOrder = async (req, res) => {
         });
 
         if (!order) {
-            return res.status(404).render("page-404", { message: "Order not found." });
+            return res.status(STATUS.NOT_FOUND).render("page-404", { message: MSG.ORDER_NOT_FOUND });
         }
 
         // Calculate totals
@@ -159,7 +160,7 @@ const loadSingleOrder = async (req, res) => {
         });
     } catch (error) {
         console.error("Error loading single order:", error);
-        res.status(500).render("page-404", { message: "Failed to load order details." });
+        res.status(STATUS.INTERNAL_ERROR).render("page-404", { message: MSG.ORDER_LOAD_FAILED });
     }
 };
 
@@ -181,6 +182,7 @@ const loadOrderSuccess = async (req, res) => {
             transactionId: order.transactionId
         });
     } catch (error) {
+        console.error("Error loading order success:", error);
         res.redirect('/orders');
     }
 };
@@ -204,6 +206,7 @@ const loadOrderFailed = async (req, res) => {
             transactionId: order.transactionId
         });
     } catch (error) {
+        console.error("Error loading order failed:", error);
         res.redirect('/cart');
     }
 };
@@ -218,9 +221,9 @@ const cancelOrder = async (req, res) => {
 
     if (!reason || reason.trim().length < 5) {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Please provide a valid reason for cancellation (minimum 5 characters).",
+        message: MSG.ORDER_CANCEL_REASON,
       })
     }
 
@@ -237,9 +240,9 @@ const cancelOrder = async (req, res) => {
 
     if (!order) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Order not found or unauthorized.",
+        message: MSG.ORDER_NOT_FOUND,
       })
     }
 
@@ -247,18 +250,18 @@ const cancelOrder = async (req, res) => {
     const cancellableStatuses = ["Pending", "Ordered", "Processing", "Shipped"]
     if (!cancellableStatuses.includes(order.status)) {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Order can only be cancelled before delivery.",
+        message: MSG.ORDER_ONLY_BEFORE_DELIVERY,
       })
     }
 
     // Prevent duplicate refunds
     if (order.refundProcessed) {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Refund already processed for this order.",
+        message: MSG.ORDER_REFUND_PROCESSED,
       })
     }
 
@@ -362,17 +365,17 @@ const cancelOrderItem = async (req, res) => {
 
     if (!reason || reason.trim().length < 5) {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Please provide a valid reason for cancellation (minimum 5 characters).",
+        message: MSG.ORDER_CANCEL_REASON,
       })
     }
 
     if (!req.user || !req.user._id) {
       await session.abortTransaction()
-      return res.status(401).json({
+      return res.status(STATUS.UNAUTHORIZED).json({
         success: false,
-        message: "User not authenticated.",
+        message: MSG.USER_NOT_AUTHENTICATED,
       })
     }
 
@@ -388,25 +391,25 @@ const cancelOrderItem = async (req, res) => {
 
     if (!order) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Order not found.",
+        message: MSG.ORDER_NOT_FOUND,
       })
     }
 
     const item = order.items.id(itemId)
     if (!item) {
       await session.abortTransaction()
-      return res.status(404).json({
+      return res.status(STATUS.NOT_FOUND).json({
         success: false,
-        message: "Item not found in order.",
+        message: MSG.ORDER_ITEM_NOT_FOUND,
       })
     }
 
     // Prevent duplicate cancellations/refunds
     if (item.status === "Cancelled" || item.status === "Returned") {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
         message: `Item already ${item.status.toLowerCase()}.`,
       })
@@ -416,9 +419,9 @@ const cancelOrderItem = async (req, res) => {
     const cancellableStatuses = ["Pending", "Ordered", "Processing", "Shipped"]
     if (!cancellableStatuses.includes(item.status)) {
       await session.abortTransaction()
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Item can only be cancelled before delivery.",
+        message: MSG.ORDER_ONLY_BEFORE_DELIVERY,
       })
     }
 
@@ -530,7 +533,7 @@ const cancelOrderItem = async (req, res) => {
     await order.save({ session })
     await session.commitTransaction()
 
-    let responseMessage = `Item cancelled successfully. Stock has been restored.`
+    let responseMessage = MSG.ORDER_ITEM_CANCELLED
     let refundAmount = 0
 
     if (shouldProcessRefund) {
@@ -538,7 +541,7 @@ const cancelOrderItem = async (req, res) => {
       responseMessage += ` ₹${refundAmount} refunded to wallet.`
     }
 
-    res.json({
+    res.status(STATUS.OK).json({
       success: true,
       message: responseMessage,
       refundAmount: refundAmount,
@@ -546,9 +549,9 @@ const cancelOrderItem = async (req, res) => {
   } catch (error) {
     await session.abortTransaction()
     console.error("Error cancelling item:", error)
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: error.message || "Failed to cancel item.",
+      message: error.message || MSG.ORDER_ITEM_CANCEL_FAILED,
     })
   } finally {
     session.endSession()
@@ -565,10 +568,10 @@ const returnOrder = async (req, res) => {
         const { orderId, reason } = req.body;
   
         if (!reason || reason.trim().length < 10) {
-            await session.abortTransaction();
-            return res.status(400).json({
+            await session.abortTransaction()
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: "Please provide a detailed reason for return (minimum 10 characters).",
+                message: MSG.RETURN_REASON_REQUIRED,
             });
         }
   
@@ -581,10 +584,10 @@ const returnOrder = async (req, res) => {
         .session(session);
   
         if (!order) {
-            await session.abortTransaction();
-            return res.status(404).json({
+            await session.abortTransaction()
+            return res.status(STATUS.NOT_FOUND).json({
                 success: false,
-                message: "Order not found or not eligible for return.",
+                message: MSG.ORDER_NOT_ELIGIBLE_RETURN,
             });
         }
   
@@ -604,16 +607,16 @@ const returnOrder = async (req, res) => {
         await order.save({ session });
         await session.commitTransaction();
   
-        res.status(200).json({
+        res.status(STATUS.OK).json({
             success: true,
-            message: "Return request submitted for admin verification.",
+            message: MSG.RETURN_SUBMITTED,
         });
     } catch (error) {
         await session.abortTransaction();
         console.error("Error returning order:", error);
-        res.status(500).json({
+        res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            message: error.message || "Failed to submit return request.",
+            message: error.message || MSG.RETURN_FAILED,
         });
     } finally {
         session.endSession();
@@ -629,10 +632,10 @@ const returnOrderItem = async (req, res) => {
         const { orderId, itemIndex, reason } = req.body;
   
         if (!reason || reason.trim().length < 10) {
-            await session.abortTransaction();
-            return res.status(400).json({
+            await session.abortTransaction()
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: "Please provide a detailed reason for return (minimum 10 characters).",
+                message: MSG.RETURN_REASON_REQUIRED,
             });
         }
   
@@ -647,18 +650,18 @@ const returnOrderItem = async (req, res) => {
         .session(session);
   
         if (!order || itemIndex >= order.items.length) {
-            await session.abortTransaction();
-            return res.status(404).json({
+            await session.abortTransaction()
+            return res.status(STATUS.NOT_FOUND).json({
                 success: false,
-                message: "Order or item not found.",
+                message: MSG.ORDER_ITEM_NOT_FOUND,
             });
         }
   
         if (order.status !== "Delivered") {
-            await session.abortTransaction();
-            return res.status(400).json({
+            await session.abortTransaction()
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: "Only delivered orders can be returned.",
+                message: MSG.ONLY_DELIVERED_RETURN,
             });
         }
   
@@ -666,8 +669,8 @@ const returnOrderItem = async (req, res) => {
   
   
         if (item.status !== "Delivered") {
-            await session.abortTransaction();
-            return res.status(400).json({
+            await session.abortTransaction()
+            return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
                 message: `Item is ${item.status.toLowerCase()}, cannot be returned.`,
             });
@@ -685,17 +688,17 @@ const returnOrderItem = async (req, res) => {
         await order.save({ session });
         await session.commitTransaction();
   
-        res.json({
+        res.status(STATUS.OK).json({
             success: true,
-            message: "Return request submitted for admin approval",
+            message: MSG.RETURN_ITEM_SUBMITTED,
             returnedItem: item,
         });
     } catch (error) {
         await session.abortTransaction();
         console.error("Error returning item:", error);
-        res.status(500).json({
+        res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            message: error.message || "Failed to submit return request.",
+            message: error.message || MSG.RETURN_ITEM_FAILED,
         });
     } finally {
         session.endSession();
@@ -730,8 +733,8 @@ const downloadInvoice = async (req, res) => {
         });
         
         if (!order) {
-            return res.status(404).render("page-404", { 
-                message: "Order not found or unauthorized." 
+            return res.status(STATUS.NOT_FOUND).render("page-404", { 
+                message: MSG.ORDER_NOT_FOUND
             });
         }
         
@@ -742,8 +745,8 @@ const downloadInvoice = async (req, res) => {
             if (err) {
                 console.error('Error sending invoice:', err);
                 if (!res.headersSent) {
-                    res.status(500).render("page-404", { 
-                        message: "Failed to download invoice." 
+                    res.status(STATUS.INTERNAL_ERROR).render("page-404", { 
+                        message: MSG.INVOICE_DOWNLOAD_FAILED
                     });
                 }
             }
@@ -751,8 +754,8 @@ const downloadInvoice = async (req, res) => {
         });
     } catch (error) {
         console.error("Error generating invoice:", error);
-        res.status(500).render("page-404", { 
-            message: "Failed to generate invoice." 
+        res.status(STATUS.INTERNAL_ERROR).render("page-404", { 
+            message: MSG.INVOICE_GENERATION_FAILED
         });
     }
 };
